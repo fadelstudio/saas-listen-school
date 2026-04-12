@@ -1,0 +1,105 @@
+# ============================================================
+# AFI LISTEN BACKEND — PROJECT RULES (Cursor / Copilot / Any AI)
+# ============================================================
+# These rules are MANDATORY. Every generated file must comply.
+# Non-compliant code must be refused or rewritten immediately.
+# ============================================================
+
+## 🧱 STACK LOCKED
+
+- Runtime : Node.js 18+, Express 5 (latest stable), TypeScript (strict).
+- Prisma 7.x : 
+  - ALWAYS use Driver Adapters (`@prisma/adapter-pg` + `pg`).
+  - NEVER use `url` in `schema.prisma`. Use `prisma.config.ts`.
+  - Re-generate client after any schema change (`npx prisma generate`).
+- BullMQ 5.x : For background jobs (requires `maxRetriesPerRequest: null`).
+- Zod : MANDATORY for ALL validations (body, params, query).
+- Auth : JWT (jsonwebtoken) + bcrypt.
+- DB : PostgreSQL via Supabase.
+
+## 📁 FOLDER ARCHITECTURE — IMMUTABLE
+
+```
+src/
+ ├── modules/
+ │    ├── auth/            → controller, service, schema, route, types
+ │    ├── reports/         → controller, service, schema, route, types
+ │    ├── evaluations/     → controller, service, schema, route, types
+ │    ├── ai/              → controller, service, schema, route, types
+ │    ├── decisions/       → controller, service, schema, route, types
+ │
+ ├── core/
+ │    ├── config/          → env.ts (typed), queue.ts, redis.ts
+ │    ├── database/        → prisma.ts (adapter-based singleton)
+ │    ├── middleware/      → auth.middleware.ts, error.middleware.ts, validate.middleware.ts
+ │    ├── errors/          → AppError.ts
+ │
+ ├── jobs/
+ │    ├── ai.processor.ts  → BullMQ Worker — ALL AI calls go here
+ │
+ ├── utils/                → pure helpers (pagination, response, etc.)
+ │
+ ├── app.ts                → Express app setup
+ ├── server.ts             → HTTP server entrypoint
+```
+
+## 🔐 MODULE STRUCTURE — PER MODULE
+
+Every module MUST have exactly these files:
+
+```
+modules/<name>/
+  ├── <name>.controller.ts   → calls service, returns ApiResponse
+  ├── <name>.service.ts      → business logic, calls repository
+  ├── <name>.repository.ts   → Prisma calls only
+  ├── <name>.schema.ts       → Zod schemas
+  ├── <name>.route.ts        → Express router + validation middleware
+  └── <name>.types.ts        → TS interfaces for the module
+```
+
+## ⚙️ EXPRESS 5 RULES
+
+- **Params Typing** : Always cast `req.params.id as string` (Express 5 types params as `string | string[]`).
+- **Async Handling** : native support for async errors, no need for `express-async-errors`.
+- **Response Format** : Always use `{ success: boolean, message: string, data: any, error: any }`.
+
+## ⚙️ CONTROLLER RULES
+
+- Receives request → Validates (via middleware) → Calls Service → Returns ApiResponse.
+- ZERO business logic.
+- ZERO Prisma calls.
+- ZERO AI calls.
+
+## ⚙️ SERVICE RULES
+
+- Orchestrates logic, calls repositories, enqueues jobs.
+- ZERO Express types (`Request`, `Response`).
+- AI tasks: ALWAYS enqueue a BullMQ job, NEVER call AI API inline.
+- Stateless and strictly typed.
+
+## ⚙️ REPOSITORY RULES
+
+- Only Prisma CRUD operations.
+- No business logic.
+
+## ⚙️ PRISMA / DB RULES
+
+- Singleton client in `src/core/database/prisma.ts`.
+- Use `@prisma/adapter-pg` for direct connections.
+- Migrations only via `npx prisma migrate`.
+
+## 📝 CODE STYLE
+
+- TypeScript strict: `noImplicitAny`, `strictNullChecks` ON.
+- No `any` type — use `unknown` if necessary.
+- Named exports preferred.
+
+## 📌 SCRIPTS (package.json)
+
+```json
+{
+  "dev": "nodemon -w src -e ts --exec \"ts-node src/server.ts\"",
+  "build": "tsc",
+  "start": "node dist/server.js"
+}
+```

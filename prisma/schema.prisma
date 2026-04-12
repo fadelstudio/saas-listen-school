@@ -1,0 +1,354 @@
+// This is your Prisma schema file
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  MANAGER
+  AGENT
+  STUDENT
+  VIEWER
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  REJECTED
+}
+
+enum EvaluationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum DecisionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DEFERRED
+  DONE
+}
+
+enum AiJobStatus {
+  QUEUED
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum ReportType {
+  PROBLEM_MATERIAL
+  PROBLEM_ADMIN
+  PROBLEM_PEDAGOGICAL
+  INCIDENT
+  SUGGESTION
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACADEMIC STRUCTURE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Campus {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes     Class[]
+  users       User[]
+  professors  Professor[] @relation("CampusProfessors")
+
+  @@map("campuses")
+}
+
+model Class {
+  id        String   @id @default(uuid())
+  name      String   // e.g. "L3 Info", "M1 Marketing"
+  levelId   String
+  campusId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus      Campus        @relation(fields: [campusId], references: [id])
+  academicLevel AcademicLevel @relation(fields: [levelId],  references: [id])
+  users       User[]
+  reports     Report[]
+  evaluations Evaluation[]
+  classModules ClassModule[]
+
+  @@map("classes")
+}
+
+model AcademicLevel {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "L1", "Formation Continue", "Certificat X"
+  order     Int      @default(0) // For display order
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes   Class[]
+
+  @@map("academic_levels")
+}
+
+model Module {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "Algorithmique"
+  code      String?  @unique // e.g. "INF-GEN"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classModules ClassModule[]
+  reports      Report[]
+  evaluations  Evaluation[]
+
+  @@map("modules")
+}
+
+model ClassModule {
+  id        String   @id @default(uuid())
+  classId   String
+  moduleId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class       Class       @relation(fields: [classId], references: [id])
+  module      Module      @relation(fields: [moduleId], references: [id])
+  professors  Professor[] // Professors for THIS specific class instance of the module
+
+  @@unique([classId, moduleId])
+  @@map("class_modules")
+}
+
+model Professor {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  userId    String?  @unique // Link to User if they have login access
+  campusId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus      Campus?      @relation("CampusProfessors", fields: [campusId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
+  modules     ClassModule[] // Linked to specific class assignments
+  reports     Report[]
+  evaluations Evaluation[]
+
+  @@map("professors")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER / AUTH
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  matricule    String?  @unique
+  role         Role     @default(STUDENT)
+  isActive     Boolean  @default(true)
+  
+  // Relations
+  campusId     String?
+  classId      String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campus    Campus?    @relation(fields: [campusId], references: [id])
+  class     Class?     @relation(fields: [classId],  references: [id])
+  professor Professor?
+
+  reports     Report[]
+  evaluations Evaluation[]
+  decisions   Decision[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Report {
+  id          String       @id @default(uuid())
+  title       String
+  content     String
+  type        ReportType   @default(OTHER)
+  priority    Priority     @default(MEDIUM)
+  status      ReportStatus @default(DRAFT)
+  isAnonymous Boolean      @default(false)
+  category    String?
+  
+  // Linkage
+  authorId    String?
+  classId     String?
+  professorId String?
+  moduleId    String?
+  
+  // Data
+  attachments Json?        // Array of URLs/Objects
+  aiAnalysis  Json?        // Full structured AI result
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  author      User?        @relation(fields: [authorId],    references: [id])
+  class       Class?       @relation(fields: [classId],     references: [id])
+  professor   Professor?   @relation(fields: [professorId], references: [id])
+  module      Module?      @relation(fields: [moduleId],    references: [id])
+  
+  evaluations Evaluation[]
+  aiJobs      AiJob[]
+
+  @@map("reports")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EVALUATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Evaluation {
+  id          String           @id @default(uuid())
+  reportId    String?
+  evaluatorId String?
+  professorId String
+  moduleId    String
+  classId     String
+  
+  status      EvaluationStatus @default(PENDING)
+  isAnonymous Boolean          @default(false)
+  
+  // Scores (0-20)
+  score       Float?
+  
+  // Detailed Scores (0-5)
+  clarityScore      Float?
+  pedagogyScore     Float?
+  availabilityScore Float?
+  rhythmScore      Float?
+  
+  comment     String?
+  aiScore     Float?           // AI-generated global score
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  report      Report?          @relation(fields: [reportId],    references: [id])
+  evaluator   User?            @relation(fields: [evaluatorId], references: [id])
+  professor   Professor        @relation(fields: [professorId], references: [id])
+  module      Module           @relation(fields: [moduleId],    references: [id])
+  class       Class            @relation(fields: [classId],     references: [id])
+  
+  decision    Decision?
+  aiJobs      AiJob[]
+
+  @@map("evaluations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DECISIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Decision {
+  id           String         @id @default(uuid())
+  evaluationId String         @unique
+  deciderId    String
+  title        String
+  rationale    String?
+  status       DecisionStatus @default(PENDING)
+  priority     Priority       @default(MEDIUM)
+  responsible  String?        // Name or Department
+  dueDate      DateTime?
+  
+  aiSuggestion String?        // AI-generated decision suggestion
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relations
+  evaluation   Evaluation     @relation(fields: [evaluationId], references: [id])
+  decider      User           @relation(fields: [deciderId],    references: [id])
+  aiJobs       AiJob[]
+
+  @@map("decisions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI JOBS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AiJob {
+  id           String      @id @default(uuid())
+  jobType      String      // "report-analysis" | "evaluation-scoring" | "decision-suggestion"
+  status       AiJobStatus @default(QUEUED)
+  payload      Json
+  result       Json?
+  errorMessage String?
+  
+  reportId     String?
+  evaluationId String?
+  decisionId   String?
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  report       Report?     @relation(fields: [reportId],     references: [id])
+  evaluation   Evaluation? @relation(fields: [evaluationId], references: [id])
+  decision     Decision?   @relation(fields: [decisionId],   references: [id])
+
+  @@map("ai_jobs")
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM CONFIGURATION (SaaS Ready)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SystemSettings {
+  id                     String   @id @default(uuid())
+  schoolName             String   @default("AFI")
+  
+  // Auth Toggles
+  authReportsRequired    Boolean  @default(false)
+  authEvaluationsRequired Boolean @default(false)
+  
+  // AI Dynamic Config
+  aiEnabled              Boolean  @default(true)
+  aiConfigs              Json     @default("[]") // Array of { id, name, provider, model, apiKey, priority, isFree }
+  aiOverrideConfigId     String?  // If set, force this model (manual override)
+  
+  updatedAt              DateTime @updatedAt
+
+  @@map("system_settings")
+}

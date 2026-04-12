@@ -1,0 +1,53 @@
+import bcrypt from 'bcrypt';
+import { prisma } from '../../core/database/prisma';
+import { CreateSchoolInput } from './saas.schema';
+import { ConflictError } from '../../core/errors/AppError';
+import { Role } from '@prisma/client';
+
+const SALT_ROUNDS = 12;
+
+export const saasService = {
+  async createSchool(input: CreateSchoolInput) {
+    // 1. Check if email or matricule exists
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: input.adminEmail },
+          { matricule: input.matricule || undefined }
+        ].filter(Boolean) as any
+      }
+    });
+
+    if (existingUser) {
+      throw new ConflictError('Admin with this email or matricule already exists');
+    }
+
+    // 2. Hash password
+    const passwordHash = await bcrypt.hash(input.adminPassword, SALT_ROUNDS);
+
+    // 3. Transaction to create Campus + Admin
+    return prisma.$transaction(async (tx) => {
+      const campus = await tx.campus.create({
+        data: {
+          name: input.name,
+          location: input.location,
+        }
+      });
+
+      const user = await tx.user.create({
+        data: {
+          email: input.adminEmail,
+          passwordHash,
+          firstName: input.adminFirstName,
+          lastName: input.adminLastName,
+          role: Role.ADMIN,
+          campusId: campus.id,
+          matricule: input.matricule,
+          isActive: true
+        }
+      });
+
+      return { campus, user: { id: user.id, email: user.email, role: user.role } };
+    });
+  }
+};
