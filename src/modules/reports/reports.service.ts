@@ -35,6 +35,17 @@ export const reportsService = {
     }
 
     const report = await reportsRepository.create(finalInput, userId);
+
+    // 3. Automatic AI Trigger
+    try {
+      await jobQueue.add('ai-analysis', {
+        type: 'report-analysis',
+        reportId: report.id,
+      });
+    } catch (error) {
+      console.warn('⚠️ Could not auto-enqueue AI analysis (Redis down?):', error);
+    }
+
     return report;
   },
 

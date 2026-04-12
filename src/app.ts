@@ -21,10 +21,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Custom middlewares ───────────────────────────────────────────────────────
+import { responseMiddleware } from "./core/middleware/response.middleware";
+app.use(responseMiddleware);
+
 // Rate limiting: 100 requests per 15 minutes by default
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500, // Increased for demo and testing
   message: { success: false, message: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -33,39 +37,15 @@ app.use(limiter);
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => {
-  res.json({ success: true, message: "Server is healthy", data: null, error: null });
+  res.sendSuccess("Server is healthy", { uptime: process.uptime() });
 });
 
-// ── Module routes ────────────────────────────────────────────────────────────
-import { authRouter }        from "./modules/auth/auth.route";
-import { reportsRouter }     from "./modules/reports/reports.route";
-import { evaluationsRouter } from "./modules/evaluations/evaluations.route";
-import { aiRouter }          from "./modules/ai/ai.route";
-import { decisionsRouter }   from "./modules/decisions/decisions.route";
-import { campusesRouter }    from "./modules/campuses/campuses.route";
-import { classesRouter }     from "./modules/classes/classes.route";
-import { professorsRouter }  from "./modules/professors/professors.route";
-import { academicModulesRouter } from "./modules/academic-modules/academic-modules.route";
-import { levelsRouter }          from "./modules/levels/levels.route";
-import { systemRouter }          from "./modules/system/system.route";
-import { uploadsRouter }         from "./modules/uploads/uploads.route";
-import { classModulesRouter }    from "./modules/class-modules/class-modules.route";
-import saasRouter from "./modules/saas/saas.route";
+// ── API Routes (v1) ──────────────────────────────────────────────────────────
+import v1Router from "./core/routes/v1";
 
-app.use("/api/auth",        authRouter);
-app.use("/api/reports",     reportsRouter);
-app.use("/api/evaluations", evaluationsRouter);
-app.use("/api/ai",          aiRouter);
-app.use("/api/decisions",   decisionsRouter);
-app.use("/api/campuses",    campusesRouter);
-app.use("/api/classes",     classesRouter);
-app.use("/api/professors",  professorsRouter);
-app.use("/api/academic-modules", academicModulesRouter);
-app.use("/api/levels",           levelsRouter);
-app.use("/api/system",           systemRouter);
-app.use("/api/uploads",          uploadsRouter);
-app.use("/api/assignments",      classModulesRouter);
-app.use("/api/saas",             saasRouter);
+// Mount v1 at /api/v1 AND /api for backward compatibility as requested
+app.use("/api/v1", v1Router);
+app.use("/api",    v1Router);
 
 // ── 404 handler (must come after all routes) ──────────────────────────────────
 app.use((_req, res) => {

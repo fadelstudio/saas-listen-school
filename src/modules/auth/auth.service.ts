@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { env } from '../../core/config/env';
 import { ConflictError, UnauthorizedError, NotFoundError } from '../../core/errors/AppError';
 import { authRepository } from './auth.repository';
@@ -10,12 +11,12 @@ import {
   UpdateProfileInput,
   AuthResponse,
   SafeUser,
-  JwtPayload,
 } from './auth.types';
 import { Role } from '@prisma/client';
 
 const SALT_ROUNDS = 12;
-const TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY = '15m';
+const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,8 +46,17 @@ function toSafeUser(user: {
   };
 }
 
-function generateToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+async function generateTokens(userId: string, role: string) {
+  const payload = { userId, role };
+  const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+  
+  const refreshTokenString = crypto.randomBytes(40).toString('hex');
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
+
+  await authRepository.createRefreshToken(userId, refreshTokenString, expiresAt);
+
+  return { accessToken, refreshToken: refreshTokenString };
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -64,9 +74,9 @@ export const authService = {
       passwordHash,
     });
 
-    const token = generateToken({ userId: user.id, role: user.role });
+    const { accessToken, refreshToken } = await generateTokens(user.id, user.role);
 
-    return { token, user: toSafeUser(user) };
+    return { token: accessToken, refreshToken, user: toSafeUser(user) };
   },
 
   async login(input: LoginInput): Promise<AuthResponse> {
@@ -89,9 +99,29 @@ export const authService = {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    const token = generateToken({ userId: user.id, role: user.role });
+    const { accessToken, refreshToken } = await generateTokens(user.id, user.role);
 
-    return { token, user: toSafeUser(user) };
+    return { token: accessToken, refreshToken, user: toSafeUser(user) };
+  },
+
+  async refresh(token: string): Promise<Pick<AuthResponse, 'token' | 'refreshToken'>> {
+    const stored = await authRepository.findRefreshToken(token);
+    
+    if (!stored || stored.expiresAt < new Date()) {
+      if (stored) await authRepository.deleteRefreshToken(token);
+      throw new UnauthorizedError('Refresh token invalid or expired');
+    }
+
+    // Rotate token: delete old, create new
+    await authRepository.deleteRefreshToken(token);
+    const user = stored.user;
+    const { accessToken, refreshToken } = await generateTokens(user.id, user.role);
+
+    return { token: accessToken, refreshToken };
+  },
+
+  async logout(token: string): Promise<void> {
+    await authRepository.deleteRefreshToken(token).catch(() => {});
   },
 
   async getMe(userId: string): Promise<SafeUser> {

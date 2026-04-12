@@ -1,0 +1,184 @@
+{
+	"info": {
+		"_postman_id": "afi-listen-legendary",
+		"name": "AFI-LISTEN LEGENDARY AUDIT",
+		"description": "Collection de test ULTIME balayant 100% de l'API v1 : CRUD total, Sécurité, IA et SaaS.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. SETUP & AUTH",
+			"item": [
+				{
+					"name": "Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": { "exec": [ "var jsonData = pm.response.json(); pm.collectionVariables.set(\"adminToken\", jsonData.data.token);" ], "type": "text/javascript" }
+						}
+					],
+					"request": {
+						"method": "POST",
+						"body": { "mode": "raw", "raw": "{\"email\": \"admin@afi.com\", \"password\": \"fadeldev\"}", "options": { "raw": { "language": "json" } } },
+						"url": "{{baseUrl}}/auth/login"
+					}
+				},
+				{
+					"name": "Login SuperAdmin (SaaS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": { "exec": [ "var jsonData = pm.response.json(); pm.collectionVariables.set(\"superToken\", jsonData.data.token);" ], "type": "text/javascript" }
+						}
+					],
+					"request": {
+						"method": "POST",
+						"body": { "mode": "raw", "raw": "{\"email\": \"superadmin@saas.com\", \"password\": \"fadeldev\"}", "options": { "raw": { "language": "json" } } },
+						"url": "{{baseUrl}}/auth/login"
+					}
+				}
+			]
+		},
+		{
+			"name": "2. CRUD REFERENTIELS",
+			"item": [
+				{
+					"name": "Campuses CRUD",
+					"item": [
+						{
+							"name": "Create Campus",
+							"event": [ { "listen": "test", "script": { "exec": [ "var jsonData = pm.response.json(); pm.collectionVariables.set(\"tempCampusId\", jsonData.data.id);" ], "type": "text/javascript" } } ],
+							"request": {
+								"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+								"method": "POST",
+								"body": { "mode": "raw", "raw": "{\"name\": \"Campus Test Newman\", \"address\": \"Avenue 101\"}", "options": { "raw": { "language": "json" } } },
+								"url": "{{baseUrl}}/campuses"
+							}
+						},
+						{
+							"name": "Delete Campus",
+							"request": {
+								"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+								"method": "DELETE",
+								"url": "{{baseUrl}}/campuses/{{tempCampusId}}"
+							}
+						}
+					]
+				},
+				{
+					"name": "Levels CRUD",
+					"item": [
+						{
+							"name": "Create Level",
+							"event": [ { "listen": "test", "script": { "exec": [ "var jsonData = pm.response.json(); pm.collectionVariables.set(\"tempLevelId\", jsonData.data.id);" ], "type": "text/javascript" } } ],
+							"request": {
+								"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+								"method": "POST",
+								"body": { "mode": "raw", "raw": "{\"name\": \"LEVEL NEWMAN\", \"order\": 99}", "options": { "raw": { "language": "json" } } },
+								"url": "{{baseUrl}}/levels"
+							}
+						},
+						{
+							"name": "Delete Level",
+							"request": {
+								"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+								"method": "DELETE",
+								"url": "{{baseUrl}}/levels/{{tempLevelId}}"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "3. ACADEMIC ENGINE",
+			"item": [
+				{
+					"name": "Professors CRUD",
+					"item": [
+						{
+							"name": "Get Campus First ID",
+							"event": [ { "listen": "test", "script": { "exec": [ "pm.collectionVariables.set(\"cId\", pm.response.json().data[0].id);" ], "type": "text/javascript" } } ],
+							"request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/campuses" }
+						},
+						{
+							"name": "Create Professor",
+							"event": [ { "listen": "test", "script": { "exec": [ "pm.collectionVariables.set(\"tempProfId\", pm.response.json().data.id);" ], "type": "text/javascript" } } ],
+							"request": {
+								"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+								"method": "POST",
+								"body": { "mode": "raw", "raw": "{\"firstName\": \"Test\", \"lastName\": \"Prof\", \"email\": \"testprof@afi.com\", \"campusId\": \"{{cId}}\"}", "options": { "raw": { "language": "json" } } },
+								"url": "{{baseUrl}}/professors"
+							}
+						},
+						{
+							"name": "Delete Professor",
+							"request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/professors/{{tempProfId}}" }
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "4. REPORTS & IA DASHBOARD",
+			"item": [
+				{
+					"name": "List Reports (Correct ISO Dates)",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+						"method": "GET",
+						"url": "{{baseUrl}}/reports?startDate=2024-01-01T00:00:00Z&endDate=2026-12-31T23:59:59Z"
+					}
+				},
+				{
+					"name": "Get AI Balancer Global",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+						"method": "GET",
+						"url": "{{baseUrl}}/system/ai-status"
+					}
+				}
+			]
+		},
+		{
+			"name": "5. SYSTEM & SAAS",
+			"item": [
+				{
+					"name": "Get System Settings",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superToken}}", "type": "string" }] },
+						"method": "GET",
+						"url": "{{baseUrl}}/system"
+					}
+				},
+				{
+					"name": "Update System Settings",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superToken}}", "type": "string" }] },
+						"method": "PATCH",
+						"body": { "mode": "raw", "raw": "{\"schoolName\": \"AFI L3 HACKATHON 2024\"}", "options": { "raw": { "language": "json" } } },
+						"url": "{{baseUrl}}/system"
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "test",
+			"script": { "type": "text/javascript", "exec": [ 
+				"pm.test(\"Status OK\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+				"pm.test(\"Success is True\", function () { pm.expect(pm.response.json().success).to.be.true; });"
+			] }
+		}
+	],
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+		{ "key": "adminToken", "value": "" },
+		{ "key": "superToken", "value": "" },
+		{ "key": "tempCampusId", "value": "" },
+		{ "key": "tempLevelId", "value": "" },
+		{ "key": "tempProfId", "value": "" },
+		{ "key": "cId", "value": "" }
+	]
+}

@@ -39,6 +39,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Evaluations', description: 'Évaluations pédagogiques' },
       { name: 'Decisions', description: 'Actions et décisions administratives' },
       { name: 'AI', description: 'Analyses et Chat IA' },
+      { name: 'Notifications', description: 'Système d\'alertes' },
       { name: 'Uploads', description: 'Gestion des fichiers' },
     ],
     security: [

@@ -24,7 +24,7 @@ export const classesRepository = {
         include: { 
           campus: true, 
           academicLevel: true,
-          modules: true,
+          classModules: { include: { module: true } },
           _count: { select: { users: true, reports: true } } 
         },
       }),
@@ -40,7 +40,7 @@ export const classesRepository = {
       include: {
         campus: true,
         academicLevel: true,
-        modules: { include: { professors: true } },
+        classModules: { include: { module: true, professors: true } },
         users: { select: { id: true, firstName: true, lastName: true, email: true } },
         reports: { take: 10, orderBy: { createdAt: 'desc' } },
       },

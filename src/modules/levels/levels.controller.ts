@@ -2,10 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { levelsService } from './levels.service';
 
 export const levelsController = {
-  async getAll(_req: Request, res: Response, next: NextFunction) {
+  async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const levels = await levelsService.getAll();
-      res.json({ success: true, message: 'Liste des niveaux récupérée', data: levels });
+      const result = await levelsService.getAll(req.query);
+      res.sendSuccess('Liste des niveaux récupérée', result.items, 200, {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      });
     } catch (err) {
       next(err);
     }
@@ -14,7 +19,7 @@ export const levelsController = {
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const level = await levelsService.getById(req.params.id as string);
-      res.json({ success: true, message: 'Niveau récupéré', data: level });
+      res.sendSuccess('Niveau récupéré', level);
     } catch (err) {
       next(err);
     }
@@ -23,7 +28,7 @@ export const levelsController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const level = await levelsService.create(req.body);
-      res.status(201).json({ success: true, message: 'Niveau créé', data: level });
+      res.sendSuccess('Niveau créé', level, 201);
     } catch (err) {
       next(err);
     }
@@ -32,7 +37,7 @@ export const levelsController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const level = await levelsService.update(req.params.id as string, req.body);
-      res.json({ success: true, message: 'Niveau mis à jour', data: level });
+      res.sendSuccess('Niveau mis à jour', level);
     } catch (err) {
       next(err);
     }
@@ -41,7 +46,7 @@ export const levelsController = {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       await levelsService.delete(req.params.id as string);
-      res.json({ success: true, message: 'Niveau supprimé', data: null });
+      res.sendSuccess('Niveau supprimé', null);
     } catch (err) {
       next(err);
     }

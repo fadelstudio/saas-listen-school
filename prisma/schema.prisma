@@ -99,6 +99,7 @@ model Class {
   reports     Report[]
   evaluations Evaluation[]
   classModules ClassModule[]
+  evaluationCampaigns EvaluationCampaign[]
 
   @@map("classes")
 }
@@ -125,6 +126,7 @@ model Module {
   classModules ClassModule[]
   reports      Report[]
   evaluations  Evaluation[]
+  evaluationCampaigns EvaluationCampaign[]
 
   @@map("modules")
 }
@@ -159,6 +161,7 @@ model Professor {
   modules     ClassModule[] // Linked to specific class assignments
   reports     Report[]
   evaluations Evaluation[]
+  evaluationCampaigns EvaluationCampaign[]
 
   @@map("professors")
 }
@@ -191,8 +194,22 @@ model User {
   reports     Report[]
   evaluations Evaluation[]
   decisions   Decision[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,8 +233,9 @@ model Report {
   moduleId    String?
   
   // Data
-  attachments Json?        // Array of URLs/Objects
-  aiAnalysis  Json?        // Full structured AI result
+  attachments    Json?        // Array of URLs/Objects
+  deviceMetadata Json?        // IP, Device info for anonymous tracking
+  aiAnalysis     Json?        // Full structured AI result
   
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -273,6 +291,10 @@ model Evaluation {
   
   decision    Decision?
   aiJobs      AiJob[]
+  
+  // Link to campaign if triggered by one
+  campaignId  String?
+  campaign    EvaluationCampaign? @relation(fields: [campaignId], references: [id])
 
   @@map("evaluations")
 }
@@ -351,4 +373,40 @@ model SystemSettings {
   updatedAt              DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  title       String
+  message     String
+  type        String   // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "SYSTEM"
+  userId      String?  // Null means global
+  isRead      Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model EvaluationCampaign {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  classId     String
+  moduleId    String
+  professorId String
+  status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
+  dueDate     DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  class       Class    @relation(fields: [classId], references: [id])
+  module      Module   @relation(fields: [moduleId], references: [id])
+  professor   Professor @relation(fields: [professorId], references: [id])
+  evaluations Evaluation[]
+
+  @@map("evaluation_campaigns")
 }

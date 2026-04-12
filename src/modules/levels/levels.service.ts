@@ -1,9 +1,12 @@
 import { levelsRepository } from './levels.repository';
 import { NotFoundError } from '../../core/errors/AppError';
+import { parsePagination, buildPaginated } from '../../utils/pagination';
 
 export const levelsService = {
-  async getAll() {
-    return levelsRepository.findAll();
+  async getAll(query: Record<string, unknown>) {
+    const pagination = parsePagination(query);
+    const { items, total } = await levelsRepository.findAll(pagination);
+    return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
   async getById(id: string) {

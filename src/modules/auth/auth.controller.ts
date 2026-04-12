@@ -1,12 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
-import { sendSuccess } from '../../utils/response';
 
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.register(req.body);
-      sendSuccess(res, 'Account created successfully', result, 201);
+      res.sendSuccess('Account created successfully', result, 201);
     } catch (error) {
       next(error);
     }
@@ -15,7 +14,7 @@ export const authController = {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.login(req.body);
-      sendSuccess(res, 'Login successful', result);
+      res.sendSuccess('Login successful', result);
     } catch (error) {
       next(error);
     }
@@ -24,7 +23,7 @@ export const authController = {
   async me(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = await authService.getMe(req.user!.userId);
-      sendSuccess(res, 'Profile retrieved', user);
+      res.sendSuccess('Profile retrieved', user);
     } catch (error) {
       next(error);
     }
@@ -33,7 +32,7 @@ export const authController = {
   async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       await authService.changePassword(req.user!.userId, req.body);
-      sendSuccess(res, 'Password changed successfully', null);
+      res.sendSuccess('Password changed successfully', null);
     } catch (error) {
       next(error);
     }
@@ -42,7 +41,27 @@ export const authController = {
   async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = await authService.updateProfile(req.user!.userId, req.body);
-      sendSuccess(res, 'Profile updated', user);
+      res.sendSuccess('Profile updated', user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { refreshToken } = req.body;
+      const result = await authService.refresh(refreshToken);
+      res.sendSuccess('Token refreshed', result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { refreshToken } = req.body;
+      await authService.logout(refreshToken);
+      res.sendSuccess('Logged out successfully', null);
     } catch (error) {
       next(error);
     }

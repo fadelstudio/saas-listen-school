@@ -52,6 +52,37 @@ export const authRepository = {
     });
   },
 
+  // ─── Refresh Tokens ─────────────────────────────────────────────────────────
+
+  async createRefreshToken(userId: string, token: string, expiresAt: Date) {
+    return prisma.refreshToken.create({
+      data: {
+        userId,
+        token,
+        expiresAt,
+      },
+    });
+  },
+
+  async findRefreshToken(token: string) {
+    return prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+  },
+
+  async deleteRefreshToken(token: string) {
+    return prisma.refreshToken.delete({
+      where: { token },
+    });
+  },
+
+  async deleteAllUserRefreshTokens(userId: string) {
+    return prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+  },
+
   async setActive(userId: string, isActive: boolean): Promise<User> {
     return prisma.user.update({
       where: { id: userId },

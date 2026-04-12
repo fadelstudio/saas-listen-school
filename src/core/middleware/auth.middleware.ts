@@ -43,7 +43,16 @@ export function authMiddleware(
 
 export function requireRole(...roles: string[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      throw new UnauthorizedError("Insufficient permissions");
+    }
+
+    // SUPERADMIN can access everything
+    if (req.user.role === 'SUPERADMIN') {
+      return next();
+    }
+
+    if (!roles.includes(req.user.role)) {
       throw new UnauthorizedError("Insufficient permissions");
     }
     next();

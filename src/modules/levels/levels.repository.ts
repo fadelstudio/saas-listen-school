@@ -1,11 +1,17 @@
 import { prisma } from '../../core/database/prisma';
 
 export const levelsRepository = {
-  async findAll() {
-    return prisma.academicLevel.findMany({
-      orderBy: { order: 'asc' },
-      include: { _count: { select: { classes: true } } },
-    });
+  async findAll(pagination: { skip: number, limit: number }) {
+    const [items, total] = await Promise.all([
+      prisma.academicLevel.findMany({
+        skip: pagination.skip,
+        take: pagination.limit,
+        orderBy: { order: 'asc' },
+        include: { _count: { select: { classes: true } } },
+      }),
+      prisma.academicLevel.count(),
+    ]);
+    return { items, total };
   },
 
   async findById(id: string) {
@@ -16,6 +22,11 @@ export const levelsRepository = {
   },
 
   async create(data: { name: string; order?: number }) {
+    const existing = await prisma.academicLevel.findUnique({
+      where: { name: data.name },
+    });
+    if (existing) return existing;
+    
     return prisma.academicLevel.create({
       data,
     });
