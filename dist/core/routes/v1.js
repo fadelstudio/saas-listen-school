@@ -22,6 +22,19 @@ const evaluation_campaigns_route_1 = require("../../modules/evaluation-campaigns
 const notifications_route_1 = require("../../modules/notifications/notifications.route");
 const saas_route_1 = __importDefault(require("../../modules/saas/saas.route"));
 const router = (0, express_1.Router)();
+// Basic API v1 info (non-sensitive)
+router.get("/", (_req, res) => {
+    res.sendSuccess("AFI-LISTEN API v1", {
+        name: "saas-listen-school",
+        version: process.env.npm_package_version ?? "unknown",
+        node: process.version,
+        environment: process.env.NODE_ENV ?? "unknown",
+        docs: "/api-docs",
+        health: "/health",
+        apiBase: "/api/v1",
+        serverTime: new Date().toISOString(),
+    });
+});
 router.use("/auth", auth_route_1.authRouter);
 router.use("/reports", reports_route_1.reportsRouter);
 router.use("/evaluations", evaluations_route_1.evaluationsRouter);

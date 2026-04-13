@@ -20,6 +20,20 @@ import saasRouter from "../../modules/saas/saas.route";
 
 const router = Router();
 
+// Basic API v1 info (non-sensitive)
+router.get("/", (_req, res) => {
+  res.sendSuccess("AFI-LISTEN API v1", {
+    name: "saas-listen-school",
+    version: process.env.npm_package_version ?? "unknown",
+    node: process.version,
+    environment: process.env.NODE_ENV ?? "unknown",
+    docs: "/api-docs",
+    health: "/health",
+    apiBase: "/api/v1",
+    serverTime: new Date().toISOString(),
+  });
+});
+
 router.use("/auth",             authRouter);
 router.use("/reports",          reportsRouter);
 router.use("/evaluations",      evaluationsRouter);
