@@ -4,17 +4,22 @@ exports.redisConnection = void 0;
 const ioredis_1 = require("ioredis");
 const env_1 = require("./env");
 const logger_1 = require("../../utils/logger");
-exports.redisConnection = new ioredis_1.Redis({
-    host: env_1.env.REDIS_HOST,
-    port: env_1.env.REDIS_PORT,
-    maxRetriesPerRequest: null,
-    lazyConnect: true,
-    enableOfflineQueue: false,
-    retryStrategy(times) {
-        const delay = Math.min(times * 100, 3000);
-        return delay;
-    },
-});
+function getRedisOptions() {
+    return {
+        host: env_1.env.REDIS_HOST,
+        port: env_1.env.REDIS_PORT,
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        // BullMQ recommends disabling request retries at client level.
+        maxRetriesPerRequest: null,
+        retryStrategy(times) {
+            return Math.min(times * 100, 3000);
+        },
+    };
+}
+exports.redisConnection = env_1.env.REDIS_URL
+    ? new ioredis_1.Redis(env_1.env.REDIS_URL, getRedisOptions())
+    : new ioredis_1.Redis(getRedisOptions());
 exports.redisConnection.on("connect", () => {
     logger_1.logger.info("Redis connected");
 });

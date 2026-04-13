@@ -18,6 +18,7 @@ const envSchema = zod_1.z.object({
     SUPABASE_URL: zod_1.z.string().url("SUPABASE_URL must be a valid URL"),
     SUPABASE_KEY: zod_1.z.string().min(1, "SUPABASE_KEY is required"),
     // Redis
+    REDIS_URL: zod_1.z.string().min(1).optional(),
     REDIS_HOST: zod_1.z.string().default("localhost"),
     REDIS_PORT: zod_1.z.coerce.number().default(6379),
     // AI providers

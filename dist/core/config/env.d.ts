@@ -11,6 +11,7 @@ export declare const env: {
     GROQ_API_KEY: string;
     MAX_FILE_SIZE_MB: number;
     SIGNED_URL_EXPIRES_IN: number;
+    REDIS_URL?: string | undefined;
 };
 export type Env = typeof env;
 //# sourceMappingURL=env.d.ts.map

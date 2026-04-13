@@ -29,7 +29,7 @@ export const saasService = {
     const passwordHash = await bcrypt.hash(input.adminPassword, SALT_ROUNDS);
 
     // 3. Transaction to create Campus + Admin
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const campus = await tx.campus.create({
         data: {
           name: input.name,

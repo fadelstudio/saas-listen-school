@@ -19,7 +19,7 @@ export const reportsService = {
       }
 
       if (finalInput.professorId) {
-        const isAssigned = assignment.professors.some(p => p.id === finalInput.professorId);
+        const isAssigned = assignment.professors.some((p: { id: string }) => p.id === finalInput.professorId);
         if (!isAssigned) {
           throw new BadRequestError('This professor is not assigned to this module for this class');
         }

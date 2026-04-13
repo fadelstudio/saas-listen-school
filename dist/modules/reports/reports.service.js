@@ -16,7 +16,7 @@ exports.reportsService = {
                 throw new AppError_1.BadRequestError('This module is not assigned to the selected class');
             }
             if (finalInput.professorId) {
-                const isAssigned = assignment.professors.some(p => p.id === finalInput.professorId);
+                const isAssigned = assignment.professors.some((p) => p.id === finalInput.professorId);
                 if (!isAssigned) {
                     throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
                 }
