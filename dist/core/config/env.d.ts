@@ -9,6 +9,8 @@ export declare const env: {
     REDIS_PORT: number;
     GEMINI_API_KEY: string;
     GROQ_API_KEY: string;
+    MAX_FILE_SIZE_MB: number;
+    SIGNED_URL_EXPIRES_IN: number;
 };
 export type Env = typeof env;
 //# sourceMappingURL=env.d.ts.map

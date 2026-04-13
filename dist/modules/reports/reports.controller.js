@@ -2,13 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reportsController = void 0;
 const reports_service_1 = require("./reports.service");
-const response_1 = require("../../utils/response");
 exports.reportsController = {
     async create(req, res, next) {
         try {
             const userId = req.user?.userId; // may be undefined (anonymous)
             const report = await reports_service_1.reportsService.create(req.body, userId);
-            (0, response_1.sendSuccess)(res, 'Report created successfully', report, 201);
+            res.sendSuccess('Report created successfully', report, 201);
         }
         catch (error) {
             next(error);
@@ -17,7 +16,12 @@ exports.reportsController = {
     async getAll(req, res, next) {
         try {
             const result = await reports_service_1.reportsService.getAll(req.query);
-            (0, response_1.sendSuccess)(res, 'Reports fetched', result);
+            res.sendSuccess('Reports fetched', result.items, 200, {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: result.totalPages
+            });
         }
         catch (error) {
             next(error);
@@ -26,7 +30,7 @@ exports.reportsController = {
     async getById(req, res, next) {
         try {
             const report = await reports_service_1.reportsService.getById(req.params.id);
-            (0, response_1.sendSuccess)(res, 'Report fetched', report);
+            res.sendSuccess('Report fetched', report);
         }
         catch (error) {
             next(error);
@@ -35,7 +39,7 @@ exports.reportsController = {
     async update(req, res, next) {
         try {
             const report = await reports_service_1.reportsService.update(req.params.id, req.body, req.user.userId, req.user.role);
-            (0, response_1.sendSuccess)(res, 'Report updated', report);
+            res.sendSuccess('Report updated', report);
         }
         catch (error) {
             next(error);
@@ -44,7 +48,7 @@ exports.reportsController = {
     async updateStatus(req, res, next) {
         try {
             const report = await reports_service_1.reportsService.updateStatus(req.params.id, req.body.status, req.user.role);
-            (0, response_1.sendSuccess)(res, 'Report status updated', report);
+            res.sendSuccess('Report status updated', report);
         }
         catch (error) {
             next(error);
@@ -53,7 +57,7 @@ exports.reportsController = {
     async remove(req, res, next) {
         try {
             await reports_service_1.reportsService.delete(req.params.id, req.user.role);
-            (0, response_1.sendSuccess)(res, 'Report deleted', null);
+            res.sendSuccess('Report deleted', null);
         }
         catch (error) {
             next(error);
@@ -62,7 +66,7 @@ exports.reportsController = {
     async analyze(req, res, next) {
         try {
             const result = await reports_service_1.reportsService.triggerAiAnalysis(req.params.id, req.user.role);
-            (0, response_1.sendSuccess)(res, 'AI analysis job queued', result);
+            res.sendSuccess('AI analysis job queued', result);
         }
         catch (error) {
             next(error);

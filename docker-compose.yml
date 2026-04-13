@@ -1,0 +1,9 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: afi-listen-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+    restart: unless-stopped
+

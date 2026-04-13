@@ -3,6 +3,7 @@ import { QUEUE_NAMES } from '../core/config/queue';
 import { redisConnection } from '../core/config/redis';
 import { prisma } from '../core/database/prisma';
 import { AiJobStatus, Prisma } from '@prisma/client';
+import { z } from 'zod';
 
 // ─── Job Payload Types ────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ interface AiAnalysisResult {
   summary?:        string;
   recommendation?: string;
   confidence?:     number;
+  score?:          number;
   processedAt:     string;
   [key: string]:   unknown;
 }
@@ -37,9 +39,30 @@ async function callAI(prompt: string): Promise<string> {
   return response.content;
 }
 
+const aiResultSchema = z.object({
+  sentiment: z.string().optional(),
+  category: z.string().optional(),
+  priority: z.string().optional(),
+  summary: z.string().optional(),
+  recommendation: z.string().optional(),
+  confidence: z.coerce.number().min(0).max(1).optional(),
+  score: z.coerce.number().min(0).max(20).optional(),
+});
+
+function parseAiJsonStrict(raw: string): Omit<AiAnalysisResult, 'processedAt'> {
+  // We accept ONLY a JSON object. If model returns extra text, parsing fails.
+  const parsed = JSON.parse(raw) as unknown;
+  const validated = aiResultSchema.safeParse(parsed);
+  if (!validated.success) {
+    const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
+    throw new Error(`AI JSON validation failed: ${issues}`);
+  }
+  return validated.data;
+}
+
 function analysisPrompt(content: string): string {
   return `Donne une réponse UNIQUEMENT au format JSON strict. Ne rajoute aucun texte avant ou après.
-Format attendu: {"sentiment":"negative","category":"pédagogie","priority":"HIGH","summary":"...","recommendation":"...","confidence":0.85}
+Format attendu: {"sentiment":"negative","category":"pédagogie","priority":"HIGH","summary":"...","recommendation":"...","confidence":0.85,"score":15}
 
 Contenu à analyser: ${content}`;
 }
@@ -51,9 +74,13 @@ async function handleReportAnalysis(payload: AiAnalysisPayload): Promise<AiAnaly
   if (!report) throw new Error(`Report not found: ${payload.reportId}`);
 
   const raw    = await callAI(analysisPrompt(`${report.title}\n${report.content}`));
-  const result = { ...JSON.parse(raw) as AiAnalysisResult, processedAt: new Date().toISOString() };
+  const validated = parseAiJsonStrict(raw);
+  const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
 
-  await prisma.report.update({ where: { id: report.id }, data: { aiAnalysis: JSON.stringify(result) } });
+  await prisma.report.update({
+    where: { id: report.id },
+    data: { aiAnalysis: result as unknown as Prisma.InputJsonObject },
+  });
   return result;
 }
 
@@ -62,11 +89,16 @@ async function handleEvaluationScoring(payload: AiAnalysisPayload): Promise<AiAn
   if (!evaluation) throw new Error(`Evaluation not found: ${payload.evaluationId}`);
 
   const raw    = await callAI(analysisPrompt(`Score: ${evaluation.score ?? 'N/A'} | ${evaluation.comment ?? ''}`));
-  const result = { ...JSON.parse(raw) as AiAnalysisResult, processedAt: new Date().toISOString() };
+  const validated = parseAiJsonStrict(raw);
+  const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
+
+  const computedScore = typeof result.score === 'number'
+    ? result.score
+    : Math.round(((result.confidence ?? 0.5) * 20) * 10) / 10;
 
   await prisma.evaluation.update({
     where: { id: evaluation.id },
-    data:  { aiScore: (result.confidence ?? 0.5) * 20 },
+    data:  { aiScore: computedScore },
   });
   return result;
 }
@@ -78,7 +110,8 @@ async function handleDecisionSuggestion(payload: AiAnalysisPayload): Promise<AiA
   if (!decision) throw new Error(`Decision not found: ${payload.decisionId}`);
 
   const raw    = await callAI(analysisPrompt(decision.evaluation.comment ?? 'No comment'));
-  const result = { ...JSON.parse(raw) as AiAnalysisResult, processedAt: new Date().toISOString() };
+  const validated = parseAiJsonStrict(raw);
+  const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
 
   await prisma.decision.update({
     where: { id: decision.id }, data: { aiSuggestion: result.recommendation ?? '' }
@@ -100,10 +133,19 @@ Format: {"summary":"Synthèse des points clés","recommendation":"Actions suggé
 Données: ${context}`;
 
   const raw = await callAI(prompt);
+  const processedAt = new Date().toISOString();
+
   try {
-    return { ...JSON.parse(raw) as AiAnalysisResult, processedAt: new Date().toISOString() };
+    const validated = parseAiJsonStrict(raw);
+    return { ...validated, processedAt };
   } catch (e) {
-    return { summary: raw, processedAt: new Date().toISOString(), confidence: 0.5 };
+    // For synthesis/chat, we keep a fallback summary to not lose the response content.
+    return {
+      summary: raw,
+      recommendation: '',
+      confidence: 0.5,
+      processedAt,
+    };
   }
 }
 
@@ -123,10 +165,18 @@ Réponds de manière concise et utile en JSON strict.
 Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
 
   const raw = await callAI(prompt);
+  const processedAt = new Date().toISOString();
+
   try {
-    return { ...JSON.parse(raw) as AiAnalysisResult, processedAt: new Date().toISOString() };
+    const validated = parseAiJsonStrict(raw);
+    return { ...validated, processedAt };
   } catch (e) {
-    return { summary: raw, processedAt: new Date().toISOString(), confidence: 0.5 };
+    return {
+      summary: raw,
+      recommendation: '',
+      confidence: 0.5,
+      processedAt,
+    };
   }
 }
 

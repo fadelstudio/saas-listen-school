@@ -25,7 +25,7 @@ export interface CreateReportInput {
   classId?: string;
   professorId?: string;
   moduleId?: string;
-  deviceMetadata?: any;
+  deviceMetadata?: Record<string, unknown>;
 }
 
 export interface UpdateReportInput {

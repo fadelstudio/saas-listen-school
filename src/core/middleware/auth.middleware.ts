@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
-import { UnauthorizedError } from "../errors/AppError";
+import { ForbiddenError, UnauthorizedError } from "../errors/AppError";
 
 export interface JwtPayload {
   userId: string;
@@ -44,7 +44,7 @@ export function authMiddleware(
 export function requireRole(...roles: string[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
-      throw new UnauthorizedError("Insufficient permissions");
+      throw new UnauthorizedError("Authentication required");
     }
 
     // SUPERADMIN can access everything
@@ -53,7 +53,7 @@ export function requireRole(...roles: string[]) {
     }
 
     if (!roles.includes(req.user.role)) {
-      throw new UnauthorizedError("Insufficient permissions");
+      throw new ForbiddenError("Insufficient permissions");
     }
     next();
   };

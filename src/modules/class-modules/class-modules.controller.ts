@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { classModulesService } from './class-modules.service';
-import { sendSuccess } from '../../utils/response';
 
 export const classModulesController = {
   async getAll(req: Request, res: Response, next: NextFunction) {
@@ -10,7 +9,7 @@ export const classModulesController = {
         moduleId: req.query.moduleId as string,
       };
       const assignments = await classModulesService.getAll(filters);
-      sendSuccess(res, 'Affectations récupérées', assignments);
+      res.sendSuccess('Affectations récupérées', assignments);
     } catch (err) {
       next(err);
     }
@@ -20,7 +19,7 @@ export const classModulesController = {
     try {
       const { id } = req.params;
       const assignment = await classModulesService.getById(id as string);
-      sendSuccess(res, 'Affectation récupérée', assignment);
+      res.sendSuccess('Affectation récupérée', assignment);
     } catch (err) {
       next(err);
     }
@@ -29,7 +28,7 @@ export const classModulesController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const assignment = await classModulesService.create(req.body);
-      sendSuccess(res, 'Affectation créée', assignment, 201);
+      res.sendSuccess('Affectation créée', assignment, 201);
     } catch (err) {
       next(err);
     }
@@ -39,7 +38,7 @@ export const classModulesController = {
     try {
       const { id } = req.params;
       const assignment = await classModulesService.update(id as string, req.body);
-      sendSuccess(res, 'Affectation mise à jour', assignment);
+      res.sendSuccess('Affectation mise à jour', assignment);
     } catch (err) {
       next(err);
     }
@@ -49,7 +48,7 @@ export const classModulesController = {
     try {
       const { id } = req.params;
       await classModulesService.delete(id as string);
-      sendSuccess(res, 'Affectation supprimée', null);
+      res.sendSuccess('Affectation supprimée', null);
     } catch (err) {
       next(err);
     }

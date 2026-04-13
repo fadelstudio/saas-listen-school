@@ -1,0 +1,1 @@
+{"version":3,"file":"professors.types.d.ts","sourceRoot":"","sources":["../../../src/modules/professors/professors.types.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,MAAM,wBAAwB,CAAC;AAEzD,MAAM,WAAW,gBAAgB;IAC/B,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,QAAQ,CAAC,EAAE,MAAM,CAAC;CACnB;AAED,MAAM,MAAM,mBAAmB,GAAG,eAAe,CAAC,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,CAAC,CAAC"}

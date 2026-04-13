@@ -124,6 +124,20 @@
 				},
 				{
 					"name": "Get Classes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var j = pm.response.json();",
+									"if (j && j.data && j.data[0] && j.data[0].id) { pm.collectionVariables.set('classId', j.data[0].id); }",
+									"pm.sendRequest({url: pm.collectionVariables.get('baseUrl') + '/academic-modules', method: 'GET', header: { Authorization: 'Bearer ' + pm.collectionVariables.get('adminToken') }}, function (_err, res) { try { var jm = res.json(); if (jm.data && jm.data[0] && jm.data[0].id) pm.collectionVariables.set('moduleId', jm.data[0].id); } catch(e) {} });",
+									"pm.sendRequest({url: pm.collectionVariables.get('baseUrl') + '/professors', method: 'GET', header: { Authorization: 'Bearer ' + pm.collectionVariables.get('adminToken') }}, function (_err, res) { try { var jp = res.json(); if (jp.data && jp.data[0] && jp.data[0].id) pm.collectionVariables.set('professorId', jp.data[0].id); } catch(e) {} });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -208,7 +222,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"Postman Automated Campaign\",\n    \"description\": \"Audit Newman\",\n    \"classId\": \"class-l3-info\",\n    \"moduleId\": \"INF-ALGO\",\n    \"professorId\": \"diallo@afi.com\"\n}",
+							"raw": "{\n    \"title\": \"Postman Automated Campaign\",\n    \"description\": \"Audit Newman\",\n    \"classId\": \"{{classId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"professorId\": \"{{professorId}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -265,6 +279,18 @@
 		},
 		{
 			"key": "refreshToken",
+			"value": ""
+		},
+		{
+			"key": "classId",
+			"value": ""
+		},
+		{
+			"key": "moduleId",
+			"value": ""
+		},
+		{
+			"key": "professorId",
 			"value": ""
 		}
 	]

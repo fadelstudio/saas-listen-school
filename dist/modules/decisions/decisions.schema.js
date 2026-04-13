@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.decisionQuerySchema = exports.decisionParamsSchema = exports.updateDecisionStatusSchema = exports.updateDecisionSchema = exports.createDecisionSchema = void 0;
 const zod_1 = require("zod");
 const client_1 = require("@prisma/client");
-const priorityEnum = zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH']);
+const priorityEnum = zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
 exports.createDecisionSchema = zod_1.z.object({
     evaluationId: zod_1.z.string().uuid('Invalid evaluation ID'),
     title: zod_1.z.string().min(3, 'Title must be at least 3 characters').max(200),

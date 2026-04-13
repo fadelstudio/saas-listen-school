@@ -12,10 +12,15 @@ exports.decisionsService = {
         }
         const decision = await decisions_repository_1.decisionsRepository.create(input, userId);
         // Automatically enqueue AI suggestion
-        await queue_1.jobQueue.add('ai-analysis', {
-            type: 'decision-suggestion',
-            decisionId: decision.id,
-        });
+        try {
+            await queue_1.jobQueue.add('ai-analysis', {
+                type: 'decision-suggestion',
+                decisionId: decision.id,
+            });
+        }
+        catch (error) {
+            console.warn('⚠️ Could not enqueue AI suggestion (Redis down?):', error);
+        }
         return decision;
     },
     async getById(id) {

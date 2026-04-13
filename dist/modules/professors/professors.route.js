@@ -1,0 +1,120 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.professorsRouter = void 0;
+const express_1 = require("express");
+const professors_controller_1 = require("./professors.controller");
+const auth_middleware_1 = require("../../core/middleware/auth.middleware");
+const validate_middleware_1 = require("../../core/middleware/validate.middleware");
+const professors_schema_1 = require("./professors.schema");
+const client_1 = require("@prisma/client");
+const router = (0, express_1.Router)();
+exports.professorsRouter = router;
+/**
+ * @swagger
+ * tags:
+ *   name: Professors
+ *   description: Gestion du corps enseignant
+ */
+/**
+ * @swagger
+ * /api/professors:
+ *   get:
+ *     summary: Liste des professeurs (Filtres)
+ *     tags: [Professors]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des professeurs
+ */
+router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ query: professors_schema_1.professorQuerySchema }), professors_controller_1.professorsController.getAll);
+/**
+ * @swagger
+ * /api/professors/{id}:
+ *   get:
+ *     summary: Détail d'un professeur
+ *     tags: [Professors]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Détail
+ */
+router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: professors_schema_1.professorParamsSchema }), professors_controller_1.professorsController.getById);
+/**
+ * @swagger
+ * /api/professors:
+ *   post:
+ *     summary: Créer un professeur (Admin/Manager)
+ *     tags: [Professors]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [firstName, lastName, email]
+ *             properties:
+ *               firstName: { type: string }
+ *               lastName: { type: string }
+ *               email: { type: string, format: email }
+ *               campusId: { type: string, format: uuid, description: "Facultatif : Campus d'affectation principal" }
+ *     responses:
+ *       201:
+ *         description: Créé
+ */
+router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ body: professors_schema_1.createProfessorSchema }), professors_controller_1.professorsController.create);
+/**
+ * @swagger
+ * /api/professors/{id}:
+ *   patch:
+ *     summary: Modifier un professeur
+ *     tags: [Professors]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName: { type: string }
+ *               lastName: { type: string }
+ *               email: { type: string, format: email }
+ *               campusId: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Mis à jour
+ */
+router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: professors_schema_1.professorParamsSchema, body: professors_schema_1.updateProfessorSchema }), professors_controller_1.professorsController.update);
+/**
+ * @swagger
+ * /api/professors/{id}:
+ *   delete:
+ *     summary: Supprimer un professeur
+ *     tags: [Professors]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Supprimé
+ */
+router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: professors_schema_1.professorParamsSchema }), professors_controller_1.professorsController.remove);
+//# sourceMappingURL=professors.route.js.map

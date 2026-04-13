@@ -2,6 +2,8 @@ import { RegisterInput, LoginInput, ChangePasswordInput, UpdateProfileInput, Aut
 export declare const authService: {
     register(input: RegisterInput): Promise<AuthResponse>;
     login(input: LoginInput): Promise<AuthResponse>;
+    refresh(token: string): Promise<Pick<AuthResponse, "token" | "refreshToken">>;
+    logout(token: string): Promise<void>;
     getMe(userId: string): Promise<SafeUser>;
     changePassword(userId: string, input: ChangePasswordInput): Promise<void>;
     updateProfile(userId: string, input: UpdateProfileInput): Promise<SafeUser>;

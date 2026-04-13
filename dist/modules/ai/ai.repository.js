@@ -3,6 +3,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 exports.aiRepository = {
+    async createJob(data) {
+        return prisma_1.prisma.aiJob.create({
+            data: {
+                jobType: data.jobType,
+                status: data.status,
+                payload: data.payload,
+                reportId: data.reportId ?? null,
+                evaluationId: data.evaluationId ?? null,
+                decisionId: data.decisionId ?? null,
+                errorMessage: data.errorMessage ?? null,
+            },
+        });
+    },
     async findJobById(id) {
         return prisma_1.prisma.aiJob.findUnique({ where: { id } });
     },

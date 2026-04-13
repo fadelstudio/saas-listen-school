@@ -23,6 +23,9 @@ const envSchema = zod_1.z.object({
     // AI providers
     GEMINI_API_KEY: zod_1.z.string().min(1, "GEMINI_API_KEY is required"),
     GROQ_API_KEY: zod_1.z.string().min(1, "GROQ_API_KEY is required"),
+    // Uploads
+    MAX_FILE_SIZE_MB: zod_1.z.coerce.number().int().positive().default(10),
+    SIGNED_URL_EXPIRES_IN: zod_1.z.coerce.number().int().positive().default(60 * 60), // seconds
 });
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {

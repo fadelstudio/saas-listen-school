@@ -9,7 +9,11 @@ exports.decisionsRepository = {
             data: {
                 evaluationId: data.evaluationId,
                 deciderId,
+                title: data.title,
                 rationale: data.rationale,
+                priority: data.priority ?? client_1.Priority.MEDIUM,
+                responsible: data.responsible,
+                dueDate: data.dueDate ? new Date(data.dueDate) : null,
                 status: client_1.DecisionStatus.PENDING,
             },
             include: {
@@ -53,8 +57,11 @@ exports.decisionsRepository = {
         return prisma_1.prisma.decision.update({
             where: { id },
             data: {
+                ...(data.title !== undefined && { title: data.title }),
                 ...(data.rationale !== undefined && { rationale: data.rationale }),
-                ...(data.title !== undefined && { aiSuggestion: data.title }),
+                ...(data.priority !== undefined && { priority: data.priority }),
+                ...(data.responsible !== undefined && { responsible: data.responsible }),
+                ...(data.dueDate !== undefined && { dueDate: data.dueDate ? new Date(data.dueDate) : null }),
             },
         });
     },

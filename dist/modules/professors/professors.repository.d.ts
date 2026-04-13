@@ -1,0 +1,103 @@
+import { ProfessorFilters } from './professors.types';
+import { parsePagination } from '../../utils/pagination';
+type PaginationArgs = ReturnType<typeof parsePagination>;
+export declare const professorsRepository: {
+    findAll(filters: ProfessorFilters, pagination: PaginationArgs): Promise<{
+        items: ({
+            _count: {
+                evaluations: number;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            campusId: string | null;
+            email: string;
+            firstName: string;
+            lastName: string;
+            userId: string | null;
+        })[];
+        total: number;
+    }>;
+    findById(id: string): Promise<({
+        evaluations: ({
+            module: {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                code: string | null;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            classId: string;
+            status: import("@prisma/client").$Enums.EvaluationStatus;
+            isAnonymous: boolean;
+            professorId: string;
+            moduleId: string;
+            reportId: string | null;
+            evaluatorId: string | null;
+            score: number | null;
+            clarityScore: number | null;
+            pedagogyScore: number | null;
+            availabilityScore: number | null;
+            rhythmScore: number | null;
+            comment: string | null;
+            aiScore: number | null;
+            campaignId: string | null;
+        })[];
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string | null;
+        email: string;
+        firstName: string;
+        lastName: string;
+        userId: string | null;
+    }) | null>;
+    create(data: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        userId?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string | null;
+        email: string;
+        firstName: string;
+        lastName: string;
+        userId: string | null;
+    }>;
+    update(id: string, data: {
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+        userId?: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string | null;
+        email: string;
+        firstName: string;
+        lastName: string;
+        userId: string | null;
+    }>;
+    delete(id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string | null;
+        email: string;
+        firstName: string;
+        lastName: string;
+        userId: string | null;
+    }>;
+};
+export {};
+//# sourceMappingURL=professors.repository.d.ts.map

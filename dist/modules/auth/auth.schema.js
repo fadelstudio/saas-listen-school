@@ -12,11 +12,17 @@ exports.registerSchema = zod_1.z.object({
         .regex(/[0-9]/, 'Password must contain at least one number'),
     firstName: zod_1.z.string().min(1, 'First name is required').max(50),
     lastName: zod_1.z.string().min(1, 'Last name is required').max(50),
+    campusId: zod_1.z.string().uuid('Invalid campus ID').optional(),
+    classId: zod_1.z.string().uuid('Invalid class ID').optional(),
 });
 // ─── Login ────────────────────────────────────────────────────────────────────
 exports.loginSchema = zod_1.z.object({
-    email: zod_1.z.string().email('Invalid email address'),
+    email: zod_1.z.string().email('Invalid email address').optional(),
+    matricule: zod_1.z.string().min(1, 'Matricule must not be empty').optional(),
     password: zod_1.z.string().min(1, 'Password is required'),
+}).refine(data => data.email || data.matricule, {
+    message: "Either email or matricule must be provided",
+    path: ["email", "matricule"]
 });
 // ─── Change Password ──────────────────────────────────────────────────────────
 exports.changePasswordSchema = zod_1.z

@@ -1,6 +1,9 @@
 import { z } from 'zod';
 export declare const createEvaluationSchema: z.ZodObject<{
     reportId: z.ZodOptional<z.ZodString>;
+    professorId: z.ZodString;
+    moduleId: z.ZodString;
+    classId: z.ZodString;
     score: z.ZodOptional<z.ZodNumber>;
     clarityScore: z.ZodOptional<z.ZodNumber>;
     pedagogyScore: z.ZodOptional<z.ZodNumber>;

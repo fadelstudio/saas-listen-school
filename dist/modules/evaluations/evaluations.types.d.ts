@@ -2,6 +2,9 @@ import { EvaluationStatus } from '@prisma/client';
 import { PaginatedResult } from '../../utils/pagination';
 export interface CreateEvaluationInput {
     reportId?: string;
+    professorId: string;
+    moduleId: string;
+    classId: string;
     score?: number;
     clarityScore?: number;
     pedagogyScore?: number;

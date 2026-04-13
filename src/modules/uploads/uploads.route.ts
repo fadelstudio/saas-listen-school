@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { uploadsController } from './uploads.controller';
 import { authMiddleware } from '../../core/middleware/auth.middleware';
+import { env } from '../../core/config/env';
 
 export const uploadsRouter = Router();
 
@@ -10,14 +11,25 @@ const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024,
   },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+    const allowed = [
+      'image/jpeg',
+      'image/png',
+      'application/pdf',
+      'audio/mpeg',
+      'audio/wav',
+      'audio/webm',
+      'audio/ogg',
+      'audio/mp4',
+      'video/webm',
+      'video/mp4',
+    ];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Format de fichier non supporté (JPG, PNG, PDF uniquement)'));
+      cb(new Error('Format de fichier non supporté'));
     }
   }
 });

@@ -1,0 +1,1 @@
+{"version":3,"file":"academic-modules.types.d.ts","sourceRoot":"","sources":["../../../src/modules/academic-modules/academic-modules.types.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,MAAM,wBAAwB,CAAC;AAEzD,MAAM,WAAW,qBAAqB;IACpC,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,OAAO,CAAC,EAAE,MAAM,CAAC;CAClB;AAED,MAAM,MAAM,wBAAwB,GAAG,eAAe,CAAC,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,CAAC,CAAC"}

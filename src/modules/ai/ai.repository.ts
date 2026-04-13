@@ -6,6 +6,28 @@ import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 
 export const aiRepository = {
+  async createJob(data: {
+    jobType: string;
+    status: AiJobStatus;
+    payload: Prisma.InputJsonObject;
+    reportId?: string | null;
+    evaluationId?: string | null;
+    decisionId?: string | null;
+    errorMessage?: string | null;
+  }) {
+    return prisma.aiJob.create({
+      data: {
+        jobType: data.jobType,
+        status: data.status,
+        payload: data.payload,
+        reportId: data.reportId ?? null,
+        evaluationId: data.evaluationId ?? null,
+        decisionId: data.decisionId ?? null,
+        errorMessage: data.errorMessage ?? null,
+      },
+    });
+  },
+
   async findJobById(id: string) {
     return prisma.aiJob.findUnique({ where: { id } });
   },

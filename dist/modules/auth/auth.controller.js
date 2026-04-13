@@ -2,12 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authController = void 0;
 const auth_service_1 = require("./auth.service");
-const response_1 = require("../../utils/response");
 exports.authController = {
     async register(req, res, next) {
         try {
             const result = await auth_service_1.authService.register(req.body);
-            (0, response_1.sendSuccess)(res, 'Account created successfully', result, 201);
+            res.sendSuccess('Account created successfully', result, 201);
         }
         catch (error) {
             next(error);
@@ -16,7 +15,7 @@ exports.authController = {
     async login(req, res, next) {
         try {
             const result = await auth_service_1.authService.login(req.body);
-            (0, response_1.sendSuccess)(res, 'Login successful', result);
+            res.sendSuccess('Login successful', result);
         }
         catch (error) {
             next(error);
@@ -25,7 +24,7 @@ exports.authController = {
     async me(req, res, next) {
         try {
             const user = await auth_service_1.authService.getMe(req.user.userId);
-            (0, response_1.sendSuccess)(res, 'Profile retrieved', user);
+            res.sendSuccess('Profile retrieved', user);
         }
         catch (error) {
             next(error);
@@ -34,7 +33,7 @@ exports.authController = {
     async changePassword(req, res, next) {
         try {
             await auth_service_1.authService.changePassword(req.user.userId, req.body);
-            (0, response_1.sendSuccess)(res, 'Password changed successfully', null);
+            res.sendSuccess('Password changed successfully', null);
         }
         catch (error) {
             next(error);
@@ -43,7 +42,27 @@ exports.authController = {
     async updateProfile(req, res, next) {
         try {
             const user = await auth_service_1.authService.updateProfile(req.user.userId, req.body);
-            (0, response_1.sendSuccess)(res, 'Profile updated', user);
+            res.sendSuccess('Profile updated', user);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async refresh(req, res, next) {
+        try {
+            const { refreshToken } = req.body;
+            const result = await auth_service_1.authService.refresh(refreshToken);
+            res.sendSuccess('Token refreshed', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async logout(req, res, next) {
+        try {
+            const { refreshToken } = req.body;
+            await auth_service_1.authService.logout(refreshToken);
+            res.sendSuccess('Logged out successfully', null);
         }
         catch (error) {
             next(error);

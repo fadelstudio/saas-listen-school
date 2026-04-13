@@ -9,6 +9,10 @@ export interface CreateReportInput {
     category?: string;
     priority?: Priority;
     isAnonymous?: boolean;
+    classId?: string;
+    professorId?: string;
+    moduleId?: string;
+    deviceMetadata?: Record<string, unknown>;
 }
 export interface UpdateReportInput {
     title?: string;
@@ -23,6 +27,9 @@ export interface UpdateReportStatusInput {
 export interface ReportFilters {
     status?: ReportStatus;
     authorId?: string;
+    classId?: string;
+    professorId?: string;
+    moduleId?: string;
     priority?: Priority;
     isAnonymous?: boolean;
     startDate?: string;

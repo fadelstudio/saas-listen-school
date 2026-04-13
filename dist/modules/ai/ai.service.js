@@ -5,6 +5,8 @@ const ai_repository_1 = require("./ai.repository");
 const queue_1 = require("../../core/config/queue");
 const AppError_1 = require("../../core/errors/AppError");
 const pagination_1 = require("../../utils/pagination");
+const logger_1 = require("../../utils/logger");
+const client_1 = require("@prisma/client");
 exports.aiService = {
     async getJobById(jobId) {
         const job = await ai_repository_1.aiRepository.findJobById(jobId);
@@ -35,27 +37,57 @@ exports.aiService = {
         const job = await ai_repository_1.aiRepository.findJobById(jobId);
         if (!job)
             throw new AppError_1.NotFoundError('AI Job');
-        await queue_1.jobQueue.add('ai-analysis', job.payload);
-        return { retried: true, jobId };
+        try {
+            await queue_1.jobQueue.add('ai-analysis', job.payload);
+            return { retried: true, jobId };
+        }
+        catch (error) {
+            logger_1.logger.warn('Could not retry AI job (Redis down?)', { jobId, error });
+            return { retried: false, jobId, reason: 'REDIS_UNAVAILABLE' };
+        }
     },
     async chat(input, userId) {
-        const bullJob = await queue_1.jobQueue.add('ai-analysis', {
-            type: 'chat-query',
-            question: input.question,
-            userId,
-        });
-        return { jobId: bullJob.id, message: 'Chat query queued — poll /api/ai/jobs/:jobId/result' };
+        try {
+            const bullJob = await queue_1.jobQueue.add('ai-analysis', {
+                type: 'chat-query',
+                question: input.question,
+                userId,
+            });
+            return { queued: true, jobId: bullJob.id, message: 'Chat query queued — poll /api/ai/jobs/:jobId/result' };
+        }
+        catch (error) {
+            logger_1.logger.warn('Could not enqueue AI chat (Redis down?)', { error });
+            const dbJob = await ai_repository_1.aiRepository.createJob({
+                jobType: 'chat-query',
+                status: client_1.AiJobStatus.FAILED,
+                payload: { type: 'chat-query', question: input.question, userId },
+                errorMessage: 'REDIS_UNAVAILABLE',
+            });
+            return { queued: false, jobId: dbJob.id, reason: 'REDIS_UNAVAILABLE' };
+        }
     },
     async generateSynthesis(input, userRole) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can generate synthesis');
         }
-        const bullJob = await queue_1.jobQueue.add('ai-analysis', {
-            type: 'global-synthesis',
-            startDate: input.startDate,
-            endDate: input.endDate,
-        });
-        return { jobId: bullJob.id, message: 'Synthesis job queued — poll /api/ai/jobs/:jobId/result' };
+        try {
+            const bullJob = await queue_1.jobQueue.add('ai-analysis', {
+                type: 'global-synthesis',
+                startDate: input.startDate,
+                endDate: input.endDate,
+            });
+            return { queued: true, jobId: bullJob.id, message: 'Synthesis job queued — poll /api/ai/jobs/:jobId/result' };
+        }
+        catch (error) {
+            logger_1.logger.warn('Could not enqueue AI synthesis (Redis down?)', { error });
+            const dbJob = await ai_repository_1.aiRepository.createJob({
+                jobType: 'global-synthesis',
+                status: client_1.AiJobStatus.FAILED,
+                payload: { type: 'global-synthesis', startDate: input.startDate, endDate: input.endDate },
+                errorMessage: 'REDIS_UNAVAILABLE',
+            });
+            return { queued: false, jobId: dbJob.id, reason: 'REDIS_UNAVAILABLE' };
+        }
     },
 };
 //# sourceMappingURL=ai.service.js.map

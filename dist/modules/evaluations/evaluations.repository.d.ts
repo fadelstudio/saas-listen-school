@@ -3,41 +3,79 @@ import { CreateEvaluationInput, UpdateEvaluationInput, EvaluationFilters, Evalua
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const evaluationsRepository: {
+    getUserContext(userId: string): Promise<{
+        campusId: string | null;
+        classId: string | null;
+    } | null>;
     create(data: CreateEvaluationInput, evaluatorId?: string): Promise<{
-        report: {
+        class: {
+            name: string;
             id: string;
-            title: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        };
+        professor: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            campusId: string | null;
+            email: string;
+            firstName: string;
+            lastName: string;
+            userId: string | null;
+        };
+        module: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            code: string | null;
         };
         evaluator: {
             id: string;
             firstName: string;
             lastName: string;
-        };
+        } | null;
     } & {
-        comments: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        classId: string;
         status: import("@prisma/client").$Enums.EvaluationStatus;
-        reportId: string;
-        evaluatorId: string;
+        isAnonymous: boolean;
+        professorId: string;
+        moduleId: string;
+        reportId: string | null;
+        evaluatorId: string | null;
         score: number | null;
+        clarityScore: number | null;
+        pedagogyScore: number | null;
+        availabilityScore: number | null;
+        rhythmScore: number | null;
+        comment: string | null;
         aiScore: number | null;
+        campaignId: string | null;
     }>;
     findById(id: string): Promise<({
         report: {
             id: string;
             title: string;
             status: import("@prisma/client").$Enums.ReportStatus;
-        };
+        } | null;
         decision: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            title: string;
+            priority: import("@prisma/client").$Enums.Priority;
             status: import("@prisma/client").$Enums.DecisionStatus;
+            dueDate: Date | null;
             evaluationId: string;
             deciderId: string;
             rationale: string | null;
+            responsible: string | null;
             aiSuggestion: string | null;
         } | null;
         aiJobs: {
@@ -58,75 +96,120 @@ export declare const evaluationsRepository: {
             email: string;
             firstName: string;
             lastName: string;
-        };
+        } | null;
     } & {
-        comments: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        classId: string;
         status: import("@prisma/client").$Enums.EvaluationStatus;
-        reportId: string;
-        evaluatorId: string;
+        isAnonymous: boolean;
+        professorId: string;
+        moduleId: string;
+        reportId: string | null;
+        evaluatorId: string | null;
         score: number | null;
+        clarityScore: number | null;
+        pedagogyScore: number | null;
+        availabilityScore: number | null;
+        rhythmScore: number | null;
+        comment: string | null;
         aiScore: number | null;
+        campaignId: string | null;
     }) | null>;
     findAll(filters: EvaluationFilters, pagination: PaginationArgs): Promise<{
         items: ({
             report: {
                 id: string;
                 title: string;
-            };
+            } | null;
             evaluator: {
                 id: string;
                 firstName: string;
                 lastName: string;
-            };
+            } | null;
         } & {
-            comments: string | null;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            classId: string;
             status: import("@prisma/client").$Enums.EvaluationStatus;
-            reportId: string;
-            evaluatorId: string;
+            isAnonymous: boolean;
+            professorId: string;
+            moduleId: string;
+            reportId: string | null;
+            evaluatorId: string | null;
             score: number | null;
+            clarityScore: number | null;
+            pedagogyScore: number | null;
+            availabilityScore: number | null;
+            rhythmScore: number | null;
+            comment: string | null;
             aiScore: number | null;
+            campaignId: string | null;
         })[];
         total: number;
     }>;
     update(id: string, data: UpdateEvaluationInput): Promise<{
-        comments: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        classId: string;
         status: import("@prisma/client").$Enums.EvaluationStatus;
-        reportId: string;
-        evaluatorId: string;
+        isAnonymous: boolean;
+        professorId: string;
+        moduleId: string;
+        reportId: string | null;
+        evaluatorId: string | null;
         score: number | null;
+        clarityScore: number | null;
+        pedagogyScore: number | null;
+        availabilityScore: number | null;
+        rhythmScore: number | null;
+        comment: string | null;
         aiScore: number | null;
+        campaignId: string | null;
     }>;
     delete(id: string): Promise<{
-        comments: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        classId: string;
         status: import("@prisma/client").$Enums.EvaluationStatus;
-        reportId: string;
-        evaluatorId: string;
+        isAnonymous: boolean;
+        professorId: string;
+        moduleId: string;
+        reportId: string | null;
+        evaluatorId: string | null;
         score: number | null;
+        clarityScore: number | null;
+        pedagogyScore: number | null;
+        availabilityScore: number | null;
+        rhythmScore: number | null;
+        comment: string | null;
         aiScore: number | null;
+        campaignId: string | null;
     }>;
     existsById(id: string): Promise<boolean>;
     updateAiScore(id: string, aiScore: number): Promise<{
-        comments: string | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        classId: string;
         status: import("@prisma/client").$Enums.EvaluationStatus;
-        reportId: string;
-        evaluatorId: string;
+        isAnonymous: boolean;
+        professorId: string;
+        moduleId: string;
+        reportId: string | null;
+        evaluatorId: string | null;
         score: number | null;
+        clarityScore: number | null;
+        pedagogyScore: number | null;
+        availabilityScore: number | null;
+        rhythmScore: number | null;
+        comment: string | null;
         aiScore: number | null;
+        campaignId: string | null;
     }>;
     getAggregatedStats(filters: EvaluationFilters): Promise<EvaluationStats>;
 };

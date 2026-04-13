@@ -1,4 +1,5 @@
 import { prisma } from '../../core/database/prisma';
+import type { UpdateSystemSettingsInput } from './system.schema';
 
 export const systemRepository = {
   async getSettings() {
@@ -8,7 +9,7 @@ export const systemRepository = {
     });
   },
 
-  async updateSettings(data: any) {
+  async updateSettings(data: UpdateSystemSettingsInput) {
     return prisma.systemSettings.update({
       where: { id: 'default-settings' },
       data

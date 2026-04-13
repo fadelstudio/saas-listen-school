@@ -1,8 +1,9 @@
 import { prisma } from '../../core/database/prisma';
 import { Prisma } from '@prisma/client';
+import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
 
 export const evaluationCampaignsRepository = {
-  async findAll(filters: any, pagination: { skip: number, limit: number }) {
+  async findAll(filters: EvaluationCampaignFilters, pagination: { skip: number, limit: number }) {
     const where: Prisma.EvaluationCampaignWhereInput = {};
 
     if (filters.classId) where.classId = filters.classId;

@@ -3,18 +3,21 @@ import { prisma } from '../../core/database/prisma';
 import { CreateSchoolInput } from './saas.schema';
 import { ConflictError } from '../../core/errors/AppError';
 import { Role } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 const SALT_ROUNDS = 12;
 
 export const saasService = {
   async createSchool(input: CreateSchoolInput) {
     // 1. Check if email or matricule exists
+    const orConditions: Prisma.UserWhereInput[] = [
+      { email: input.adminEmail },
+      ...(input.matricule ? [{ matricule: input.matricule }] : []),
+    ];
+
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [
-          { email: input.adminEmail },
-          { matricule: input.matricule || undefined }
-        ].filter(Boolean) as any
+        OR: orConditions,
       }
     });
 

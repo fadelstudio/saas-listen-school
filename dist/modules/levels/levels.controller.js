@@ -1,0 +1,57 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.levelsController = void 0;
+const levels_service_1 = require("./levels.service");
+exports.levelsController = {
+    async getAll(req, res, next) {
+        try {
+            const result = await levels_service_1.levelsService.getAll(req.query);
+            res.sendSuccess('Liste des niveaux récupérée', result.items, 200, {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: result.totalPages
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    },
+    async getById(req, res, next) {
+        try {
+            const level = await levels_service_1.levelsService.getById(req.params.id);
+            res.sendSuccess('Niveau récupéré', level);
+        }
+        catch (err) {
+            next(err);
+        }
+    },
+    async create(req, res, next) {
+        try {
+            const level = await levels_service_1.levelsService.create(req.body);
+            res.sendSuccess('Niveau créé', level, 201);
+        }
+        catch (err) {
+            next(err);
+        }
+    },
+    async update(req, res, next) {
+        try {
+            const level = await levels_service_1.levelsService.update(req.params.id, req.body);
+            res.sendSuccess('Niveau mis à jour', level);
+        }
+        catch (err) {
+            next(err);
+        }
+    },
+    async remove(req, res, next) {
+        try {
+            await levels_service_1.levelsService.delete(req.params.id);
+            res.sendSuccess('Niveau supprimé', null);
+        }
+        catch (err) {
+            next(err);
+        }
+    },
+};
+//# sourceMappingURL=levels.controller.js.map

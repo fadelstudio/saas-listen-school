@@ -6,6 +6,9 @@ const client_1 = require("@prisma/client");
 const scoreField = (label) => zod_1.z.number().min(0, `${label} min 0`).max(20, `${label} max 20`).optional();
 exports.createEvaluationSchema = zod_1.z.object({
     reportId: zod_1.z.string().uuid('Invalid report ID').optional(),
+    professorId: zod_1.z.string().uuid('Invalid professor ID'),
+    moduleId: zod_1.z.string().uuid('Invalid module ID'),
+    classId: zod_1.z.string().uuid('Invalid class ID'),
     score: scoreField('Score'),
     clarityScore: zod_1.z.number().min(0).max(5).optional(),
     pedagogyScore: zod_1.z.number().min(0).max(5).optional(),

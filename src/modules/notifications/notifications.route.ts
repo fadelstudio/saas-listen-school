@@ -20,6 +20,9 @@ router.use(authMiddleware);
  *     summary: Récupérer mes notifications
  *     tags: [Notifications]
  *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Liste des notifications (user + globales)
  */
 router.get('/', notificationsController.getMyNotifications);
 
@@ -30,6 +33,14 @@ router.get('/', notificationsController.getMyNotifications);
  *     summary: Marquer une notification comme lue
  *     tags: [Notifications]
  *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Notification marquée comme lue
  */
 router.patch('/:id/read', notificationsController.markAsRead);
 

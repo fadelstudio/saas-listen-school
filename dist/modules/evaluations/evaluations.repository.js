@@ -4,18 +4,34 @@ exports.evaluationsRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const client_1 = require("@prisma/client");
 exports.evaluationsRepository = {
+    async getUserContext(userId) {
+        return prisma_1.prisma.user.findUnique({
+            where: { id: userId },
+            select: { classId: true, campusId: true },
+        });
+    },
     async create(data, evaluatorId) {
         return prisma_1.prisma.evaluation.create({
             data: {
-                reportId: data.reportId ?? null,
-                evaluatorId: evaluatorId ?? null,
+                report: data.reportId ? { connect: { id: data.reportId } } : undefined,
+                evaluator: evaluatorId ? { connect: { id: evaluatorId } } : undefined,
+                professor: { connect: { id: data.professorId } },
+                module: { connect: { id: data.moduleId } },
+                class: { connect: { id: data.classId } },
                 score: data.score,
-                comments: data.comment,
+                clarityScore: data.clarityScore,
+                pedagogyScore: data.pedagogyScore,
+                availabilityScore: data.availabilityScore,
+                rhythmScore: data.rhythmScore,
+                comment: data.comment,
+                isAnonymous: data.isAnonymous ?? false,
                 status: client_1.EvaluationStatus.PENDING,
             },
             include: {
+                professor: true,
+                module: true,
+                class: true,
                 evaluator: { select: { id: true, firstName: true, lastName: true } },
-                report: { select: { id: true, title: true } },
             },
         });
     },
@@ -38,12 +54,14 @@ exports.evaluationsRepository = {
             ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
             ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),
         };
+        const allowedSortFields = ['score', 'createdAt', 'aiScore'];
+        const sortBy = allowedSortFields.includes(pagination.sortBy) ? pagination.sortBy : 'createdAt';
         const [items, total] = await Promise.all([
             prisma_1.prisma.evaluation.findMany({
                 where,
                 skip: pagination.skip,
                 take: pagination.limit,
-                orderBy: { [pagination.sortBy]: pagination.sortOrder },
+                orderBy: { [sortBy]: pagination.sortOrder },
                 include: {
                     evaluator: { select: { id: true, firstName: true, lastName: true } },
                     report: { select: { id: true, title: true } },
@@ -58,7 +76,11 @@ exports.evaluationsRepository = {
             where: { id },
             data: {
                 score: data.score,
-                comments: data.comment,
+                clarityScore: data.clarityScore,
+                pedagogyScore: data.pedagogyScore,
+                availabilityScore: data.availabilityScore,
+                rhythmScore: data.rhythmScore,
+                comment: data.comment,
             },
         });
     },
@@ -80,15 +102,22 @@ exports.evaluationsRepository = {
         const agg = await prisma_1.prisma.evaluation.aggregate({
             where,
             _count: { id: true },
-            _avg: { score: true, aiScore: true },
+            _avg: {
+                score: true,
+                aiScore: true,
+                clarityScore: true,
+                pedagogyScore: true,
+                availabilityScore: true,
+                rhythmScore: true
+            },
         });
         return {
             totalCount: agg._count.id,
             averageScore: agg._avg.score,
-            averageClarityScore: null,
-            averagePedagogyScore: null,
-            averageAvailabilityScore: null,
-            averageRhythmScore: null,
+            averageClarityScore: agg._avg.clarityScore,
+            averagePedagogyScore: agg._avg.pedagogyScore,
+            averageAvailabilityScore: agg._avg.availabilityScore,
+            averageRhythmScore: agg._avg.rhythmScore,
             distribution: {},
         };
     },

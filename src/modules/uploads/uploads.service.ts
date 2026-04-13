@@ -1,6 +1,7 @@
 import { supabase } from '../../core/database/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequestException, InternalServerException } from '../../core/errors/HttpException';
+import { env } from '../../core/config/env';
 
 export const uploadsService = {
   async uploadFile(file: Express.Multer.File, folder: string = 'general') {
@@ -13,7 +14,7 @@ export const uploadsService = {
     const filePath = `${folder}/${fileName}`;
 
     const { error } = await supabase.storage
-      .from('afi-listen')
+      .from('attachments')
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
         upsert: false,
@@ -24,13 +25,17 @@ export const uploadsService = {
       throw new InternalServerException(`Upload failed: ${error.message}`);
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('afi-listen')
-      .getPublicUrl(filePath);
+    const { data, error: signedErr } = await supabase.storage
+      .from('attachments')
+      .createSignedUrl(filePath, env.SIGNED_URL_EXPIRES_IN);
+
+    if (signedErr || !data?.signedUrl) {
+      console.error('❌ Supabase Signed URL Error:', signedErr);
+      throw new InternalServerException(`Could not create signed URL: ${signedErr?.message ?? 'unknown error'}`);
+    }
 
     return {
-      url: publicUrl,
+      url: data.signedUrl,
       path: filePath,
       fileName,
       mimetype: file.mimetype,

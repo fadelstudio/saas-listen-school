@@ -5,5 +5,7 @@ export declare const authController: {
     me(req: Request, res: Response, next: NextFunction): Promise<void>;
     changePassword(req: Request, res: Response, next: NextFunction): Promise<void>;
     updateProfile(req: Request, res: Response, next: NextFunction): Promise<void>;
+    refresh(req: Request, res: Response, next: NextFunction): Promise<void>;
+    logout(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=auth.controller.d.ts.map

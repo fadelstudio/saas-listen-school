@@ -11,10 +11,16 @@ function validate(schemas) {
             req.body = schemas.body.parse(req.body);
         }
         if (schemas.params) {
-            req.params = schemas.params.parse(req.params);
+            const parsedParams = schemas.params.parse(req.params);
+            // Express 5 req.params is read-only (getter), we must update keys individually
+            Object.keys(req.params).forEach((k) => delete req.params[k]);
+            Object.assign(req.params, parsedParams);
         }
         if (schemas.query) {
-            req.query = schemas.query.parse(req.query);
+            const parsedQuery = schemas.query.parse(req.query);
+            // Express 5 req.query is read-only (getter), we must update keys individually
+            Object.keys(req.query).forEach((k) => delete req.query[k]);
+            Object.assign(req.query, parsedQuery);
         }
         next();
     };

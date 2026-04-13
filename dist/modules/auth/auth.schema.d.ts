@@ -4,9 +4,12 @@ export declare const registerSchema: z.ZodObject<{
     password: z.ZodString;
     firstName: z.ZodString;
     lastName: z.ZodString;
+    campusId: z.ZodOptional<z.ZodString>;
+    classId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const loginSchema: z.ZodObject<{
-    email: z.ZodString;
+    email: z.ZodOptional<z.ZodString>;
+    matricule: z.ZodOptional<z.ZodString>;
     password: z.ZodString;
 }, z.core.$strip>;
 export declare const changePasswordSchema: z.ZodObject<{

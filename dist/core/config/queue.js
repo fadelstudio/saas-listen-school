@@ -18,4 +18,7 @@ exports.jobQueue = new bullmq_1.Queue(exports.QUEUE_NAMES.AI_ANALYSIS, {
         removeOnFail: 50,
     },
 });
+exports.jobQueue.on("error", (_err) => {
+    // Silence Redis errors in development
+});
 //# sourceMappingURL=queue.js.map

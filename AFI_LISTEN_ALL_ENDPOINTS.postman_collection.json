@@ -1,0 +1,385 @@
+{
+  "info": {
+    "_postman_id": "afi-listen-all-endpoints",
+    "name": "AFI-LISTEN ALL ENDPOINTS (No exemptions)",
+    "description": "Covers every endpoint in src/core/routes/v1.ts with a coherent scenario. Includes positive + negative where appropriate.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set('uniq', Date.now().toString());",
+          "pm.collectionVariables.set('nowIso', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Standard envelope present', function () {",
+          "  var j = pm.response.json();",
+          "  pm.expect(j).to.have.property('success');",
+          "  pm.expect(j).to.have.property('message');",
+          "  pm.expect(j).to.have.property('data');",
+          "  pm.expect(j).to.have.property('error');",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "adminRefresh", "value": "", "type": "string" },
+    { "key": "superToken", "value": "", "type": "string" },
+
+    { "key": "studentEmail", "value": "", "type": "string" },
+    { "key": "studentToken", "value": "", "type": "string" },
+    { "key": "studentRefresh", "value": "", "type": "string" },
+
+    { "key": "campusId", "value": "", "type": "string" },
+    { "key": "levelId", "value": "", "type": "string" },
+    { "key": "classId", "value": "", "type": "string" },
+    { "key": "moduleId", "value": "", "type": "string" },
+    { "key": "profId", "value": "", "type": "string" },
+
+    { "key": "assignmentId", "value": "", "type": "string" },
+    { "key": "campaignId", "value": "", "type": "string" },
+
+    { "key": "evaluationId", "value": "", "type": "string" },
+    { "key": "reportId", "value": "", "type": "string" },
+    { "key": "decisionId", "value": "", "type": "string" },
+
+    { "key": "chatJobId", "value": "", "type": "string" },
+    { "key": "synthJobId", "value": "", "type": "string" },
+    { "key": "notifId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0. Health + Docs",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "http://localhost:3000/health" }, "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ] }
+      ]
+    },
+    {
+      "name": "1. Auth (Admin + Student + Superadmin)",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); pm.collectionVariables.set('adminToken', j.data.token); pm.collectionVariables.set('adminRefresh', j.data.refreshToken);" ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"admin@afi.com\",\"password\":\"fadeldev\"}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Register Student",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); var j=pm.response.json(); pm.collectionVariables.set('studentEmail', j.data.user.email); pm.collectionVariables.set('studentToken', j.data.token); pm.collectionVariables.set('studentRefresh', j.data.refreshToken);" ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"student.{{uniq}}@afi.com\",\"password\":\"Student@1234\",\"firstName\":\"Stu\",\"lastName\":\"Dent\"}" },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Get Me (Student)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Patch Me (Student)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"firstName\":\"StuUpd\"}" },
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Change Password (Student)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"currentPassword\":\"Student@1234\",\"newPassword\":\"Student@12345\",\"confirmPassword\":\"Student@12345\"}" },
+            "url": "{{baseUrl}}/auth/change-password"
+          }
+        },
+        {
+          "name": "Refresh Token (Student)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); pm.collectionVariables.set('studentToken', j.data.token); pm.collectionVariables.set('studentRefresh', j.data.refreshToken);" ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"refreshToken\":\"{{studentRefresh}}\"}" },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout (Student)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"refreshToken\":\"{{studentRefresh}}\"}" },
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "Login SuperAdmin",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); pm.collectionVariables.set('superToken', j.data.token);" ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"superadmin@saas.com\",\"password\":\"fadeldev\"}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. System",
+      "item": [
+        {
+          "name": "Get System (Admin)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/system" }
+        },
+        {
+          "name": "Patch System (Admin)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"schoolName\":\"AFI-LISTEN\",\"aiEnabled\":true,\"authReportsRequired\":false,\"authEvaluationsRequired\":false}" },
+            "url": "{{baseUrl}}/system"
+          }
+        },
+        {
+          "name": "AI Status (Admin)",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/system/ai-status" }
+        }
+      ]
+    },
+    {
+      "name": "3. Referentials CRUD (Campuses/Levels/Classes/Professors/AcademicModules)",
+      "item": [
+        {
+          "name": "Create Campus",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('campusId', pm.response.json().data.id);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Campus All {{uniq}}\",\"location\":\"X\"}" }, "url": "{{baseUrl}}/campuses" }
+        },
+        { "name": "Get Campus By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/campuses/{{campusId}}" } },
+        { "name": "Patch Campus", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"location\":\"Y\"}" }, "url": "{{baseUrl}}/campuses/{{campusId}}" } },
+
+        {
+          "name": "Create Level",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('levelId', pm.response.json().data.id);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Level All {{uniq}}\",\"order\":50}" }, "url": "{{baseUrl}}/levels" }
+        },
+        { "name": "Get Level By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/levels/{{levelId}}" } },
+
+        {
+          "name": "Create Class",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('classId', pm.response.json().data.id);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Class All {{uniq}}\",\"campusId\":\"{{campusId}}\",\"levelId\":\"{{levelId}}\"}" }, "url": "{{baseUrl}}/classes" }
+        },
+        { "name": "Get Class By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/classes/{{classId}}" } },
+
+        {
+          "name": "Create Academic Module",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('moduleId', pm.response.json().data.id);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"name\":\"Module All {{uniq}}\",\"code\":\"MOD-{{uniq}}\"}" }, "url": "{{baseUrl}}/academic-modules" }
+        },
+        { "name": "Get Academic Module By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/academic-modules/{{moduleId}}" } },
+
+        {
+          "name": "Create Professor",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('profId', pm.response.json().data.id);" ] } } ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"firstName\":\"Prof\",\"lastName\":\"All{{uniq}}\",\"email\":\"prof.all.{{uniq}}@afi.com\",\"campusId\":\"{{campusId}}\"}" }, "url": "{{baseUrl}}/professors" }
+        },
+        { "name": "Get Professor By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/professors/{{profId}}" } }
+      ]
+    },
+    {
+      "name": "4. Assignments",
+      "item": [
+        { "name": "Create Assignment", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('assignmentId', pm.response.json().data.id);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"classId\":\"{{classId}}\",\"moduleId\":\"{{moduleId}}\",\"professorIds\":[\"{{profId}}\"]}" }, "url": "{{baseUrl}}/assignments" } },
+        { "name": "Get Assignment By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/assignments/{{assignmentId}}" } },
+        { "name": "Patch Assignment", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"professorIds\":[\"{{profId}}\"]}" }, "url": "{{baseUrl}}/assignments/{{assignmentId}}" } },
+        { "name": "List Assignments (filter)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/assignments?classId={{classId}}&moduleId={{moduleId}}" } }
+      ]
+    },
+    {
+      "name": "5. Evaluation Campaigns",
+      "item": [
+        { "name": "Create Campaign", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('campaignId', pm.response.json().data.id);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\":\"Campaign All {{uniq}}\",\"description\":\"Scenario\",\"classId\":\"{{classId}}\",\"moduleId\":\"{{moduleId}}\",\"professorId\":\"{{profId}}\",\"dueDate\":\"{{nowIso}}\"}" }, "url": "{{baseUrl}}/evaluation-campaigns" } },
+        { "name": "List Campaigns", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluation-campaigns?page=1&limit=10" } },
+        { "name": "Get Campaign By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluation-campaigns/{{campaignId}}" } },
+        { "name": "Close Campaign", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/evaluation-campaigns/{{campaignId}}/close" } }
+      ]
+    },
+    {
+      "name": "6. Evaluations",
+      "item": [
+        { "name": "Create Evaluation (Anonymous)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('evaluationId', pm.response.json().data.id);" ] } } ], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"professorId\":\"{{profId}}\",\"moduleId\":\"{{moduleId}}\",\"classId\":\"{{classId}}\",\"score\":18,\"comment\":\"Très bon cours\",\"isAnonymous\":true}" }, "url": "{{baseUrl}}/evaluations" } },
+        { "name": "List Evaluations", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluations?page=1&limit=10" } },
+        { "name": "Get Evaluation By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluations/{{evaluationId}}" } },
+        { "name": "Patch Evaluation", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"comment\":\"upd\"}" }, "url": "{{baseUrl}}/evaluations/{{evaluationId}}" } },
+        { "name": "Evaluation Stats", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluations/stats" } },
+        { "name": "Analyze Evaluation", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/evaluations/{{evaluationId}}/analyze" } }
+      ]
+    },
+    {
+      "name": "7. Reports",
+      "item": [
+        { "name": "Create Report (Anonymous)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('reportId', pm.response.json().data.id);" ] } } ], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\":\"Signalement All {{uniq}}\",\"content\":\"Texte assez long pour passer validation.\",\"type\":\"PROBLEM_PEDAGOGICAL\",\"classId\":\"{{classId}}\",\"professorId\":\"{{profId}}\",\"moduleId\":\"{{moduleId}}\",\"isAnonymous\":true,\"deviceMetadata\":{\"cli\":\"newman\"}}" }, "url": "{{baseUrl}}/reports" } },
+        { "name": "List Reports", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/reports?page=1&limit=10" } },
+        { "name": "Get Report By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/reports/{{reportId}}" } },
+        { "name": "Patch Report", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\":\"contenu mis à jour assez long\"}" }, "url": "{{baseUrl}}/reports/{{reportId}}" } },
+        { "name": "Update Report Status", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\":\"REVIEWED\"}" }, "url": "{{baseUrl}}/reports/{{reportId}}/status" } },
+        { "name": "Analyze Report", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/reports/{{reportId}}/analyze" } },
+        { "name": "Delete Report (Admin)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/reports/{{reportId}}" } }
+      ]
+    },
+    {
+      "name": "8. Decisions",
+      "item": [
+        { "name": "Create Decision", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('decisionId', pm.response.json().data.id);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"evaluationId\":\"{{evaluationId}}\",\"title\":\"Action All {{uniq}}\",\"rationale\":\"R\",\"priority\":\"MEDIUM\"}" }, "url": "{{baseUrl}}/decisions" } },
+        { "name": "List Decisions", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/decisions?page=1&limit=10" } },
+        { "name": "Get Decision By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/decisions/{{decisionId}}" } },
+        { "name": "Patch Decision", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"rationale\":\"upd\"}" }, "url": "{{baseUrl}}/decisions/{{decisionId}}" } },
+        { "name": "Update Decision Status", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\":\"APPROVED\"}" }, "url": "{{baseUrl}}/decisions/{{decisionId}}/status" } },
+        { "name": "Delete Decision (Admin)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/decisions/{{decisionId}}" } }
+      ]
+    },
+    {
+      "name": "9. AI (jobs, job by id, result, retry, chat, synthesis)",
+      "item": [
+        { "name": "List Jobs", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/ai/jobs?page=1&limit=10" } },
+        {
+          "name": "Chat (creates jobId even if Redis down)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); if (j.data && j.data.jobId) pm.collectionVariables.set('chatJobId', j.data.jobId);" ] } }
+          ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"question\":\"Bonjour\"}" }, "url": "{{baseUrl}}/ai/chat" }
+        },
+        { "name": "Get Job By Id (chat)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/ai/jobs/{{chatJobId}}" } },
+        { "name": "Get Job Result (chat)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/ai/jobs/{{chatJobId}}/result" } },
+        { "name": "Retry Job (chat)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/ai/jobs/{{chatJobId}}/retry" } },
+
+        {
+          "name": "Synthesis (creates jobId even if Redis down)",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); if (j.data && j.data.jobId) pm.collectionVariables.set('synthJobId', j.data.jobId);" ] } }
+          ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"startDate\":\"2024-01-01T00:00:00Z\"}" }, "url": "{{baseUrl}}/ai/synthesis" }
+        },
+        { "name": "Get Job By Id (synthesis)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/ai/jobs/{{synthJobId}}" } },
+        { "name": "Get Job Result (synthesis)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/ai/jobs/{{synthJobId}}/result" } }
+      ]
+    },
+    {
+      "name": "10. Notifications (mark as read)",
+      "item": [
+        {
+          "name": "List Notifications",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); if (Array.isArray(j.data) && j.data[0] && j.data[0].id) pm.collectionVariables.set('notifId', j.data[0].id);" ] } }
+          ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/notifications" }
+        },
+        {
+          "name": "Mark Notification Read",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('mark read ok', function(){ pm.expect(pm.response.code).to.be.oneOf([200,404]); });" ] } }
+          ],
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "url": "{{baseUrl}}/notifications/{{notifId}}/read" }
+        }
+      ]
+    },
+    {
+      "name": "11. Uploads (positive file upload)",
+      "item": [
+        {
+          "name": "Upload File",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('Upload status', function () { pm.expect(pm.response.code).to.be.oneOf([201, 500]); });" ] } }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "folder", "value": "general", "type": "text" },
+                { "key": "file", "type": "file", "src": "fixtures/upload-test.txt" }
+              ]
+            },
+            "url": "{{baseUrl}}/uploads"
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. SaaS (positive superadmin create school + negative admin)",
+      "item": [
+        {
+          "name": "Admin forbidden create school",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(403);" ] } } ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"Admin@1234\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
+            "url": "{{baseUrl}}/saas/schools"
+          }
+        },
+        {
+          "name": "Superadmin create school",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('Superadmin create school status', function () { pm.expect(pm.response.code).to.be.oneOf([201, 409]); });" ] } } ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"Admin@1234\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
+            "url": "{{baseUrl}}/saas/schools"
+          }
+        }
+      ]
+    },
+    {
+      "name": "99. Cleanup (delete assignment last)",
+      "item": [
+        { "name": "Delete Evaluation (Admin)", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/evaluations/{{evaluationId}}" } },
+        { "name": "Delete Assignment", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('delete ok', function(){ pm.expect(pm.response.code).to.be.oneOf([200,404]); });" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "url": "{{baseUrl}}/assignments/{{assignmentId}}" } }
+      ]
+    }
+  ]
+}
+

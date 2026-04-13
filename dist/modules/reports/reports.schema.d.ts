@@ -18,6 +18,9 @@ export declare const createReportSchema: z.ZodObject<{
         CRITICAL: "CRITICAL";
     }>>;
     isAnonymous: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    classId: z.ZodOptional<z.ZodString>;
+    professorId: z.ZodOptional<z.ZodString>;
+    moduleId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const updateReportSchema: z.ZodObject<{
     title: z.ZodOptional<z.ZodString>;

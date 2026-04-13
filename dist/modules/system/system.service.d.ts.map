@@ -1,0 +1,1 @@
+{"version":3,"file":"system.service.d.ts","sourceRoot":"","sources":["../../../src/modules/system/system.service.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,yBAAyB,EAAE,MAAM,iBAAiB,CAAC;AAC5D,OAAO,EAAE,sBAAsB,EAAE,MAAM,gBAAgB,CAAC;AAOxD,eAAO,MAAM,aAAa;yCACiB,OAAO,CAAC,sBAAsB,CAAC;yBAS7C,yBAAyB,GAAG,OAAO,CAAC,sBAAsB,CAAC;CAMvF,CAAC"}

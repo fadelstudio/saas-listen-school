@@ -104,7 +104,8 @@ export const reportsController = {
   "success": true,
   "message": "string",
   "data": {} | [] | null,
-  "error": null
+  "error": null,
+  "meta": { "page": 1, "limit": 20, "total": 0, "totalPages": 0 } // optionnel (pagination)
 }
 
 // ✅ Erreur
@@ -116,10 +117,10 @@ export const reportsController = {
 }
 ```
 
-**Helpers obligatoires** (depuis `src/utils/response.ts`) :
+**Helpers obligatoires** (middleware `src/core/middleware/response.middleware.ts`) :
 ```typescript
-sendSuccess(res, message, data, statusCode = 200)
-sendError(res, message, error, statusCode = 400)
+res.sendSuccess(message, data, statusCode = 200, meta?)
+res.sendError(message, statusCode = 400, error?)
 ```
 
 ---

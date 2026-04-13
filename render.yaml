@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: afi-listen-api
+    runtime: node
+    plan: starter
+    autoDeploy: true
+    buildCommand: npm ci && npm run render:build
+    startCommand: npm run render:start:api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Required (set in Render dashboard as secrets/values):
+      # - DATABASE_URL
+      # - JWT_SECRET
+      # - SUPABASE_URL
+      # - SUPABASE_KEY
+      # - GEMINI_API_KEY (optional if not used)
+      # - GROQ_API_KEY (optional if not used)
+      # - REDIS_URL (from your Render Redis instance)
+      # Optional:
+      # - MAX_FILE_SIZE_MB
+      # - SIGNED_URL_EXPIRES_IN
+
+  - type: worker
+    name: afi-listen-worker
+    runtime: node
+    plan: starter
+    autoDeploy: true
+    buildCommand: npm ci && npm run render:build
+    startCommand: npm run start:worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Required (set in Render dashboard as secrets/values):
+      # - DATABASE_URL
+      # - SUPABASE_URL
+      # - SUPABASE_KEY
+      # - GEMINI_API_KEY (optional if not used)
+      # - GROQ_API_KEY (optional if not used)
+      # - REDIS_URL
+

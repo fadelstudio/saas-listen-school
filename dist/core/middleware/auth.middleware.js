@@ -25,8 +25,15 @@ function authMiddleware(req, _res, next) {
 }
 function requireRole(...roles) {
     return (req, _res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            throw new AppError_1.UnauthorizedError("Insufficient permissions");
+        if (!req.user) {
+            throw new AppError_1.UnauthorizedError("Authentication required");
+        }
+        // SUPERADMIN can access everything
+        if (req.user.role === 'SUPERADMIN') {
+            return next();
+        }
+        if (!roles.includes(req.user.role)) {
+            throw new AppError_1.ForbiddenError("Insufficient permissions");
         }
         next();
     };

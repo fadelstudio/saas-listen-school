@@ -6,6 +6,16 @@ exports.authRepository = {
     async findByEmail(email) {
         return prisma_1.prisma.user.findUnique({ where: { email } });
     },
+    async findByIdentifier(identifier) {
+        return prisma_1.prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: identifier },
+                    { matricule: identifier }
+                ]
+            }
+        });
+    },
     async findById(id) {
         return prisma_1.prisma.user.findUnique({ where: { id } });
     },
@@ -16,6 +26,8 @@ exports.authRepository = {
                 passwordHash: data.passwordHash,
                 firstName: data.firstName,
                 lastName: data.lastName,
+                campusId: data.campusId,
+                classId: data.classId,
             },
         });
     },
@@ -29,6 +41,32 @@ exports.authRepository = {
         return prisma_1.prisma.user.update({
             where: { id: userId },
             data,
+        });
+    },
+    // ─── Refresh Tokens ─────────────────────────────────────────────────────────
+    async createRefreshToken(userId, token, expiresAt) {
+        return prisma_1.prisma.refreshToken.create({
+            data: {
+                userId,
+                token,
+                expiresAt,
+            },
+        });
+    },
+    async findRefreshToken(token) {
+        return prisma_1.prisma.refreshToken.findUnique({
+            where: { token },
+            include: { user: true },
+        });
+    },
+    async deleteRefreshToken(token) {
+        return prisma_1.prisma.refreshToken.delete({
+            where: { token },
+        });
+    },
+    async deleteAllUserRefreshTokens(userId) {
+        return prisma_1.prisma.refreshToken.deleteMany({
+            where: { userId },
         });
     },
     async setActive(userId, isActive) {

@@ -1,6 +1,6 @@
-import { DecisionStatus } from '@prisma/client';
+import { DecisionStatus, Priority } from '@prisma/client';
 import { PaginatedResult } from '../../utils/pagination';
-export type DecisionPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type DecisionPriority = Priority;
 export interface CreateDecisionInput {
     evaluationId: string;
     title: string;

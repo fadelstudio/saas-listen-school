@@ -33,11 +33,12 @@ export const decisionsRouter = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [reportId, title, content]
+ *             required: [evaluationId, title]
  *             properties:
- *               reportId: { type: string, format: uuid }
+ *               evaluationId: { type: string, format: uuid }
  *               title: { type: string }
- *               content: { type: string }
+ *               rationale: { type: string }
+ *               priority: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
  *               responsible: { type: string }
  *               dueDate: { type: string, format: date-time }
  *     responses:
@@ -62,7 +63,7 @@ decisionsRouter.post(
  *     parameters:
  *       - in: query
  *         name: status
- *         schema: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED] }
+ *         schema: { type: string, enum: [PENDING, APPROVED, REJECTED, DEFERRED, DONE] }
  *     responses:
  *       200:
  *         description: Liste paginée
@@ -143,7 +144,7 @@ decisionsRouter.patch(
  *             type: object
  *             required: [status]
  *             properties:
- *               status: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED] }
+ *               status: { type: string, enum: [PENDING, APPROVED, REJECTED, DEFERRED, DONE] }
  *     responses:
  *       200:
  *         description: Statut mis à jour

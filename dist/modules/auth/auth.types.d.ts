@@ -10,9 +10,12 @@ export interface RegisterInput {
     password: string;
     firstName: string;
     lastName: string;
+    campusId?: string;
+    classId?: string;
 }
 export interface LoginInput {
-    email: string;
+    email?: string;
+    matricule?: string;
     password: string;
 }
 export interface ChangePasswordInput {
@@ -25,6 +28,7 @@ export interface UpdateProfileInput {
 }
 export interface AuthResponse {
     token: string;
+    refreshToken?: string;
     user: SafeUser;
 }
 /** User without passwordHash — safe to send in API responses */
@@ -35,6 +39,8 @@ export interface SafeUser {
     lastName: string;
     role: Role;
     isActive: boolean;
+    campusId?: string | null;
+    classId?: string | null;
     createdAt: Date;
     updatedAt: Date;
 }

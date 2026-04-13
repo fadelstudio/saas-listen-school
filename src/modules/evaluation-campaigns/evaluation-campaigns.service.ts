@@ -2,10 +2,23 @@ import { evaluationCampaignsRepository } from './evaluation-campaigns.repository
 import { notificationService } from '../notifications/notifications.service';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { NotFoundError } from '../../core/errors/AppError';
+import { logger } from '../../utils/logger';
+import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
+import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
 
 export const evaluationCampaignsService = {
-  async create(data: any) {
-    const campaign = await evaluationCampaignsRepository.create(data);
+  async create(data: CreateEvaluationCampaignInput) {
+    const campaign = await evaluationCampaignsRepository.create({
+      ...data,
+      dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+    });
+
+    // Create a global notification so ADMIN can see it too (useful for audit/testing)
+    await notificationService.create({
+      title: `Campagne créée: ${campaign.title}`,
+      message: `Une nouvelle campagne d'évaluation a été créée.`,
+      type: 'EVALUATION_CAMPAIGN',
+    }).catch((e) => logger.error('Failed to create global campaign notification', { error: e }));
     
     // Now notify all students in the class
     const detailedCampaign = await evaluationCampaignsRepository.findById(campaign.id);
@@ -20,17 +33,17 @@ export const evaluationCampaignsService = {
           type: 'EVALUATION_CAMPAIGN',
           userId
         })
-      )).catch(e => console.error('Failed to send campaign notifications:', e));
+      )).catch((e) => logger.error('Failed to send campaign notifications', { error: e }));
     }
 
     return campaign;
   },
 
-  async getAll(query: Record<string, any>) {
+  async getAll(query: Record<string, unknown>) {
     const pagination = parsePagination(query);
-    const filters = {
-      classId: query.classId,
-      status: query.status
+    const filters: EvaluationCampaignFilters = {
+      classId: typeof query.classId === 'string' ? query.classId : undefined,
+      status: typeof query.status === 'string' ? query.status : undefined,
     };
     
     const { items, total } = await evaluationCampaignsRepository.findAll(filters, pagination);

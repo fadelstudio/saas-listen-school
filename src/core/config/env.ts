@@ -18,12 +18,17 @@ const envSchema = z.object({
   SUPABASE_KEY: z.string().min(1, "SUPABASE_KEY is required"),
 
   // Redis
+  REDIS_URL: z.string().min(1).optional(),
   REDIS_HOST: z.string().default("localhost"),
   REDIS_PORT: z.coerce.number().default(6379),
 
   // AI providers
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
   GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
+
+  // Uploads
+  MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
+  SIGNED_URL_EXPIRES_IN: z.coerce.number().int().positive().default(60 * 60), // seconds
 });
 
 const parsed = envSchema.safeParse(process.env);

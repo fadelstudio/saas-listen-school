@@ -67,7 +67,7 @@ export class AiBalancer {
       }
     }
 
-    let lastError: any = null;
+    let lastError: unknown = null;
 
     // 2. Iterate through providers
     for (const config of sortedConfigs) {
@@ -96,7 +96,9 @@ export class AiBalancer {
       }
     }
 
-    throw new Error(`AI Balancer: All ${configs.length} providers failed. Last error: ${lastError?.message || 'Unknown'}`);
+    const lastMessage =
+      lastError instanceof Error ? lastError.message : 'Unknown';
+    throw new Error(`AI Balancer: All ${configs.length} providers failed. Last error: ${lastMessage}`);
   }
 
   private async executeCall(config: AiConfig, prompt: string): Promise<string> {
@@ -120,8 +122,29 @@ export class AiBalancer {
       }
     );
     if (!res.ok) throw new Error(`Gemini error: ${res.status}`);
-    const data = await res.json() as any;
-    return data.candidates[0]?.content.parts[0]?.text ?? '';
+    const data = (await res.json()) as unknown;
+
+    // Minimal runtime narrowing (avoid unsafe casts)
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'candidates' in data &&
+      Array.isArray((data as { candidates: unknown }).candidates)
+    ) {
+      const candidates = (data as { candidates: unknown[] }).candidates;
+      const first = candidates[0] as unknown;
+      if (typeof first !== 'object' || first === null) return '';
+      const content = (first as Record<string, unknown>).content;
+      if (typeof content !== 'object' || content === null) return '';
+      const parts = (content as Record<string, unknown>).parts;
+      if (!Array.isArray(parts)) return '';
+      const firstPart = parts[0] as unknown;
+      if (typeof firstPart !== 'object' || firstPart === null) return '';
+      const text = (firstPart as Record<string, unknown>).text;
+      return typeof text === 'string' ? text : '';
+    }
+
+    return '';
   }
 
   private async callGroq(key: string, model: string, prompt: string): Promise<string> {
@@ -131,8 +154,23 @@ export class AiBalancer {
       body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }] }),
     });
     if (!res.ok) throw new Error(`Groq error: ${res.status}`);
-    const data = await res.json() as any;
-    return data.choices[0]?.message.content ?? '';
+    const data = (await res.json()) as unknown;
+
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'choices' in data &&
+      Array.isArray((data as { choices: unknown }).choices)
+    ) {
+      const first = (data as { choices: unknown[] }).choices[0] as unknown;
+      if (typeof first !== 'object' || first === null) return '';
+      const message = (first as Record<string, unknown>).message;
+      if (typeof message !== 'object' || message === null) return '';
+      const content = (message as Record<string, unknown>).content;
+      return typeof content === 'string' ? content : '';
+    }
+
+    return '';
   }
 
   private async callOpenAI(key: string, model: string, prompt: string): Promise<string> {
@@ -142,8 +180,23 @@ export class AiBalancer {
       body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }] }),
     });
     if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
-    const data = await res.json() as any;
-    return data.choices[0]?.message.content ?? '';
+    const data = (await res.json()) as unknown;
+
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'choices' in data &&
+      Array.isArray((data as { choices: unknown }).choices)
+    ) {
+      const first = (data as { choices: unknown[] }).choices[0] as unknown;
+      if (typeof first !== 'object' || first === null) return '';
+      const message = (first as Record<string, unknown>).message;
+      if (typeof message !== 'object' || message === null) return '';
+      const content = (message as Record<string, unknown>).content;
+      return typeof content === 'string' ? content : '';
+    }
+
+    return '';
   }
 }
 

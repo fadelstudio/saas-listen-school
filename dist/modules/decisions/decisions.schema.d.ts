@@ -7,6 +7,7 @@ export declare const createDecisionSchema: z.ZodObject<{
         LOW: "LOW";
         MEDIUM: "MEDIUM";
         HIGH: "HIGH";
+        CRITICAL: "CRITICAL";
     }>>;
     responsible: z.ZodOptional<z.ZodString>;
     dueDate: z.ZodOptional<z.ZodString>;
@@ -18,6 +19,7 @@ export declare const updateDecisionSchema: z.ZodObject<{
         LOW: "LOW";
         MEDIUM: "MEDIUM";
         HIGH: "HIGH";
+        CRITICAL: "CRITICAL";
     }>>;
     responsible: z.ZodOptional<z.ZodString>;
     dueDate: z.ZodOptional<z.ZodString>;
@@ -28,6 +30,7 @@ export declare const updateDecisionStatusSchema: z.ZodObject<{
         APPROVED: "APPROVED";
         REJECTED: "REJECTED";
         DEFERRED: "DEFERRED";
+        DONE: "DONE";
     }>;
 }, z.core.$strip>;
 export declare const decisionParamsSchema: z.ZodObject<{
@@ -46,11 +49,13 @@ export declare const decisionQuerySchema: z.ZodObject<{
         APPROVED: "APPROVED";
         REJECTED: "REJECTED";
         DEFERRED: "DEFERRED";
+        DONE: "DONE";
     }>>;
     priority: z.ZodOptional<z.ZodEnum<{
         LOW: "LOW";
         MEDIUM: "MEDIUM";
         HIGH: "HIGH";
+        CRITICAL: "CRITICAL";
     }>>;
     deciderId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;

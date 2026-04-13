@@ -20,6 +20,9 @@ exports.createReportSchema = zod_1.z.object({
     category: zod_1.z.string().max(100).optional(),
     priority: priorityEnum.optional(),
     isAnonymous: zod_1.z.boolean().optional().default(false),
+    classId: zod_1.z.string().uuid('Invalid class ID').optional(),
+    professorId: zod_1.z.string().uuid('Invalid professor ID').optional(),
+    moduleId: zod_1.z.string().uuid('Invalid module ID').optional(),
 });
 // ─── Update ───────────────────────────────────────────────────────────────────
 exports.updateReportSchema = zod_1.z.object({

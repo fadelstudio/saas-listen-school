@@ -1,12 +1,38 @@
 # AFI-LISTEN API Reference
 
-Cette documentation détaille l'intégralité des endpoints du backend AFI-LISTEN. Toutes les requêtes (sauf mention contraire) attendent un en-tête `Authorization: Bearer <token>`.
+Cette documentation détaille les endpoints du backend AFI-LISTEN.
+
+## Base URL
+
+Les routes sont disponibles sous deux préfixes (compatibilité) :
+
+- `/api` (recommandé)
+- `/api/v1` (alias)
+
+Toutes les requêtes (sauf mention contraire) attendent un en-tête `Authorization: Bearer <token>`.
+
+## Format de réponse (standard)
+
+```json
+{
+  "success": true,
+  "message": "string",
+  "data": {},
+  "error": null,
+  "meta": { "page": 1, "limit": 20, "total": 0, "totalPages": 0 }
+}
+```
+
+- `meta` est **optionnel** (listes paginées).
 
 ## 🛡️ Rôles & Permissions
 
-- **ADMIN** : Accès total. Gestion des réglages système et suppression d'entités.
-- **MANAGER** : Gestion académique (Campus, Classes, Profs, Modules). Consultation des rapports.
-- **STUDENT** : Consultation restreinte et soumission de signalements/évaluations.
+- **SUPERADMIN** : (SaaS) Création d’une nouvelle école + attribution du premier ADMIN.
+- **ADMIN** : Accès total sur l’école courante. Réglages système, suppressions.
+- **MANAGER** : Gestion académique. Consultation/traitement.
+- **AGENT** : Accès opérationnel (selon routes).
+- **VIEWER** : Lecture seule.
+- **STUDENT** : Soumission de signalements/évaluations (selon réglage d’auth).
 
 ---
 
@@ -73,3 +99,14 @@ Met à jour les réglages système.
 ### AI Analysis
 - **POST `/api/reports/:id/analyze`** : Forcer une analyse IA sur un signalement.
 - **POST `/api/evaluations/:id/analyze`** : Forcer une notation IA sur une évaluation.
+
+---
+
+## 📎 Uploads
+
+### POST `/api/uploads`
+Upload d’un fichier (pièce jointe) vers Supabase Storage.
+
+- **Auth** : Oui
+- **Bucket** : `attachments` (privé)
+- **Réponse** : URL signée (`SIGNED_URL_EXPIRES_IN`)

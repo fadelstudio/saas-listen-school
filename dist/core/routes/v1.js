@@ -1,0 +1,42 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+// Import all module routes
+const auth_route_1 = require("../../modules/auth/auth.route");
+const reports_route_1 = require("../../modules/reports/reports.route");
+const evaluations_route_1 = require("../../modules/evaluations/evaluations.route");
+const ai_route_1 = require("../../modules/ai/ai.route");
+const decisions_route_1 = require("../../modules/decisions/decisions.route");
+const campuses_route_1 = require("../../modules/campuses/campuses.route");
+const classes_route_1 = require("../../modules/classes/classes.route");
+const professors_route_1 = require("../../modules/professors/professors.route");
+const academic_modules_route_1 = require("../../modules/academic-modules/academic-modules.route");
+const levels_route_1 = require("../../modules/levels/levels.route");
+const system_route_1 = require("../../modules/system/system.route");
+const uploads_route_1 = require("../../modules/uploads/uploads.route");
+const class_modules_route_1 = require("../../modules/class-modules/class-modules.route");
+const evaluation_campaigns_route_1 = require("../../modules/evaluation-campaigns/evaluation-campaigns.route");
+const notifications_route_1 = require("../../modules/notifications/notifications.route");
+const saas_route_1 = __importDefault(require("../../modules/saas/saas.route"));
+const router = (0, express_1.Router)();
+router.use("/auth", auth_route_1.authRouter);
+router.use("/reports", reports_route_1.reportsRouter);
+router.use("/evaluations", evaluations_route_1.evaluationsRouter);
+router.use("/ai", ai_route_1.aiRouter);
+router.use("/decisions", decisions_route_1.decisionsRouter);
+router.use("/campuses", campuses_route_1.campusesRouter);
+router.use("/classes", classes_route_1.classesRouter);
+router.use("/professors", professors_route_1.professorsRouter);
+router.use("/academic-modules", academic_modules_route_1.academicModulesRouter);
+router.use("/levels", levels_route_1.levelsRouter);
+router.use("/system", system_route_1.systemRouter);
+router.use("/uploads", uploads_route_1.uploadsRouter);
+router.use("/assignments", class_modules_route_1.classModulesRouter);
+router.use("/evaluation-campaigns", evaluation_campaigns_route_1.evaluationCampaignsRouter);
+router.use("/notifications", notifications_route_1.notificationsRouter);
+router.use("/saas", saas_route_1.default);
+exports.default = router;
+//# sourceMappingURL=v1.js.map

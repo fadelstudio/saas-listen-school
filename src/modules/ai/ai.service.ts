@@ -3,6 +3,8 @@ import { jobQueue } from '../../core/config/queue';
 import { NotFoundError, ForbiddenError } from '../../core/errors/AppError';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { AiJobFilters, ChatInput, SynthesisInput } from './ai.types';
+import { logger } from '../../utils/logger';
+import { AiJobStatus, Prisma } from '@prisma/client';
 
 export const aiService = {
   async getJobById(jobId: string) {
@@ -35,28 +37,55 @@ export const aiService = {
     const job = await aiRepository.findJobById(jobId);
     if (!job) throw new NotFoundError('AI Job');
 
-    await jobQueue.add('ai-analysis', job.payload as Record<string, unknown>);
-    return { retried: true, jobId };
+    try {
+      await jobQueue.add('ai-analysis', job.payload as Record<string, unknown>);
+      return { retried: true, jobId };
+    } catch (error) {
+      logger.warn('Could not retry AI job (Redis down?)', { jobId, error });
+      return { retried: false, jobId, reason: 'REDIS_UNAVAILABLE' };
+    }
   },
 
   async chat(input: ChatInput, userId: string) {
-    const bullJob = await jobQueue.add('ai-analysis', {
-      type:     'chat-query',
-      question: input.question,
-      userId,
-    });
-    return { jobId: bullJob.id, message: 'Chat query queued — poll /api/ai/jobs/:jobId/result' };
+    try {
+      const bullJob = await jobQueue.add('ai-analysis', {
+        type:     'chat-query',
+        question: input.question,
+        userId,
+      });
+      return { queued: true, jobId: bullJob.id, message: 'Chat query queued — poll /api/ai/jobs/:jobId/result' };
+    } catch (error) {
+      logger.warn('Could not enqueue AI chat (Redis down?)', { error });
+      const dbJob = await aiRepository.createJob({
+        jobType: 'chat-query',
+        status: AiJobStatus.FAILED,
+        payload: { type: 'chat-query', question: input.question, userId } as unknown as Prisma.InputJsonObject,
+        errorMessage: 'REDIS_UNAVAILABLE',
+      });
+      return { queued: false, jobId: dbJob.id, reason: 'REDIS_UNAVAILABLE' };
+    }
   },
 
   async generateSynthesis(input: SynthesisInput, userRole: string) {
     if (!['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('Only MANAGER or ADMIN can generate synthesis');
     }
-    const bullJob = await jobQueue.add('ai-analysis', {
-      type:      'global-synthesis',
-      startDate: input.startDate,
-      endDate:   input.endDate,
-    });
-    return { jobId: bullJob.id, message: 'Synthesis job queued — poll /api/ai/jobs/:jobId/result' };
+    try {
+      const bullJob = await jobQueue.add('ai-analysis', {
+        type:      'global-synthesis',
+        startDate: input.startDate,
+        endDate:   input.endDate,
+      });
+      return { queued: true, jobId: bullJob.id, message: 'Synthesis job queued — poll /api/ai/jobs/:jobId/result' };
+    } catch (error) {
+      logger.warn('Could not enqueue AI synthesis (Redis down?)', { error });
+      const dbJob = await aiRepository.createJob({
+        jobType: 'global-synthesis',
+        status: AiJobStatus.FAILED,
+        payload: { type: 'global-synthesis', startDate: input.startDate, endDate: input.endDate } as unknown as Prisma.InputJsonObject,
+        errorMessage: 'REDIS_UNAVAILABLE',
+      });
+      return { queued: false, jobId: dbJob.id, reason: 'REDIS_UNAVAILABLE' };
+    }
   },
 };
