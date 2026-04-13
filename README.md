@@ -139,3 +139,78 @@ Optionnel:
 
 - L’API lance automatiquement `prisma migrate deploy` au démarrage (`npm run render:start:api`)
 - Le worker ne lance pas de migrations (`npm run start:worker`)
+
+## Déploiement actuel (FREE) — Render (API) + Upstash (Redis) + Railway (Worker)
+
+Objectif: avoir un environnement “prod-like” **sans budget**, avec **API + queue + worker**.
+
+### Architecture
+
+- **API**: Render (Web Service)
+- **Redis**: Upstash (Redis managé, TLS `rediss://...`)
+- **Worker**: Railway (service long-running qui consomme BullMQ)
+- **DB**: Supabase Postgres (`DATABASE_URL`)
+
+### Pourquoi Upstash (au lieu de Render Redis)
+
+- Le Redis Render (Key Value / Valkey) est souvent **lié au réseau privé Render** et/ou impose une **whitelist IP** pour l’accès externe.
+- Upstash fournit une URL publique **TLS** (`rediss://...`) utilisable depuis Render *et* Railway sans config réseau fragile.
+
+### Variables d’environnement (prod)
+
+À définir **sur Render (API)** et **sur Railway (Worker)**:
+
+- `NODE_ENV=production`
+- `DATABASE_URL` (Supabase)
+- `REDIS_URL` (**Upstash**, format: `rediss://default:<password>@<host>:6379`)
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `GEMINI_API_KEY` / `GROQ_API_KEY` (selon usage)
+
+Optionnel:
+
+- `MAX_FILE_SIZE_MB`
+- `SIGNED_URL_EXPIRES_IN`
+
+### Start commands
+
+- **API (Render)**:
+  - Build: `npm ci && npm run render:build`
+  - Start: `npm run render:start:api` (inclut `prisma migrate deploy`)
+
+- **Worker (Railway)**:
+  - Build: `npm ci && npm run render:build`
+  - Start: `npm run start:worker`
+
+### Vérifier que tout communique
+
+1. API up:
+   - `GET https://<ton-domaine>/health`
+2. Redis OK:
+   - Logs API + Worker doivent montrer `Redis connected` (pas de boucle “reconnecting”)
+3. End-to-end:
+   - Déclenche un endpoint qui enqueue un job IA (ex: `POST /api/v1/reports/:id/analyze`)
+   - Vérifie dans les logs Worker que le job est consommé.
+
+### Monitoring (quoi regarder)
+
+- **Render logs (API)**: erreurs 5xx, latence, “Redis reconnecting…”, erreurs Prisma.
+- **Railway logs (Worker)**: crashes/restarts, erreurs IA (Gemini/Groq), “Redis reconnecting…”.
+- **Upstash dashboard**: quotas free, connexions, ops/sec, mémoire.
+- **Supabase**: erreurs DB, connexions, perf.
+
+## Postman — Collections (importables)
+
+Ce repo contient une collection complète “tout les endpoints, sans exemption”:
+
+- `AFI_LISTEN_ALL_ENDPOINTS.postman_collection.json`
+
+Et une version prête pour la prod (baseUrl = Render), + un environment:
+
+- `postman/AFI_LISTEN_PROD.postman_environment.json`
+
+### Import / exécution
+
+1) Postman → Import → sélectionne la collection + l’environment.  
+2) Choisis l’environment `AFI_LISTEN (PROD)`  
+3) Clique “Run” (Collection Runner) pour exécuter le scénario complet.

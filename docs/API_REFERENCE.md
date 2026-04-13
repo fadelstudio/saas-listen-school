@@ -110,3 +110,30 @@ Upload d’un fichier (pièce jointe) vers Supabase Storage.
 - **Auth** : Oui
 - **Bucket** : `attachments` (privé)
 - **Réponse** : URL signée (`SIGNED_URL_EXPIRES_IN`)
+
+
+
+DEPLOIEMENT EN 3 SERVVICE RENDER(API) RAILWAY(WORKER) UPSTASH(RELIS EXTERNE PRIVER)
+
+
+Railway (Worker)
+A. Créer le service worker
+Railway → New Project
+Deploy from GitHub repo
+Sélectionne ton repo saas-listen-school
+B. Commandes (Railway)
+Dans les settings Railway:
+
+Build command: npm ci && npm run render:build
+Start command: npm run start:worker
+Ton worker démarre via dist/jobs/ai.worker.js, donc il faut bien build avant.
+
+C. Variables d’environnement (Railway)
+Ajoute exactement celles-ci (mêmes valeurs que sur Render, surtout REDIS_URL):
+
+NODE_ENV=production
+REDIS_URL=rediss://... (Upstash)
+DATABASE_URL=... (Supabase)
+SUPABASE_URL=...
+SUPABASE_KEY=...
+GEMINI_API_KEY=... et/ou GROQ_API_KEY=...
