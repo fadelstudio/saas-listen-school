@@ -81,6 +81,7 @@ model Campus {
   classes     Class[]
   users       User[]
   professors  Professor[] @relation("CampusProfessors")
+  evaluationCampaigns EvaluationCampaign[]
 
   @@map("campuses")
 }
@@ -379,34 +380,46 @@ model Notification {
   id          String   @id @default(uuid())
   title       String
   message     String
-  type        String   // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "SYSTEM"
+  type        String   // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "EVALUATION_CAMPAIGN_REMINDER" | "SYSTEM"
   userId      String?  // Null means global
+  campaignId  String?  // Optional linkage (reminders, campaign created)
   isRead      Boolean  @default(false)
   
   createdAt   DateTime @default(now())
   
   user        User?    @relation(fields: [userId], references: [id])
+  campaign    EvaluationCampaign? @relation(fields: [campaignId], references: [id])
 
   @@map("notifications")
+  @@index([userId, isRead, createdAt])
+  @@index([campaignId, createdAt])
+  @@unique([userId, campaignId, type])
 }
 
 model EvaluationCampaign {
   id          String   @id @default(uuid())
   title       String
   description String?
-  classId     String
+  scope       String   @default("CLASS") // CLASS | CAMPUS | SCHOOL
+  classId     String?
+  campusId    String?
   moduleId    String
   professorId String
   status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
-  dueDate     DateTime?
+  dueDate     DateTime // end date (deadline)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  class       Class    @relation(fields: [classId], references: [id])
+  class       Class?    @relation(fields: [classId], references: [id])
+  campus      Campus?   @relation(fields: [campusId], references: [id])
   module      Module   @relation(fields: [moduleId], references: [id])
   professor   Professor @relation(fields: [professorId], references: [id])
   evaluations Evaluation[]
+  notifications Notification[]
 
   @@map("evaluation_campaigns")
+  @@index([scope, status, dueDate])
+  @@index([campusId, status, dueDate])
+  @@index([classId, status, dueDate])
 }

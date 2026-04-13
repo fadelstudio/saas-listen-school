@@ -33,11 +33,16 @@ router.use(authMiddleware);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [title, classId, moduleId, professorId]
+ *             required: [title, moduleId, professorId, dueDate]
  *             properties:
  *               title: { type: string }
  *               description: { type: string }
- *               classId: { type: string, format: uuid }
+ *               scope:
+ *                 type: string
+ *                 enum: [CLASS, CAMPUS, SCHOOL]
+ *                 default: CLASS
+ *               classId: { type: string, format: uuid, nullable: true }
+ *               campusId: { type: string, format: uuid, nullable: true }
  *               moduleId: { type: string, format: uuid }
  *               professorId: { type: string, format: uuid }
  *               dueDate: { type: string, format: date-time }
@@ -67,7 +72,13 @@ router.post(
  *         name: limit
  *         schema: { type: integer, default: 20 }
  *       - in: query
+ *         name: scope
+ *         schema: { type: string, enum: [CLASS, CAMPUS, SCHOOL] }
+ *       - in: query
  *         name: classId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: campusId
  *         schema: { type: string, format: uuid }
  *       - in: query
  *         name: status

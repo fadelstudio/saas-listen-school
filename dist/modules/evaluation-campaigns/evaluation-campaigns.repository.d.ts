@@ -12,7 +12,7 @@ export declare const evaluationCampaignsRepository: {
                 updatedAt: Date;
                 levelId: string;
                 campusId: string;
-            };
+            } | null;
             professor: {
                 id: string;
                 createdAt: Date;
@@ -37,18 +37,32 @@ export declare const evaluationCampaignsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            classId: string;
+            campusId: string | null;
+            classId: string | null;
             title: string;
-            status: string;
-            professorId: string;
-            moduleId: string;
             description: string | null;
-            dueDate: Date | null;
+            scope: string;
+            moduleId: string;
+            professorId: string;
+            status: string;
+            dueDate: Date;
         })[];
         total: number;
     }>;
     findById(id: string): Promise<({
-        class: {
+        campus: ({
+            users: {
+                id: string;
+                role: import("@prisma/client").$Enums.Role;
+            }[];
+        } & {
+            name: string;
+            id: string;
+            location: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        }) | null;
+        class: ({
             users: {
                 id: string;
             }[];
@@ -59,7 +73,7 @@ export declare const evaluationCampaignsRepository: {
             updatedAt: Date;
             levelId: string;
             campusId: string;
-        };
+        }) | null;
         professor: {
             id: string;
             createdAt: Date;
@@ -75,10 +89,10 @@ export declare const evaluationCampaignsRepository: {
             createdAt: Date;
             updatedAt: Date;
             classId: string;
+            moduleId: string;
+            professorId: string;
             status: import("@prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
-            professorId: string;
-            moduleId: string;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -101,44 +115,52 @@ export declare const evaluationCampaignsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }) | null>;
     create(data: {
         title: string;
         description?: string;
-        classId: string;
+        scope: string;
+        classId?: string;
+        campusId?: string;
         moduleId: string;
         professorId: string;
-        dueDate?: Date;
+        dueDate: Date;
     }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }>;
     updateStatus(id: string, status: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }>;
 };
 //# sourceMappingURL=evaluation-campaigns.repository.d.ts.map

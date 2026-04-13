@@ -25,6 +25,8 @@ app.use(express.urlencoded({ extended: true }));
 import { responseMiddleware } from "./core/middleware/response.middleware";
 app.use(responseMiddleware);
 
+app.set('trust proxy', 1);
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 // Rate limiting: 100 requests per 15 minutes by default
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

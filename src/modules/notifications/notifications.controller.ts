@@ -1,12 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
-import { notificationService } from './notifications.service';
+import { notificationService, type NotificationType } from './notifications.service';
+import { buildPaginated, parsePagination } from '../../utils/pagination';
 
 export const notificationsController = {
   async getMyNotifications(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.userId;
-      const notifications = await notificationService.getAllForUser(userId);
-      res.sendSuccess('Notifications récupérées', notifications);
+
+      const pagination = parsePagination(req.query as Record<string, unknown>);
+      const isRead =
+        typeof req.query.isRead === 'string'
+          ? req.query.isRead === 'true'
+          : undefined;
+      const type =
+        typeof req.query.type === 'string' ? (req.query.type as NotificationType) : undefined;
+
+      const { items, total } = await notificationService.getAllForUser(userId, {
+        isRead,
+        type,
+        skip: pagination.skip,
+        limit: pagination.limit,
+      });
+
+      const meta = buildPaginated(items, total, pagination.page, pagination.limit);
+      res.sendSuccess('Notifications récupérées', items, 200, meta);
     } catch (error) {
       next(error);
     }
@@ -14,8 +31,9 @@ export const notificationsController = {
 
   async markAsRead(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = req.user!.userId;
       const { id } = req.params;
-      await notificationService.markAsRead(id as string);
+      await notificationService.markAsReadForUser(userId, id as string);
       res.sendSuccess('Notification marquée comme lue', null);
     } catch (error) {
       next(error);

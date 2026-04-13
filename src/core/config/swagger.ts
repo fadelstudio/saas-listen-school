@@ -15,7 +15,11 @@ const options: swaggerJsdoc.Options = {
     servers: [
       {
         url: `http://localhost:${env.PORT}`,
-        description: 'Development server',
+        description: 'Local development',
+      },
+      {
+        url: 'https://saas-listen.onrender.com',
+        description: 'Render (production)',
       },
     ],
     components: {
@@ -48,7 +52,7 @@ const options: swaggerJsdoc.Options = {
       },
     ],
   },
-  apis: ['./src/modules/**/*.route.ts', './src/app.ts'], // Path to the API docs
+  apis: ['./src/modules/**/*.route.ts', './src/core/routes/v1.ts', './src/app.ts'], // Path to the API docs
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

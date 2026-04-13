@@ -7,6 +7,10 @@ exports.evaluationCampaignsRepository = {
         const where = {};
         if (filters.classId)
             where.classId = filters.classId;
+        if (filters.campusId)
+            where.campusId = filters.campusId;
+        if (filters.scope)
+            where.scope = filters.scope;
         if (filters.status)
             where.status = filters.status;
         const [items, total] = await Promise.all([
@@ -33,6 +37,9 @@ exports.evaluationCampaignsRepository = {
                 class: {
                     include: { users: { select: { id: true } } }
                 },
+                campus: {
+                    include: { users: { select: { id: true, role: true } } }
+                },
                 module: true,
                 professor: true,
                 evaluations: true
@@ -44,7 +51,9 @@ exports.evaluationCampaignsRepository = {
             data: {
                 title: data.title,
                 description: data.description,
+                scope: data.scope,
                 classId: data.classId,
+                campusId: data.campusId,
                 moduleId: data.moduleId,
                 professorId: data.professorId,
                 dueDate: data.dueDate,

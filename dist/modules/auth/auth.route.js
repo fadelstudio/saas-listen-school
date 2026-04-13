@@ -53,13 +53,13 @@ exports.authRouter.post('/register', (0, validate_middleware_1.validate)({ body:
  *             properties:
  *               email: { type: string, format: email, description: "Email de l'utilisateur" }
  *               matricule: { type: string, description: "Matricule (obligatoire si email absent)" }
- *               password: { type: string, example: "Admin@123" }
+ *               password: { type: string, example: "fadeldev" }
  *           examples:
  *             AdminAFI:
  *               summary: Login Admin via Matricule
  *               value:
  *                 matricule: "ADM-AFI-001"
- *                 password: "Admin@123"
+ *                 password: "fadeldev"
  *             SuperAdmin:
  *               summary: Login SuperAdmin via Email
  *               value:

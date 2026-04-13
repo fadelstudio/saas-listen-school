@@ -69,14 +69,14 @@ export declare const classesService: {
             updatedAt: Date;
             classId: string | null;
             title: string;
+            moduleId: string | null;
+            professorId: string | null;
+            status: import("@prisma/client").$Enums.ReportStatus;
             content: string;
             priority: import("@prisma/client").$Enums.Priority;
-            status: import("@prisma/client").$Enums.ReportStatus;
             isAnonymous: boolean;
             category: string | null;
             authorId: string | null;
-            professorId: string | null;
-            moduleId: string | null;
             attachments: import("@prisma/client/runtime/client").JsonValue | null;
             deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
             aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;

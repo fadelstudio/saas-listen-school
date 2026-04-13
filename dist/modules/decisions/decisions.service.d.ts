@@ -17,9 +17,9 @@ export declare const decisionsService: {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         dueDate: Date | null;
+        priority: import("@prisma/client").$Enums.Priority;
         evaluationId: string;
         deciderId: string;
         rationale: string | null;
@@ -32,10 +32,10 @@ export declare const decisionsService: {
             createdAt: Date;
             updatedAt: Date;
             classId: string;
+            moduleId: string;
+            professorId: string;
             status: import("@prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
-            professorId: string;
-            moduleId: string;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -71,9 +71,9 @@ export declare const decisionsService: {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         dueDate: Date | null;
+        priority: import("@prisma/client").$Enums.Priority;
         evaluationId: string;
         deciderId: string;
         rationale: string | null;
@@ -91,9 +91,9 @@ export declare const decisionsService: {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         dueDate: Date | null;
+        priority: import("@prisma/client").$Enums.Priority;
         evaluationId: string;
         deciderId: string;
         rationale: string | null;
@@ -105,9 +105,9 @@ export declare const decisionsService: {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         dueDate: Date | null;
+        priority: import("@prisma/client").$Enums.Priority;
         evaluationId: string;
         deciderId: string;
         rationale: string | null;
@@ -119,9 +119,9 @@ export declare const decisionsService: {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         dueDate: Date | null;
+        priority: import("@prisma/client").$Enums.Priority;
         evaluationId: string;
         deciderId: string;
         rationale: string | null;
@@ -133,9 +133,9 @@ export declare const decisionsService: {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         dueDate: Date | null;
+        priority: import("@prisma/client").$Enums.Priority;
         evaluationId: string;
         deciderId: string;
         rationale: string | null;

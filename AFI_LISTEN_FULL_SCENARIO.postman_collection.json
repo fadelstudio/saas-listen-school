@@ -385,7 +385,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"Admin@1234\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
+            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"fadeldev\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
             "url": "{{baseUrl}}/saas/schools"
           }
         }

@@ -4,13 +4,15 @@ export declare const evaluationCampaignsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }>;
     getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
         class: {
@@ -20,7 +22,7 @@ export declare const evaluationCampaignsService: {
             updatedAt: Date;
             levelId: string;
             campusId: string;
-        };
+        } | null;
         professor: {
             id: string;
             createdAt: Date;
@@ -45,16 +47,30 @@ export declare const evaluationCampaignsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }>>;
     getById(id: string): Promise<{
-        class: {
+        campus: ({
+            users: {
+                id: string;
+                role: import("@prisma/client").$Enums.Role;
+            }[];
+        } & {
+            name: string;
+            id: string;
+            location: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        }) | null;
+        class: ({
             users: {
                 id: string;
             }[];
@@ -65,7 +81,7 @@ export declare const evaluationCampaignsService: {
             updatedAt: Date;
             levelId: string;
             campusId: string;
-        };
+        }) | null;
         professor: {
             id: string;
             createdAt: Date;
@@ -81,10 +97,10 @@ export declare const evaluationCampaignsService: {
             createdAt: Date;
             updatedAt: Date;
             classId: string;
+            moduleId: string;
+            professorId: string;
             status: import("@prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
-            professorId: string;
-            moduleId: string;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -107,25 +123,29 @@ export declare const evaluationCampaignsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }>;
     close(id: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        classId: string;
+        campusId: string | null;
+        classId: string | null;
         title: string;
-        status: string;
-        professorId: string;
-        moduleId: string;
         description: string | null;
-        dueDate: Date | null;
+        scope: string;
+        moduleId: string;
+        professorId: string;
+        status: string;
+        dueDate: Date;
     }>;
 };
 //# sourceMappingURL=evaluation-campaigns.service.d.ts.map

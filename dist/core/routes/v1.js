@@ -23,6 +23,16 @@ const notifications_route_1 = require("../../modules/notifications/notifications
 const saas_route_1 = __importDefault(require("../../modules/saas/saas.route"));
 const router = (0, express_1.Router)();
 // Basic API v1 info (non-sensitive)
+/**
+ * @swagger
+ * /api/v1:
+ *   get:
+ *     summary: Informations non sensibles sur l'API v1
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Métadonnées (version, env, liens utiles)
+ */
 router.get("/", (_req, res) => {
     res.sendSuccess("AFI-LISTEN API v1", {
         name: "saas-listen-school",

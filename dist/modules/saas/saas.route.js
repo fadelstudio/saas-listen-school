@@ -18,7 +18,7 @@ const saasRouter = (0, express_1.Router)();
  *         name: { type: string, example: "AFI Dakar" }
  *         location: { type: string, example: "Dakar, Plateau" }
  *         adminEmail: { type: string, format: email, example: "admin@afi.com" }
- *         adminPassword: { type: string, minLength: 8, example: "Admin@123" }
+ *         adminPassword: { type: string, minLength: 8, example: "fadeldev" }
  *         adminFirstName: { type: string, example: "Jean" }
  *         adminLastName: { type: string, example: "Dupont" }
  *         matricule: { type: string, example: "ADM-AFI-001" }

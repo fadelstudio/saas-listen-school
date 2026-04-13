@@ -20,7 +20,11 @@ const options = {
         servers: [
             {
                 url: `http://localhost:${env_1.env.PORT}`,
-                description: 'Development server',
+                description: 'Local development',
+            },
+            {
+                url: 'https://saas-listen.onrender.com',
+                description: 'Render (production)',
             },
         ],
         components: {
@@ -53,7 +57,7 @@ const options = {
             },
         ],
     },
-    apis: ['./src/modules/**/*.route.ts', './src/app.ts'], // Path to the API docs
+    apis: ['./src/modules/**/*.route.ts', './src/core/routes/v1.ts', './src/app.ts'], // Path to the API docs
 };
 exports.swaggerSpec = (0, swagger_jsdoc_1.default)(options);
 //# sourceMappingURL=swagger.js.map

@@ -29,7 +29,7 @@ async function testAcademicApis() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 email: 'admin@afi.com',
-                password: 'Admin@123'
+                password: 'fadeldev'
             })
         });
         const token = loginData.data.token;

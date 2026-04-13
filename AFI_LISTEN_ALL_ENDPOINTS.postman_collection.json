@@ -238,7 +238,7 @@
     {
       "name": "5. Evaluation Campaigns",
       "item": [
-        { "name": "Create Campaign", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('campaignId', pm.response.json().data.id);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\":\"Campaign All {{uniq}}\",\"description\":\"Scenario\",\"classId\":\"{{classId}}\",\"moduleId\":\"{{moduleId}}\",\"professorId\":\"{{profId}}\",\"dueDate\":\"{{nowIso}}\"}" }, "url": "{{baseUrl}}/evaluation-campaigns" } },
+        { "name": "Create Campaign", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('campaignId', pm.response.json().data.id);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\":\"Campaign All {{uniq}}\",\"description\":\"Scenario\",\"scope\":\"CLASS\",\"classId\":\"{{classId}}\",\"moduleId\":\"{{moduleId}}\",\"professorId\":\"{{profId}}\",\"dueDate\":\"{{nowIso}}\"}" }, "url": "{{baseUrl}}/evaluation-campaigns" } },
         { "name": "List Campaigns", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluation-campaigns?page=1&limit=10" } },
         { "name": "Get Campaign By Id", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/evaluation-campaigns/{{campaignId}}" } },
         { "name": "Close Campaign", "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ], "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "url": "{{baseUrl}}/evaluation-campaigns/{{campaignId}}/close" } }
@@ -356,7 +356,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"Admin@1234\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
+            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"fadeldev\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
             "url": "{{baseUrl}}/saas/schools"
           }
         },
@@ -367,7 +367,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{superToken}}", "type": "string" }] },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"Admin@1234\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
+            "body": { "mode": "raw", "raw": "{\"name\":\"School {{uniq}}\",\"location\":\"X\",\"adminEmail\":\"admin.school.{{uniq}}@afi.com\",\"adminPassword\":\"fadeldev\",\"adminFirstName\":\"Admin\",\"adminLastName\":\"School\"}" },
             "url": "{{baseUrl}}/saas/schools"
           }
         }

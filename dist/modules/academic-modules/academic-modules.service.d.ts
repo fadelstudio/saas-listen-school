@@ -33,10 +33,10 @@ export declare const academicModulesService: {
             createdAt: Date;
             updatedAt: Date;
             classId: string;
+            moduleId: string;
+            professorId: string;
             status: import("@prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
-            professorId: string;
-            moduleId: string;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;

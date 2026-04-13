@@ -1,9 +1,11 @@
+export type NotificationType = 'AI_FAILURE' | 'EVALUATION_CAMPAIGN' | 'EVALUATION_CAMPAIGN_REMINDER' | 'SYSTEM';
 export declare const notificationService: {
     create(data: {
         title: string;
         message: string;
-        type: "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "SYSTEM";
+        type: NotificationType;
         userId?: string;
+        campaignId?: string;
     }): Promise<{
         type: string;
         message: string;
@@ -11,25 +13,27 @@ export declare const notificationService: {
         createdAt: Date;
         userId: string | null;
         title: string;
+        campaignId: string | null;
         isRead: boolean;
     }>;
-    getAllForUser(userId: string): Promise<{
-        type: string;
-        message: string;
-        id: string;
-        createdAt: Date;
-        userId: string | null;
-        title: string;
-        isRead: boolean;
-    }[]>;
-    markAsRead(id: string): Promise<{
-        type: string;
-        message: string;
-        id: string;
-        createdAt: Date;
-        userId: string | null;
-        title: string;
-        isRead: boolean;
+    getAllForUser(userId: string, opts?: {
+        isRead?: boolean;
+        type?: NotificationType;
+        skip?: number;
+        limit?: number;
+    }): Promise<{
+        items: {
+            type: string;
+            message: string;
+            id: string;
+            createdAt: Date;
+            userId: string | null;
+            title: string;
+            campaignId: string | null;
+            isRead: boolean;
+        }[];
+        total: number;
     }>;
+    markAsReadForUser(userId: string, id: string): Promise<void>;
 };
 //# sourceMappingURL=notifications.service.d.ts.map

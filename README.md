@@ -111,6 +111,11 @@ REDIS_PORT=6379
 newman run AFI_LISTEN_GOD_MODE.postman_collection.json --delay-request 500
 ```
 
+## Guides développeurs
+
+- Guide intégration Front/Back: `docs/INTEGRATION_GUIDE.md`
+- Import Postman (collection + env): `postman/IMPORT_GUIDE.md`
+
 ## Déploiement Render (API + Worker + Redis)
 
 Le repo contient un blueprint `render.yaml` qui crée **2 services**:
@@ -191,6 +196,16 @@ Optionnel:
 3. End-to-end:
    - Déclenche un endpoint qui enqueue un job IA (ex: `POST /api/v1/reports/:id/analyze`)
    - Vérifie dans les logs Worker que le job est consommé.
+
+### Notifications automatiques (max 2 / étudiant)
+
+Pour une campagne d’évaluation:
+
+1) **Notification immédiate** à la création de campagne (type `EVALUATION_CAMPAIGN`)
+2) **Rappel 2–3 jours avant la deadline** si l’étudiant n’a pas encore soumis d’évaluation pour cette campagne (type `EVALUATION_CAMPAIGN_REMINDER`)
+
+Le rappel est exécuté par le worker (Railway) via une boucle horaire.
+Une contrainte DB empêche les doublons: `UNIQUE(userId, campaignId, type)`.
 
 ### Monitoring (quoi regarder)
 

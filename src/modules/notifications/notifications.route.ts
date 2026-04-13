@@ -20,6 +20,23 @@ router.use(authMiddleware);
  *     summary: Récupérer mes notifications
  *     tags: [Notifications]
  *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *       - in: query
+ *         name: isRead
+ *         schema: { type: boolean }
+ *         description: Filtrer notifications lues/non lues
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, SYSTEM]
+ *         description: Filtrer par type de notification
  *     responses:
  *       200:
  *         description: Liste des notifications (user + globales)

@@ -7,6 +7,8 @@ export const evaluationCampaignsRepository = {
     const where: Prisma.EvaluationCampaignWhereInput = {};
 
     if (filters.classId) where.classId = filters.classId;
+    if (filters.campusId) where.campusId = filters.campusId;
+    if (filters.scope) where.scope = filters.scope;
     if (filters.status) where.status = filters.status;
 
     const [items, total] = await Promise.all([
@@ -35,6 +37,9 @@ export const evaluationCampaignsRepository = {
         class: {
           include: { users: { select: { id: true } } }
         },
+        campus: {
+          include: { users: { select: { id: true, role: true } } }
+        },
         module: true,
         professor: true,
         evaluations: true
@@ -45,16 +50,20 @@ export const evaluationCampaignsRepository = {
   async create(data: {
     title: string;
     description?: string;
-    classId: string;
+    scope: string;
+    classId?: string;
+    campusId?: string;
     moduleId: string;
     professorId: string;
-    dueDate?: Date;
+    dueDate: Date;
   }) {
     return prisma.evaluationCampaign.create({
       data: {
         title: data.title,
         description: data.description,
+        scope: data.scope,
         classId: data.classId,
+        campusId: data.campusId,
         moduleId: data.moduleId,
         professorId: data.professorId,
         dueDate: data.dueDate,
