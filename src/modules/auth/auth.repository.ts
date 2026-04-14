@@ -31,6 +31,8 @@ export const authRepository = {
         lastName: data.lastName,
         campusId: data.campusId,
         classId: data.classId,
+        emailVerified: false,
+        emailVerifiedAt: null,
       },
     });
   },
@@ -87,6 +89,58 @@ export const authRepository = {
     return prisma.user.update({
       where: { id: userId },
       data: { isActive },
+    });
+  },
+
+  async deleteLoginChallengesForUser(userId: string) {
+    return prisma.loginOtpChallenge.deleteMany({ where: { userId } });
+  },
+
+  async createLoginOtpChallenge(userId: string, otpHash: string, expiresAt: Date) {
+    return prisma.loginOtpChallenge.create({
+      data: { userId, otpHash, expiresAt },
+    });
+  },
+
+  async findLoginOtpChallengeById(id: string) {
+    return prisma.loginOtpChallenge.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+  },
+
+  async incrementLoginOtpAttempts(id: string) {
+    return prisma.loginOtpChallenge.update({
+      where: { id },
+      data: { attempts: { increment: 1 } },
+    });
+  },
+
+  async deleteLoginOtpChallenge(id: string) {
+    return prisma.loginOtpChallenge.delete({ where: { id } }).catch(() => {});
+  },
+
+  async deletePasswordResetTokensForUser(userId: string) {
+    return prisma.passwordResetToken.deleteMany({ where: { userId } });
+  },
+
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date) {
+    return prisma.passwordResetToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+  },
+
+  async findPasswordResetByTokenHash(tokenHash: string) {
+    return prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+  },
+
+  async markPasswordResetUsed(id: string) {
+    return prisma.passwordResetToken.update({
+      where: { id },
+      data: { usedAt: new Date() },
     });
   },
 };

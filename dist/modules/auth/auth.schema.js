@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.verifyLoginOtpSchema = exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
+const idSchema_1 = require("../../utils/idSchema");
 // ─── Register ─────────────────────────────────────────────────────────────────
 exports.registerSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email address'),
@@ -12,8 +13,8 @@ exports.registerSchema = zod_1.z.object({
         .regex(/[0-9]/, 'Password must contain at least one number'),
     firstName: zod_1.z.string().min(1, 'First name is required').max(50),
     lastName: zod_1.z.string().min(1, 'Last name is required').max(50),
-    campusId: zod_1.z.string().uuid('Invalid campus ID').optional(),
-    classId: zod_1.z.string().uuid('Invalid class ID').optional(),
+    campusId: idSchema_1.idStringSchema.optional(),
+    classId: idSchema_1.idStringSchema.optional(),
 });
 // ─── Login ────────────────────────────────────────────────────────────────────
 exports.loginSchema = zod_1.z.object({
@@ -43,5 +44,30 @@ exports.changePasswordSchema = zod_1.z
 exports.updateProfileSchema = zod_1.z.object({
     firstName: zod_1.z.string().min(1).max(50).optional(),
     lastName: zod_1.z.string().min(1).max(50).optional(),
+});
+exports.verifyLoginOtpSchema = zod_1.z.object({
+    challengeId: idSchema_1.idStringSchema,
+    otp: zod_1.z
+        .string()
+        .min(4, 'OTP is required')
+        .max(12)
+        .regex(/^\d+$/, 'OTP must be numeric'),
+});
+exports.forgotPasswordSchema = zod_1.z.object({
+    email: zod_1.z.string().email('Invalid email address'),
+});
+exports.resetPasswordSchema = zod_1.z
+    .object({
+    token: zod_1.z.string().min(16, 'Invalid token'),
+    newPassword: zod_1.z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+        .regex(/[0-9]/, 'Must contain at least one number'),
+    confirmPassword: zod_1.z.string().min(1),
+})
+    .refine((d) => d.newPassword === d.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
 });
 //# sourceMappingURL=auth.schema.js.map

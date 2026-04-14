@@ -30,8 +30,10 @@ export declare const academicModulesRepository: {
                 firstName: string;
                 lastName: string;
                 matricule: string | null;
-                role: import("@prisma/client").$Enums.Role;
+                role: import(".prisma/client").$Enums.Role;
                 isActive: boolean;
+                emailVerified: boolean;
+                emailVerifiedAt: Date | null;
                 classId: string | null;
             } | null;
         } & {
@@ -41,15 +43,16 @@ export declare const academicModulesRepository: {
             classId: string;
             moduleId: string;
             professorId: string;
-            status: import("@prisma/client").$Enums.EvaluationStatus;
+            status: import(".prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
-            clarityScore: number | null;
-            pedagogyScore: number | null;
-            availabilityScore: number | null;
-            rhythmScore: number | null;
+            comprehensionRating: import(".prisma/client").$Enums.RatingBand | null;
+            explanationRating: import(".prisma/client").$Enums.RatingBand | null;
+            pedagogyRating: import(".prisma/client").$Enums.RatingBand | null;
+            availabilityRating: import(".prisma/client").$Enums.RatingBand | null;
+            rhythmRating: import(".prisma/client").$Enums.RatingBand | null;
             comment: string | null;
             aiScore: number | null;
             campaignId: string | null;

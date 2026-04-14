@@ -1,4 +1,4 @@
-import { EvaluationStatus } from '@prisma/client';
+import { EvaluationStatus, RatingBand } from '@prisma/client';
 import { PaginatedResult } from '../../utils/pagination';
 
 export interface CreateEvaluationInput {
@@ -6,21 +6,21 @@ export interface CreateEvaluationInput {
   professorId: string;
   moduleId: string;
   classId: string;
-  score?: number;
-  clarityScore?: number;
-  pedagogyScore?: number;
-  availabilityScore?: number;
-  rhythmScore?: number;
+  comprehensionRating?: RatingBand;
+  explanationRating?: RatingBand;
+  pedagogyRating?: RatingBand;
+  availabilityRating?: RatingBand;
+  rhythmRating?: RatingBand;
   comment?: string;
   isAnonymous?: boolean;
 }
 
 export interface UpdateEvaluationInput {
-  score?: number;
-  clarityScore?: number;
-  pedagogyScore?: number;
-  availabilityScore?: number;
-  rhythmScore?: number;
+  comprehensionRating?: RatingBand;
+  explanationRating?: RatingBand;
+  pedagogyRating?: RatingBand;
+  availabilityRating?: RatingBand;
+  rhythmRating?: RatingBand;
   comment?: string;
 }
 
@@ -35,11 +35,7 @@ export interface EvaluationFilters {
 export interface EvaluationStats {
   totalCount: number;
   averageScore: number | null;
-  averageClarityScore: number | null;
-  averagePedagogyScore: number | null;
-  averageAvailabilityScore: number | null;
-  averageRhythmScore: number | null;
-  distribution: Record<string, number>;
+  averageAiScore: number | null;
 }
 
 export type PaginatedEvaluations = PaginatedResult<Record<string, unknown>>;

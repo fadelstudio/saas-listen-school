@@ -1,23 +1,83 @@
 import { z } from 'zod';
 export declare const createEvaluationSchema: z.ZodObject<{
+    comment: z.ZodOptional<z.ZodString>;
+    isAnonymous: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    comprehensionRating: z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>;
+    explanationRating: z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>;
+    pedagogyRating: z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>;
+    availabilityRating: z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>;
+    rhythmRating: z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>;
     reportId: z.ZodOptional<z.ZodString>;
     professorId: z.ZodString;
     moduleId: z.ZodString;
     classId: z.ZodString;
-    score: z.ZodOptional<z.ZodNumber>;
-    clarityScore: z.ZodOptional<z.ZodNumber>;
-    pedagogyScore: z.ZodOptional<z.ZodNumber>;
-    availabilityScore: z.ZodOptional<z.ZodNumber>;
-    rhythmScore: z.ZodOptional<z.ZodNumber>;
-    comment: z.ZodOptional<z.ZodString>;
-    isAnonymous: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, z.core.$strip>;
 export declare const updateEvaluationSchema: z.ZodObject<{
-    score: z.ZodOptional<z.ZodNumber>;
-    clarityScore: z.ZodOptional<z.ZodNumber>;
-    pedagogyScore: z.ZodOptional<z.ZodNumber>;
-    availabilityScore: z.ZodOptional<z.ZodNumber>;
-    rhythmScore: z.ZodOptional<z.ZodNumber>;
+    comprehensionRating: z.ZodOptional<z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>>;
+    explanationRating: z.ZodOptional<z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>>;
+    pedagogyRating: z.ZodOptional<z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>>;
+    availabilityRating: z.ZodOptional<z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>>;
+    rhythmRating: z.ZodOptional<z.ZodEnum<{
+        VERY_POOR: "VERY_POOR";
+        POOR: "POOR";
+        FAIR: "FAIR";
+        GOOD: "GOOD";
+        EXCELLENT: "EXCELLENT";
+    }>>;
     comment: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const evaluationParamsSchema: z.ZodObject<{

@@ -28,6 +28,8 @@ exports.authRepository = {
                 lastName: data.lastName,
                 campusId: data.campusId,
                 classId: data.classId,
+                emailVerified: false,
+                emailVerifiedAt: null,
             },
         });
     },
@@ -73,6 +75,49 @@ exports.authRepository = {
         return prisma_1.prisma.user.update({
             where: { id: userId },
             data: { isActive },
+        });
+    },
+    async deleteLoginChallengesForUser(userId) {
+        return prisma_1.prisma.loginOtpChallenge.deleteMany({ where: { userId } });
+    },
+    async createLoginOtpChallenge(userId, otpHash, expiresAt) {
+        return prisma_1.prisma.loginOtpChallenge.create({
+            data: { userId, otpHash, expiresAt },
+        });
+    },
+    async findLoginOtpChallengeById(id) {
+        return prisma_1.prisma.loginOtpChallenge.findUnique({
+            where: { id },
+            include: { user: true },
+        });
+    },
+    async incrementLoginOtpAttempts(id) {
+        return prisma_1.prisma.loginOtpChallenge.update({
+            where: { id },
+            data: { attempts: { increment: 1 } },
+        });
+    },
+    async deleteLoginOtpChallenge(id) {
+        return prisma_1.prisma.loginOtpChallenge.delete({ where: { id } }).catch(() => { });
+    },
+    async deletePasswordResetTokensForUser(userId) {
+        return prisma_1.prisma.passwordResetToken.deleteMany({ where: { userId } });
+    },
+    async createPasswordResetToken(userId, tokenHash, expiresAt) {
+        return prisma_1.prisma.passwordResetToken.create({
+            data: { userId, tokenHash, expiresAt },
+        });
+    },
+    async findPasswordResetByTokenHash(tokenHash) {
+        return prisma_1.prisma.passwordResetToken.findUnique({
+            where: { tokenHash },
+            include: { user: true },
+        });
+    },
+    async markPasswordResetUsed(id) {
+        return prisma_1.prisma.passwordResetToken.update({
+            where: { id },
+            data: { usedAt: new Date() },
         });
     },
 };

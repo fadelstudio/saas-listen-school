@@ -67,6 +67,15 @@ enum Priority {
   CRITICAL
 }
 
+/// 5-point rubric for structured evaluations; combined server-side into score /20.
+enum RatingBand {
+  VERY_POOR
+  POOR
+  FAIR
+  GOOD
+  EXCELLENT
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ACADEMIC STRUCTURE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,7 +189,9 @@ model User {
   matricule    String?  @unique
   role         Role     @default(STUDENT)
   isActive     Boolean  @default(true)
-  
+  emailVerified   Boolean   @default(true)
+  emailVerifiedAt DateTime?
+
   // Relations
   campusId     String?
   classId      String?
@@ -197,8 +208,38 @@ model User {
   decisions   Decision[]
   notifications Notification[]
   refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  loginOtpChallenges  LoginOtpChallenge[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model LoginOtpChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("login_otp_challenges")
 }
 
 model RefreshToken {
@@ -268,15 +309,15 @@ model Evaluation {
   status      EvaluationStatus @default(PENDING)
   isAnonymous Boolean          @default(false)
   
-  // Scores (0-20)
+  /// Final mark /20 — computed when all five RatingBand fields are set.
   score       Float?
-  
-  // Detailed Scores (0-5)
-  clarityScore      Float?
-  pedagogyScore     Float?
-  availabilityScore Float?
-  rhythmScore      Float?
-  
+
+  comprehensionRating RatingBand?
+  explanationRating   RatingBand?
+  pedagogyRating      RatingBand?
+  availabilityRating  RatingBand?
+  rhythmRating        RatingBand?
+
   comment     String?
   aiScore     Float?           // AI-generated global score
   

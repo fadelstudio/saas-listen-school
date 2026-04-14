@@ -29,6 +29,12 @@ const envSchema = z.object({
   // Uploads
   MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
   SIGNED_URL_EXPIRES_IN: z.coerce.number().int().positive().default(60 * 60), // seconds
+
+  // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
+  PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  MAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
 });
 
 const parsed = envSchema.safeParse(process.env);

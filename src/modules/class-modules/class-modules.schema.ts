@@ -1,20 +1,21 @@
 import { z } from 'zod';
+import { idStringSchema } from '../../utils/idSchema';
 
 export const createAssignmentSchema = z.object({
-  classId: z.string().uuid(),
-  moduleId: z.string().uuid(),
-  professorIds: z.array(z.string().uuid()).optional(),
+  classId: idStringSchema,
+  moduleId: idStringSchema,
+  professorIds: z.array(idStringSchema).optional(),
 });
 
 export const updateAssignmentSchema = z.object({
-  professorIds: z.array(z.string().uuid()).optional(),
+  professorIds: z.array(idStringSchema).optional(),
 });
 
 export const assignmentParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: idStringSchema,
 });
 
 export const assignmentQuerySchema = z.object({
-  classId: z.string().uuid().optional(),
-  moduleId: z.string().uuid().optional(),
+  classId: idStringSchema.optional(),
+  moduleId: idStringSchema.optional(),
 });

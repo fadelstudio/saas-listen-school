@@ -55,7 +55,14 @@ async function handleEvaluationScoring(payload) {
     const evaluation = await prisma_1.prisma.evaluation.findUnique({ where: { id: payload.evaluationId } });
     if (!evaluation)
         throw new Error(`Evaluation not found: ${payload.evaluationId}`);
-    const raw = await callAI(analysisPrompt(`Score: ${evaluation.score ?? 'N/A'} | ${evaluation.comment ?? ''}`));
+    const rubric = [
+        evaluation.comprehensionRating,
+        evaluation.explanationRating,
+        evaluation.pedagogyRating,
+        evaluation.availabilityRating,
+        evaluation.rhythmRating,
+    ].join(', ');
+    const raw = await callAI(analysisPrompt(`Score: ${evaluation.score ?? 'N/A'} | Rubric: ${rubric} | ${evaluation.comment ?? ''}`));
     const validated = parseAiJsonStrict(raw);
     const result = { ...validated, processedAt: new Date().toISOString() };
     const computedScore = typeof result.score === 'number'

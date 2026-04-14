@@ -30,8 +30,10 @@ export declare const authRepository: {
             firstName: string;
             lastName: string;
             matricule: string | null;
-            role: import("@prisma/client").$Enums.Role;
+            role: import(".prisma/client").$Enums.Role;
             isActive: boolean;
+            emailVerified: boolean;
+            emailVerifiedAt: Date | null;
             classId: string | null;
         };
     } & {
@@ -48,7 +50,99 @@ export declare const authRepository: {
         token: string;
         expiresAt: Date;
     }>;
-    deleteAllUserRefreshTokens(userId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
+    deleteAllUserRefreshTokens(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
     setActive(userId: string, isActive: boolean): Promise<User>;
+    deleteLoginChallengesForUser(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    createLoginOtpChallenge(userId: string, otpHash: string, expiresAt: Date): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        otpHash: string;
+        attempts: number;
+    }>;
+    findLoginOtpChallengeById(id: string): Promise<({
+        user: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            campusId: string | null;
+            email: string;
+            passwordHash: string;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            isActive: boolean;
+            emailVerified: boolean;
+            emailVerifiedAt: Date | null;
+            classId: string | null;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        otpHash: string;
+        attempts: number;
+    }) | null>;
+    incrementLoginOtpAttempts(id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        otpHash: string;
+        attempts: number;
+    }>;
+    deleteLoginOtpChallenge(id: string): Promise<void | {
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        otpHash: string;
+        attempts: number;
+    }>;
+    deletePasswordResetTokensForUser(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        tokenHash: string;
+        usedAt: Date | null;
+    }>;
+    findPasswordResetByTokenHash(tokenHash: string): Promise<({
+        user: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            campusId: string | null;
+            email: string;
+            passwordHash: string;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            role: import(".prisma/client").$Enums.Role;
+            isActive: boolean;
+            emailVerified: boolean;
+            emailVerifiedAt: Date | null;
+            classId: string | null;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        tokenHash: string;
+        usedAt: Date | null;
+    }) | null>;
+    markPasswordResetUsed(id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        expiresAt: Date;
+        tokenHash: string;
+        usedAt: Date | null;
+    }>;
 };
 //# sourceMappingURL=auth.repository.d.ts.map

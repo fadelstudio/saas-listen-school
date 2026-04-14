@@ -229,7 +229,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"professorId\":\"{{profId}}\",\"moduleId\":\"{{moduleId}}\",\"classId\":\"{{classId}}\",\"score\":18,\"comment\":\"Très bon cours\",\"isAnonymous\":true}" },
+            "body": { "mode": "raw", "raw": "{\"professorId\":\"{{profId}}\",\"moduleId\":\"{{moduleId}}\",\"classId\":\"{{classId}}\",\"comprehensionRating\":\"GOOD\",\"explanationRating\":\"GOOD\",\"pedagogyRating\":\"GOOD\",\"availabilityRating\":\"GOOD\",\"rhythmRating\":\"GOOD\",\"comment\":\"Très bon cours\",\"isAnonymous\":true}" },
             "url": "{{baseUrl}}/evaluations"
           }
         },

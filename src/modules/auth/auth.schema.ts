@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { idStringSchema } from '../../utils/idSchema';
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
@@ -11,8 +12,8 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number'),
   firstName: z.string().min(1, 'First name is required').max(50),
   lastName: z.string().min(1, 'Last name is required').max(50),
-  campusId: z.string().uuid('Invalid campus ID').optional(),
-  classId: z.string().uuid('Invalid class ID').optional(),
+  campusId: idStringSchema.optional(),
+  classId: idStringSchema.optional(),
 });
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -50,9 +51,40 @@ export const updateProfileSchema = z.object({
   lastName: z.string().min(1).max(50).optional(),
 });
 
+export const verifyLoginOtpSchema = z.object({
+  challengeId: idStringSchema,
+  otp: z
+    .string()
+    .min(4, 'OTP is required')
+    .max(12)
+    .regex(/^\d+$/, 'OTP must be numeric'),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(16, 'Invalid token'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+      .regex(/[0-9]/, 'Must contain at least one number'),
+    confirmPassword: z.string().min(1),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
 // ─── Exported Types ───────────────────────────────────────────────────────────
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileSchema = z.infer<typeof updateProfileSchema>;
+export type VerifyLoginOtpSchema = z.infer<typeof verifyLoginOtpSchema>;
+export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;

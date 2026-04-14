@@ -15,7 +15,40 @@ exports.authController = {
     async login(req, res, next) {
         try {
             const result = await auth_service_1.authService.login(req.body);
+            if ('step' in result && result.step === 'EMAIL_OTP_REQUIRED') {
+                res.sendSuccess('OTP sent to your email', result);
+            }
+            else {
+                res.sendSuccess('Login successful', result);
+            }
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async verifyLoginOtp(req, res, next) {
+        try {
+            const result = await auth_service_1.authService.verifyLoginOtp(req.body);
             res.sendSuccess('Login successful', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async forgotPassword(req, res, next) {
+        try {
+            await auth_service_1.authService.forgotPassword(req.body);
+            res.sendSuccess('If an account exists for this email, a reset link has been sent.', null);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async resetPassword(req, res, next) {
+        try {
+            const { token, newPassword } = req.body;
+            await auth_service_1.authService.resetPassword({ token, newPassword });
+            res.sendSuccess('Password has been reset. Please log in again.', null);
         }
         catch (error) {
             next(error);

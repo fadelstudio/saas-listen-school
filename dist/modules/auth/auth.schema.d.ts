@@ -21,8 +21,23 @@ export declare const updateProfileSchema: z.ZodObject<{
     firstName: z.ZodOptional<z.ZodString>;
     lastName: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
+export declare const verifyLoginOtpSchema: z.ZodObject<{
+    challengeId: z.ZodString;
+    otp: z.ZodString;
+}, z.core.$strip>;
+export declare const forgotPasswordSchema: z.ZodObject<{
+    email: z.ZodString;
+}, z.core.$strip>;
+export declare const resetPasswordSchema: z.ZodObject<{
+    token: z.ZodString;
+    newPassword: z.ZodString;
+    confirmPassword: z.ZodString;
+}, z.core.$strip>;
 export type RegisterSchema = z.infer<typeof registerSchema>;
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileSchema = z.infer<typeof updateProfileSchema>;
+export type VerifyLoginOtpSchema = z.infer<typeof verifyLoginOtpSchema>;
+export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordSchema = z.infer<typeof resetPasswordSchema>;
 //# sourceMappingURL=auth.schema.d.ts.map

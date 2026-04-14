@@ -1,17 +1,18 @@
 import { z } from 'zod';
+import { idStringSchema } from '../../utils/idSchema';
 
 export const evaluationCampaignIdParamsSchema = z.object({
-  id: z.string().uuid('Invalid campaign id'),
+  id: idStringSchema,
 });
 
 export const createEvaluationCampaignSchema = z.object({
   title: z.string().min(2),
   description: z.string().optional(),
   scope: z.enum(['CLASS', 'CAMPUS', 'SCHOOL']).default('CLASS'),
-  classId: z.string().uuid().optional(),
-  campusId: z.string().uuid().optional(),
-  moduleId: z.string().uuid(),
-  professorId: z.string().uuid(),
+  classId: idStringSchema.optional(),
+  campusId: idStringSchema.optional(),
+  moduleId: idStringSchema,
+  professorId: idStringSchema,
   dueDate: z.string().datetime({ offset: true }),
 }).superRefine((val, ctx) => {
   if (val.scope === 'CLASS' && !val.classId) {
@@ -25,8 +26,8 @@ export const createEvaluationCampaignSchema = z.object({
 export const evaluationCampaignQuerySchema = z.object({
   page: z.coerce.number().min(1).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
-  classId: z.string().uuid().optional(),
-  campusId: z.string().uuid().optional(),
+  classId: idStringSchema.optional(),
+  campusId: idStringSchema.optional(),
   scope: z.enum(['CLASS', 'CAMPUS', 'SCHOOL']).optional(),
   status: z.string().optional(),
 });

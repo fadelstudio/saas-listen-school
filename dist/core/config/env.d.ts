@@ -11,7 +11,11 @@ export declare const env: {
     GROQ_API_KEY: string;
     MAX_FILE_SIZE_MB: number;
     SIGNED_URL_EXPIRES_IN: number;
+    PUBLIC_APP_URL: string;
+    MAIL_PROVIDER: "console" | "resend";
+    EMAIL_FROM: string;
     REDIS_URL?: string | undefined;
+    RESEND_API_KEY?: string | undefined;
 };
 export type Env = typeof env;
 //# sourceMappingURL=env.d.ts.map

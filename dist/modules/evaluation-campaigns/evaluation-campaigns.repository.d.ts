@@ -53,7 +53,7 @@ export declare const evaluationCampaignsRepository: {
         campus: ({
             users: {
                 id: string;
-                role: import("@prisma/client").$Enums.Role;
+                role: import(".prisma/client").$Enums.Role;
             }[];
         } & {
             name: string;
@@ -91,15 +91,16 @@ export declare const evaluationCampaignsRepository: {
             classId: string;
             moduleId: string;
             professorId: string;
-            status: import("@prisma/client").$Enums.EvaluationStatus;
+            status: import(".prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
-            clarityScore: number | null;
-            pedagogyScore: number | null;
-            availabilityScore: number | null;
-            rhythmScore: number | null;
+            comprehensionRating: import(".prisma/client").$Enums.RatingBand | null;
+            explanationRating: import(".prisma/client").$Enums.RatingBand | null;
+            pedagogyRating: import(".prisma/client").$Enums.RatingBand | null;
+            availabilityRating: import(".prisma/client").$Enums.RatingBand | null;
+            rhythmRating: import(".prisma/client").$Enums.RatingBand | null;
             comment: string | null;
             aiScore: number | null;
             campaignId: string | null;
