@@ -79,6 +79,11 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
+export const resendOtpSchema = z.object({
+  challengeId: idStringSchema,
+});
+
+
 // ─── Exported Types ───────────────────────────────────────────────────────────
 
 export type RegisterSchema = z.infer<typeof registerSchema>;

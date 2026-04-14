@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createSchoolSchema = void 0;
+exports.schoolParamsSchema = exports.updateSchoolSchema = exports.createSchoolSchema = void 0;
 const zod_1 = require("zod");
 exports.createSchoolSchema = zod_1.z.object({
     name: zod_1.z.string().min(2, 'Le nom de l\'école est requis'),
@@ -10,5 +10,12 @@ exports.createSchoolSchema = zod_1.z.object({
     adminFirstName: zod_1.z.string().min(1, 'Prénom obligatoire'),
     adminLastName: zod_1.z.string().min(1, 'Nom obligatoire'),
     matricule: zod_1.z.string().optional(),
+});
+exports.updateSchoolSchema = zod_1.z.object({
+    name: zod_1.z.string().min(2).optional(),
+    location: zod_1.z.string().optional(),
+});
+exports.schoolParamsSchema = zod_1.z.object({
+    id: zod_1.z.string().uuid('ID invalide'),
 });
 //# sourceMappingURL=saas.schema.js.map

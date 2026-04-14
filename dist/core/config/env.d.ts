@@ -3,6 +3,7 @@ export declare const env: {
     PORT: number;
     DATABASE_URL: string;
     JWT_SECRET: string;
+    LOGIN_OTP_ENABLED: boolean;
     SUPABASE_URL: string;
     SUPABASE_KEY: string;
     REDIS_HOST: string;

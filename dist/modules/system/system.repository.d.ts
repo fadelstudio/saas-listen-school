@@ -6,6 +6,7 @@ export declare const systemRepository: {
         schoolName: string;
         authReportsRequired: boolean;
         authEvaluationsRequired: boolean;
+        authOtpRequired: boolean;
         aiEnabled: boolean;
         aiConfigs: import("@prisma/client/runtime/client").JsonValue;
         aiOverrideConfigId: string | null;
@@ -16,6 +17,7 @@ export declare const systemRepository: {
         schoolName: string;
         authReportsRequired: boolean;
         authEvaluationsRequired: boolean;
+        authOtpRequired: boolean;
         aiEnabled: boolean;
         aiConfigs: import("@prisma/client/runtime/client").JsonValue;
         aiOverrideConfigId: string | null;

@@ -10,5 +10,6 @@ export declare const authController: {
     updateProfile(req: Request, res: Response, next: NextFunction): Promise<void>;
     refresh(req: Request, res: Response, next: NextFunction): Promise<void>;
     logout(req: Request, res: Response, next: NextFunction): Promise<void>;
+    resendOtp(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=auth.controller.d.ts.map

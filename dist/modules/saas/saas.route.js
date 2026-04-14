@@ -42,5 +42,80 @@ const saasRouter = (0, express_1.Router)();
  *         description: École et admin créés avec succès
  */
 saasRouter.post('/schools', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.SUPERADMIN), (0, validate_middleware_1.validate)({ body: saas_schema_1.createSchoolSchema }), saas_controller_1.saasController.createSchool);
+/**
+ * @swagger
+ * /api/saas/schools:
+ *   get:
+ *     summary: "[SUPERADMIN] List all schools/campuses"
+ *     tags: [SaaS]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des campus récupérée avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id: { type: string, format: uuid }
+ *                   name: { type: string }
+ *                   location: { type: string }
+ *                   _count:
+ *                     type: object
+ *                     properties:
+ *                       users: { type: number }
+ *                       classes: { type: number }
+ */
+saasRouter.get('/schools', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.SUPERADMIN), saas_controller_1.saasController.listSchools);
+/**
+ * @swagger
+ * /api/saas/schools/{id}:
+ *   get:
+ *     summary: "[SUPERADMIN] Détails détaillés d'une école"
+ *     tags: [SaaS]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Détails de l'école (campus)
+ *       404:
+ *         description: École non trouvée
+ */
+saasRouter.get('/schools/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.SUPERADMIN), (0, validate_middleware_1.validate)({ params: saas_schema_1.schoolParamsSchema }), saas_controller_1.saasController.getById);
+/**
+ * @swagger
+ * /api/saas/schools/{id}:
+ *   patch:
+ *     summary: "[SUPERADMIN] Modifier les informations d'une école"
+ *     tags: [SaaS]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string, example: "AFI-L'Université" }
+ *               location: { type: string, example: "Dakar, Sacré-Coeur" }
+ *     responses:
+ *       200:
+ *         description: École mise à jour avec succès
+ */
+saasRouter.patch('/schools/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.SUPERADMIN), (0, validate_middleware_1.validate)({ params: saas_schema_1.schoolParamsSchema, body: saas_schema_1.updateSchoolSchema }), saas_controller_1.saasController.update);
 exports.default = saasRouter;
 //# sourceMappingURL=saas.route.js.map

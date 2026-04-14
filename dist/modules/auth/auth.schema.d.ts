@@ -33,6 +33,9 @@ export declare const resetPasswordSchema: z.ZodObject<{
     newPassword: z.ZodString;
     confirmPassword: z.ZodString;
 }, z.core.$strip>;
+export declare const resendOtpSchema: z.ZodObject<{
+    challengeId: z.ZodString;
+}, z.core.$strip>;
 export type RegisterSchema = z.infer<typeof registerSchema>;
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;

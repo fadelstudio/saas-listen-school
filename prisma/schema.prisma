@@ -189,6 +189,7 @@ model User {
   matricule    String?  @unique
   role         Role     @default(STUDENT)
   isActive     Boolean  @default(true)
+  fcmToken      String?
   emailVerified   Boolean   @default(true)
   emailVerifiedAt DateTime?
 
@@ -406,6 +407,7 @@ model SystemSettings {
   // Auth Toggles
   authReportsRequired    Boolean  @default(false)
   authEvaluationsRequired Boolean @default(false)
+  authOtpRequired        Boolean  @default(false)
   
   // AI Dynamic Config
   aiEnabled              Boolean  @default(true)

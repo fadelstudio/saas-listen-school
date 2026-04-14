@@ -140,5 +140,26 @@ exports.schoolUsersService = {
             },
         });
     },
+    async getById(adminUserId, targetId) {
+        const admin = await assertCampusAdmin(adminUserId);
+        const target = await prisma_1.prisma.user.findUnique({ where: { id: targetId } });
+        if (!target || target.campusId !== admin.campusId) {
+            throw new AppError_1.NotFoundError('User');
+        }
+        return target;
+    },
+    async delete(adminUserId, targetId) {
+        const admin = await assertCampusAdmin(adminUserId);
+        if (targetId === adminUserId) {
+            throw new AppError_1.ForbiddenError('You cannot delete yourself');
+        }
+        const target = await prisma_1.prisma.user.findUnique({ where: { id: targetId } });
+        if (!target || target.campusId !== admin.campusId) {
+            throw new AppError_1.NotFoundError('User');
+        }
+        // Deactivate instead of hard delete to preserve history?
+        // User requested "delete", let's follow standard pattern
+        return prisma_1.prisma.user.delete({ where: { id: targetId } });
+    }
 };
 //# sourceMappingURL=school-users.service.js.map
