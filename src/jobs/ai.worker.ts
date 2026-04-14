@@ -13,7 +13,7 @@ startCampaignReminderLoop();
 // Minimal health-check server to satisfy platforms like Railway/Render
 const healthApp = express();
 const port = process.env.PORT || 8081; // Use 8081 as fallback for worker
-healthApp.get(['/', '/health'], (req, res) => res.status(200).send('Worker is healthy'));
+healthApp.get(['/', '/health'], (_req, res) => res.status(200).send('Worker is healthy'));
 healthApp.listen(port, () => {
     logger.info(`Worker health-check server listening on port ${port}`);
 });
