@@ -4,6 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2020", "DOM"],
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       ".prisma/*": ["node_modules/.prisma/*"]
     },
