@@ -4,6 +4,7 @@ import { redisConnection } from '../core/config/redis';
 import { prisma } from '../core/database/prisma';
 import { AiJobStatus, Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { logger } from '../utils/logger';
 
 // ─── Job Payload Types ────────────────────────────────────────────────────────
 
@@ -241,7 +242,6 @@ const aiWorker = new Worker<AiAnalysisPayload>(
 );
 
 import { notificationService } from '../modules/notifications/notifications.service';
-import { logger } from 'src/utils/logger';
 
 aiWorker.on('completed', (job) => logger.info(`✅ AI job completed: ${job.id} [${job.data.type}]`));
 
