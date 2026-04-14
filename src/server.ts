@@ -5,8 +5,7 @@ import { env } from "./core/config/env";
 const server = app.listen(env.PORT, () => {
   console.log(`🚀 Server running on http://localhost:${env.PORT}`);
   console.log(`   Environment: ${env.NODE_ENV}`);
-  console.log('documentation : http://localhost:3000/api-docs');
-
+  console.log(`   Documentation: http://localhost:${env.PORT}/api-docs`);
 });
 
 // Graceful shutdown
