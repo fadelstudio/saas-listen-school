@@ -11,3 +11,12 @@ export const createSchoolSchema = z.object({
 });
 
 export type CreateSchoolInput = z.infer<typeof createSchoolSchema>;
+
+export const updateSchoolSchema = z.object({
+  name: z.string().min(2).optional(),
+  location: z.string().optional(),
+});
+
+export const schoolParamsSchema = z.object({
+  id: z.string().uuid('ID invalide'),
+});

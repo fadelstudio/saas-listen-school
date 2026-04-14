@@ -26,10 +26,28 @@ exports.schoolUsersController = {
             next(e);
         }
     },
+    async getById(req, res, next) {
+        try {
+            const result = await school_users_service_1.schoolUsersService.getById(req.user.userId, req.params.id);
+            res.sendSuccess('User retrieved', result);
+        }
+        catch (e) {
+            next(e);
+        }
+    },
     async update(req, res, next) {
         try {
             const result = await school_users_service_1.schoolUsersService.update(req.user.userId, req.params.id, req.body);
             res.sendSuccess('User updated', result);
+        }
+        catch (e) {
+            next(e);
+        }
+    },
+    async delete(req, res, next) {
+        try {
+            await school_users_service_1.schoolUsersService.delete(req.user.userId, req.params.id);
+            res.sendSuccess('User deleted successfully', null);
         }
         catch (e) {
             next(e);

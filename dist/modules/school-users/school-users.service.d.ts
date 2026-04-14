@@ -43,5 +43,37 @@ export declare const schoolUsersService: {
         isActive: boolean;
         classId: string | null;
     }>;
+    getById(adminUserId: string, targetId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string | null;
+        email: string;
+        passwordHash: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        isActive: boolean;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        classId: string | null;
+    }>;
+    delete(adminUserId: string, targetId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string | null;
+        email: string;
+        passwordHash: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        isActive: boolean;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        classId: string | null;
+    }>;
 };
 //# sourceMappingURL=school-users.service.d.ts.map

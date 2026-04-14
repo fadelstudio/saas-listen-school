@@ -5,7 +5,11 @@ export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.register(req.body);
-      res.sendSuccess('Account created successfully', result, 201);
+      if ('step' in result && result.step === 'EMAIL_OTP_REQUIRED') {
+        res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
+      } else {
+        res.sendSuccess('Account created successfully', result, 201);
+      }
     } catch (error) {
       next(error);
     }
@@ -94,6 +98,16 @@ export const authController = {
       const { refreshToken } = req.body;
       await authService.logout(refreshToken);
       res.sendSuccess('Logged out successfully', null);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async resendOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { challengeId } = req.body;
+      const result = await authService.resendOtp(challengeId);
+      res.sendSuccess('New OTP sent successfully', result);
     } catch (error) {
       next(error);
     }

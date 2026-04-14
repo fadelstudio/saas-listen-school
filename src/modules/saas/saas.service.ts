@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../../core/database/prisma';
+import { NotFoundError } from '../../core/errors/AppError';
 import { CreateSchoolInput } from './saas.schema';
 import { ConflictError } from '../../core/errors/AppError';
 import { Role } from '@prisma/client';
@@ -51,6 +52,44 @@ export const saasService = {
       });
 
       return { campus, user: { id: user.id, email: user.email, role: user.role } };
+    });
+  },
+
+  async listSchools() {
+    return prisma.campus.findMany({
+      include: {
+        _count: {
+          select: {
+            users: true,
+            classes: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  },
+
+  async getSchoolById(id: string) {
+    const campus = await prisma.campus.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            classes: true,
+            professors: true
+          }
+        }
+      }
+    });
+    if (!campus) throw new NotFoundError('School/Campus');
+    return campus;
+  },
+
+  async updateSchool(id: string, data: { name?: string; location?: string }) {
+    return prisma.campus.update({
+      where: { id },
+      data
     });
   }
 };

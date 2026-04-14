@@ -12,6 +12,7 @@ const envSchema = z.object({
 
   // Auth
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+  LOGIN_OTP_ENABLED: z.coerce.boolean().default(false),
 
   // Supabase
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),

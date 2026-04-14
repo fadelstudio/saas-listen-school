@@ -14,6 +14,7 @@ const envSchema = zod_1.z.object({
     DATABASE_URL: zod_1.z.string().min(1, "DATABASE_URL is required"),
     // Auth
     JWT_SECRET: zod_1.z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+    LOGIN_OTP_ENABLED: zod_1.z.coerce.boolean().default(false),
     // Supabase
     SUPABASE_URL: zod_1.z.string().url("SUPABASE_URL must be a valid URL"),
     SUPABASE_KEY: zod_1.z.string().min(1, "SUPABASE_KEY is required"),

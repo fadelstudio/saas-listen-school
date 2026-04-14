@@ -10,6 +10,7 @@ import {
   verifyLoginOtpSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  resendOtpSchema,
 } from './auth.schema';
 
 export const authRouter = Router();
@@ -43,7 +44,9 @@ export const authRouter = Router();
  *               lastName: { type: string }
  *     responses:
  *       201:
- *         description: Utilisateur créé avec succès
+ *         description: Utilisateur créé. Si l'OTP est activé, un code de vérification est envoyé.
+ *       200:
+ *         description: Inscription réussie (si OTP désactivé)
  */
 authRouter.post('/register', validate({ body: registerSchema }), authController.register);
 
@@ -81,18 +84,104 @@ authRouter.post('/register', validate({ body: registerSchema }), authController.
  */
 authRouter.post('/login', validate({ body: loginSchema }), authController.login);
 
+/**
+ * @swagger
+ * /api/auth/login/verify-otp:
+ *   post:
+ *     summary: Vérifier le code OTP (Inscription initiale uniquement)
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId, otp]
+ *             properties:
+ *               challengeId: { type: string, example: "uuid-du-challenge" }
+ *               otp: { type: string, example: "123456" }
+ *     responses:
+ *       200:
+ *         description: OTP valide, login réussi
+ *       401:
+ *         description: Code invalide ou expiré
+ */
 authRouter.post(
   '/login/verify-otp',
   validate({ body: verifyLoginOtpSchema }),
   authController.verifyLoginOtp
 );
 
+/**
+ * @swagger
+ * /api/auth/login/resend-otp:
+ *   post:
+ *     summary: Renvoyer un code OTP (si expiré ou non reçu)
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId]
+ *             properties:
+ *               challengeId: { type: string, example: "uuid-du-challenge" }
+ *     responses:
+ *       200:
+ *         description: Nouveau OTP envoyé
+ */
+authRouter.post(
+  '/login/resend-otp',
+  validate({ body: resendOtpSchema }),
+  authController.resendOtp
+);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Demander une réinitialisation de mot de passe
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email, example: "etudiant@afi.com" }
+ *     responses:
+ *       200:
+ *         description: Email envoyé si le compte existe
+ */
 authRouter.post(
   '/forgot-password',
   validate({ body: forgotPasswordSchema }),
   authController.forgotPassword
 );
 
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Réinitialiser le mot de passe avec le token reçu par email
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, newPassword]
+ *             properties:
+ *               token: { type: string, example: "token-secret" }
+ *               newPassword: { type: string, minLength: 8, example: "NouveauMdp123!" }
+ *     responses:
+ *       200:
+ *         description: Mot de passe mis à jour
+ */
 authRouter.post(
   '/reset-password',
   validate({ body: resetPasswordSchema }),

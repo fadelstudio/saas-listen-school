@@ -7,6 +7,7 @@ exports.saasService = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const prisma_1 = require("../../core/database/prisma");
 const AppError_1 = require("../../core/errors/AppError");
+const AppError_2 = require("../../core/errors/AppError");
 const client_1 = require("@prisma/client");
 const SALT_ROUNDS = 12;
 exports.saasService = {
@@ -22,7 +23,7 @@ exports.saasService = {
             }
         });
         if (existingUser) {
-            throw new AppError_1.ConflictError('Admin with this email or matricule already exists');
+            throw new AppError_2.ConflictError('Admin with this email or matricule already exists');
         }
         // 2. Hash password
         const passwordHash = await bcrypt_1.default.hash(input.adminPassword, SALT_ROUNDS);
@@ -47,6 +48,42 @@ exports.saasService = {
                 }
             });
             return { campus, user: { id: user.id, email: user.email, role: user.role } };
+        });
+    },
+    async listSchools() {
+        return prisma_1.prisma.campus.findMany({
+            include: {
+                _count: {
+                    select: {
+                        users: true,
+                        classes: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    },
+    async getSchoolById(id) {
+        const campus = await prisma_1.prisma.campus.findUnique({
+            where: { id },
+            include: {
+                _count: {
+                    select: {
+                        users: true,
+                        classes: true,
+                        professors: true
+                    }
+                }
+            }
+        });
+        if (!campus)
+            throw new AppError_1.NotFoundError('School/Campus');
+        return campus;
+    },
+    async updateSchool(id, data) {
+        return prisma_1.prisma.campus.update({
+            where: { id },
+            data
         });
     }
 };

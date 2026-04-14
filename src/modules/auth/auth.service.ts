@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { env } from '../../core/config/env';
+import { prisma } from '../../core/database/prisma';
 import {
   ConflictError,
   UnauthorizedError,
@@ -31,8 +32,13 @@ const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 
-function otpEnabled(): boolean {
-  return process.env.LOGIN_OTP_ENABLED !== 'false';
+async function isOtpRequired(): Promise<boolean> {
+  // 1. Check ENV (global force)
+  if (env.LOGIN_OTP_ENABLED) return true;
+
+  // 2. Check Database Settings
+  const settings = await prisma.systemSettings.findFirst();
+  return settings?.authOtpRequired ?? false;
 }
 
 function hashOtp(otp: string): string {
@@ -102,7 +108,7 @@ async function generateTokens(user: TokenUser) {
 }
 
 export const authService = {
-  async register(input: RegisterInput): Promise<AuthResponse> {
+  async register(input: RegisterInput): Promise<LoginResult> {
     const existing = await authRepository.findByEmail(input.email);
     if (existing) {
       throw new ConflictError('An account with this email already exists');
@@ -114,14 +120,17 @@ export const authService = {
       passwordHash,
     });
 
-    const { accessToken, refreshToken } = await generateTokens({
-      id: user.id,
-      role: user.role,
-      campusId: user.campusId,
-      classId: user.classId,
-    });
+    if (!(await isOtpRequired())) {
+      const { accessToken, refreshToken } = await generateTokens({
+        id: user.id,
+        role: user.role,
+        campusId: user.campusId,
+        classId: user.classId,
+      });
+      return { token: accessToken, refreshToken, user: toSafeUser(user) };
+    }
 
-    return { token: accessToken, refreshToken, user: toSafeUser(user) };
+    return this.sendNewLoginOtp(user);
   },
 
   async login(input: LoginInput): Promise<LoginResult> {
@@ -144,30 +153,47 @@ export const authService = {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    if (!otpEnabled()) {
-      const { accessToken, refreshToken } = await generateTokens({
-        id: user.id,
-        role: user.role,
-        campusId: user.campusId,
-        classId: user.classId,
-      });
-      return { token: accessToken, refreshToken, user: toSafeUser(user) };
-    }
+    const { accessToken, refreshToken } = await generateTokens({
+      id: user.id,
+      role: user.role,
+      campusId: user.campusId,
+      classId: user.classId,
+    });
+    return { token: accessToken, refreshToken, user: toSafeUser(user) };
+  },
 
-    await authRepository.deleteLoginChallengesForUser(user.id);
+  async sendNewLoginOtp(user: { id: string; email: string }) {
     const otp = generateNumericOtp();
     const otpHash = hashOtp(otp);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
     const challenge = await authRepository.createLoginOtpChallenge(user.id, otpHash, expiresAt);
 
+    const otpExpiresMin = Math.floor(OTP_EXPIRY_MS / 60000);
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #333;">Code de vérification AFI-LISTEN</h2>
+        <p>Bonjour,</p>
+        <p>Voici votre code de sécurité pour vous connecter à votre compte. Ce code est valide pendant ${otpExpiresMin} minutes.</p>
+        <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #000; border-radius: 5px; margin: 20px 0;">
+          ${otp}
+        </div>
+        <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email en toute sécurité.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} AFI-LISTEN. Tous droits réservés.</p>
+      </div>
+    `;
+
     await sendTransactionalEmail({
       to: user.email,
       subject: 'Code de connexion AFI-LISTEN',
-      text: `Votre code de connexion (valide 10 minutes) : ${otp}\n\nSi vous n'avez pas demandé cette connexion, ignorez cet email.`,
-    }).catch(() => {});
+      text: `Votre code de connexion : ${otp}\nElle expire dans ${otpExpiresMin} minutes.`,
+      html,
+    }).catch((err) => {
+      console.error('Failed to send OTP email:', err);
+    });
 
     return {
-      step: 'EMAIL_OTP_REQUIRED',
+      step: 'EMAIL_OTP_REQUIRED' as const,
       challengeId: challenge.id,
       expiresInSeconds: Math.floor(OTP_EXPIRY_MS / 1000),
     };
@@ -187,8 +213,15 @@ export const authService = {
 
     const expected = hashOtp(input.otp.trim());
     if (expected !== challenge.otpHash) {
-      await authRepository.incrementLoginOtpAttempts(challenge.id);
-      throw new UnauthorizedError('Invalid OTP code');
+      const updated = await authRepository.incrementLoginOtpAttempts(challenge.id);
+      
+      if (updated.attempts >= OTP_MAX_ATTEMPTS) {
+        await authRepository.deleteLoginOtpChallenge(challenge.id);
+        await authRepository.setActive(challenge.userId, false); // Block account
+        throw new BadRequestError('Too many OTP attempts. Your account has been deactivated for security reasons. Contact support.');
+      }
+      
+      throw new UnauthorizedError(`Invalid OTP code (${OTP_MAX_ATTEMPTS - updated.attempts} attempts remaining)`);
     }
 
     await authRepository.deleteLoginOtpChallenge(challenge.id);
@@ -218,12 +251,29 @@ export const authService = {
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
     const resetUrl = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #333;">Réinitialisation de mot de passe</h2>
+        <p>Bonjour,</p>
+        <p>Vous avez demandé la réinitialisation de votre mot de passe AFI-LISTEN. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien est valide pendant 1 heure.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background: #000; color: #fff; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
+        </div>
+        <p style="word-break: break-all; color: #999; font-size: 12px;">Si le bouton ne fonctionne pas, copiez ce lien : <br/> ${resetUrl}</p>
+        <p style="color: #666; font-size: 14px; margin-top: 30px;">Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} AFI-LISTEN. Tous droits réservés.</p>
+      </div>
+    `;
 
     await sendTransactionalEmail({
       to: user.email,
       subject: 'Réinitialisation du mot de passe AFI-LISTEN',
-      text: `Vous avez demandé une réinitialisation de mot de passe.\n\nOuvrez ce lien (valide 1 heure) :\n${resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.`,
-    }).catch(() => {});
+      text: `Vous avez demandé une réinitialisation de mot de passe. Ouvrez ce lien (valide 1 heure) : ${resetUrl}`,
+      html,
+    }).catch((err) => {
+      console.error('Failed to send password reset email:', err);
+    });
   },
 
   async resetPassword(input: ResetPasswordInput): Promise<void> {
@@ -296,5 +346,15 @@ export const authService = {
 
     const updated = await authRepository.updateProfile(userId, input);
     return toSafeUser(updated);
+  },
+
+  async resendOtp(challengeId: string) {
+    const oldChallenge = await authRepository.findLoginOtpChallengeById(challengeId);
+    if (!oldChallenge) {
+      throw new BadRequestError('Invalid or expired challenge session');
+    }
+    // Delete all existing challenges to avoid stale ones
+    await authRepository.deleteLoginChallengesForUser(oldChallenge.userId);
+    return this.sendNewLoginOtp(oldChallenge.user);
   },
 };

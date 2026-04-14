@@ -25,10 +25,28 @@ export const schoolUsersController = {
     }
   },
 
+  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await schoolUsersService.getById(req.user!.userId, req.params.id as string);
+      res.sendSuccess('User retrieved', result);
+    } catch (e) {
+      next(e);
+    }
+  },
+
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await schoolUsersService.update(req.user!.userId, req.params.id as string, req.body);
       res.sendSuccess('User updated', result);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await schoolUsersService.delete(req.user!.userId, req.params.id as string);
+      res.sendSuccess('User deleted successfully', null);
     } catch (e) {
       next(e);
     }

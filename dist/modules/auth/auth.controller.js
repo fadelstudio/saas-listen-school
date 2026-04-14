@@ -6,7 +6,12 @@ exports.authController = {
     async register(req, res, next) {
         try {
             const result = await auth_service_1.authService.register(req.body);
-            res.sendSuccess('Account created successfully', result, 201);
+            if ('step' in result && result.step === 'EMAIL_OTP_REQUIRED') {
+                res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
+            }
+            else {
+                res.sendSuccess('Account created successfully', result, 201);
+            }
         }
         catch (error) {
             next(error);
@@ -96,6 +101,16 @@ exports.authController = {
             const { refreshToken } = req.body;
             await auth_service_1.authService.logout(refreshToken);
             res.sendSuccess('Logged out successfully', null);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async resendOtp(req, res, next) {
+        try {
+            const { challengeId } = req.body;
+            const result = await auth_service_1.authService.resendOtp(challengeId);
+            res.sendSuccess('New OTP sent successfully', result);
         }
         catch (error) {
             next(error);

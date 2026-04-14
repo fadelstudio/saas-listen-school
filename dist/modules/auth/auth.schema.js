@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.verifyLoginOtpSchema = exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.resendOtpSchema = exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.verifyLoginOtpSchema = exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const idSchema_1 = require("../../utils/idSchema");
 // ─── Register ─────────────────────────────────────────────────────────────────
@@ -69,5 +69,8 @@ exports.resetPasswordSchema = zod_1.z
     .refine((d) => d.newPassword === d.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
+});
+exports.resendOtpSchema = zod_1.z.object({
+    challengeId: idSchema_1.idStringSchema,
 });
 //# sourceMappingURL=auth.schema.js.map

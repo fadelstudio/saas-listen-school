@@ -70,8 +70,89 @@ exports.authRouter.post('/register', (0, validate_middleware_1.validate)({ body:
  *         description: Login réussi, retourne un token JWT
  */
 exports.authRouter.post('/login', (0, validate_middleware_1.validate)({ body: auth_schema_1.loginSchema }), auth_controller_1.authController.login);
+/**
+ * @swagger
+ * /api/auth/login/verify-otp:
+ *   post:
+ *     summary: Vérifier le code OTP reçu par email
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId, otp]
+ *             properties:
+ *               challengeId: { type: string, example: "uuid-du-challenge" }
+ *               otp: { type: string, example: "123456" }
+ *     responses:
+ *       200:
+ *         description: OTP valide, login réussi
+ *       401:
+ *         description: Code invalide ou expiré
+ */
 exports.authRouter.post('/login/verify-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.verifyLoginOtpSchema }), auth_controller_1.authController.verifyLoginOtp);
+/**
+ * @swagger
+ * /api/auth/login/resend-otp:
+ *   post:
+ *     summary: Renvoyer un code OTP (si expiré ou non reçu)
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId]
+ *             properties:
+ *               challengeId: { type: string, example: "uuid-du-challenge" }
+ *     responses:
+ *       200:
+ *         description: Nouveau OTP envoyé
+ */
+exports.authRouter.post('/login/resend-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.resendOtpSchema }), auth_controller_1.authController.resendOtp);
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Demander une réinitialisation de mot de passe
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email, example: "etudiant@afi.com" }
+ *     responses:
+ *       200:
+ *         description: Email envoyé si le compte existe
+ */
 exports.authRouter.post('/forgot-password', (0, validate_middleware_1.validate)({ body: auth_schema_1.forgotPasswordSchema }), auth_controller_1.authController.forgotPassword);
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Réinitialiser le mot de passe avec le token reçu par email
+ *     tags: [1. Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, newPassword]
+ *             properties:
+ *               token: { type: string, example: "token-secret" }
+ *               newPassword: { type: string, minLength: 8, example: "NouveauMdp123!" }
+ *     responses:
+ *       200:
+ *         description: Mot de passe mis à jour
+ */
 exports.authRouter.post('/reset-password', (0, validate_middleware_1.validate)({ body: auth_schema_1.resetPasswordSchema }), auth_controller_1.authController.resetPassword);
 // ─── Protected routes ─────────────────────────────────────────────────────────
 /**

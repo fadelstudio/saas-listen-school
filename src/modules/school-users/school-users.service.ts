@@ -173,4 +173,29 @@ export const schoolUsersService = {
       },
     });
   },
+
+  async getById(adminUserId: string, targetId: string) {
+    const admin = await assertCampusAdmin(adminUserId);
+    const target = await prisma.user.findUnique({ where: { id: targetId } });
+    if (!target || target.campusId !== admin.campusId) {
+      throw new NotFoundError('User');
+    }
+    return target;
+  },
+
+  async delete(adminUserId: string, targetId: string) {
+    const admin = await assertCampusAdmin(adminUserId);
+    if (targetId === adminUserId) {
+      throw new ForbiddenError('You cannot delete yourself');
+    }
+
+    const target = await prisma.user.findUnique({ where: { id: targetId } });
+    if (!target || target.campusId !== admin.campusId) {
+      throw new NotFoundError('User');
+    }
+    
+    // Deactivate instead of hard delete to preserve history?
+    // User requested "delete", let's follow standard pattern
+    return prisma.user.delete({ where: { id: targetId } });
+  }
 };
