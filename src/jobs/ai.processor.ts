@@ -241,18 +241,19 @@ const aiWorker = new Worker<AiAnalysisPayload>(
 );
 
 import { notificationService } from '../modules/notifications/notifications.service';
+import { logger } from 'src/utils/logger';
 
-aiWorker.on('completed', (job) => console.log(`✅ AI job completed: ${job.id} [${job.data.type}]`));
+aiWorker.on('completed', (job) => logger.info(`✅ AI job completed: ${job.id} [${job.data.type}]`));
 
 aiWorker.on('failed', async (job, err) => {
-  console.error(`❌ AI job failed: ${job?.id}`, err.message);
+  logger.error(`❌ AI job failed: ${job?.id}`, { message: err.message });
   
   // Notify internal profiles about AI failure
   await notificationService.create({
     title: `Échec du traitement IA [${job?.data.type}]`,
     message: `Le traitement automatique a échoué: ${err.message}. ID Job: ${job?.id}`,
     type: 'AI_FAILURE',
-  }).catch(e => console.error('Failed to create failure notification:', e));
+  }).catch(e => logger.error('Failed to create failure notification:', { error: e.message }));
 });
 
 aiWorker.on('error', (_err) => { /* Silence Redis errors */ });
