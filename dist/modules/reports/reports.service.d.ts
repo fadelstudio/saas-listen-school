@@ -34,7 +34,7 @@ export declare const reportsService: {
             lastName: string;
         } | null;
     } & {
-        type: import("@prisma/client").$Enums.ReportType;
+        type: import(".prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -42,9 +42,9 @@ export declare const reportsService: {
         title: string;
         moduleId: string | null;
         professorId: string | null;
-        status: import("@prisma/client").$Enums.ReportStatus;
+        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import("@prisma/client").$Enums.Priority;
+        priority: import(".prisma/client").$Enums.Priority;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
@@ -89,7 +89,7 @@ export declare const reportsService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.AiJobStatus;
+            status: import(".prisma/client").$Enums.AiJobStatus;
             reportId: string | null;
             evaluationId: string | null;
             jobType: string;
@@ -98,7 +98,7 @@ export declare const reportsService: {
             decisionId: string | null;
         }[];
     } & {
-        type: import("@prisma/client").$Enums.ReportType;
+        type: import(".prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -106,9 +106,9 @@ export declare const reportsService: {
         title: string;
         moduleId: string | null;
         professorId: string | null;
-        status: import("@prisma/client").$Enums.ReportStatus;
+        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import("@prisma/client").$Enums.Priority;
+        priority: import(".prisma/client").$Enums.Priority;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
@@ -149,7 +149,7 @@ export declare const reportsService: {
             lastName: string;
         } | null;
     } & {
-        type: import("@prisma/client").$Enums.ReportType;
+        type: import(".prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -157,9 +157,9 @@ export declare const reportsService: {
         title: string;
         moduleId: string | null;
         professorId: string | null;
-        status: import("@prisma/client").$Enums.ReportStatus;
+        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import("@prisma/client").$Enums.Priority;
+        priority: import(".prisma/client").$Enums.Priority;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
@@ -168,7 +168,7 @@ export declare const reportsService: {
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>>;
     update(id: string, input: UpdateReportInput, userId: string, userRole: string): Promise<{
-        type: import("@prisma/client").$Enums.ReportType;
+        type: import(".prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -176,9 +176,9 @@ export declare const reportsService: {
         title: string;
         moduleId: string | null;
         professorId: string | null;
-        status: import("@prisma/client").$Enums.ReportStatus;
+        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import("@prisma/client").$Enums.Priority;
+        priority: import(".prisma/client").$Enums.Priority;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
@@ -187,7 +187,7 @@ export declare const reportsService: {
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
     updateStatus(id: string, status: ReportStatus, userRole: string): Promise<{
-        type: import("@prisma/client").$Enums.ReportType;
+        type: import(".prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -195,9 +195,9 @@ export declare const reportsService: {
         title: string;
         moduleId: string | null;
         professorId: string | null;
-        status: import("@prisma/client").$Enums.ReportStatus;
+        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import("@prisma/client").$Enums.Priority;
+        priority: import(".prisma/client").$Enums.Priority;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
@@ -206,7 +206,7 @@ export declare const reportsService: {
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
     delete(id: string, userRole: string): Promise<{
-        type: import("@prisma/client").$Enums.ReportType;
+        type: import(".prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -214,9 +214,9 @@ export declare const reportsService: {
         title: string;
         moduleId: string | null;
         professorId: string | null;
-        status: import("@prisma/client").$Enums.ReportStatus;
+        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import("@prisma/client").$Enums.Priority;
+        priority: import(".prisma/client").$Enums.Priority;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;

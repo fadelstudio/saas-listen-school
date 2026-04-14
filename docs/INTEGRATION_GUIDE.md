@@ -9,7 +9,7 @@ Deux préfixes existent (compatibilité) :
 - **Recommandé**: `/api`
 - **Alias**: `/api/v1`
 
-Exemples (prod Render) :
+Exemples (prod Railway) :
 
 - Health: `/health`
 - Swagger: `/api-docs`
@@ -37,13 +37,40 @@ Toutes les routes retournent :
 
 `Authorization: Bearer <token>`
 
-### Login
+### Login (2 étapes — OTP email)
 
-- `POST /api/v1/auth/login` → retourne `token` + `refreshToken`
+1. `POST /api/v1/auth/login` avec `email` ou `matricule` + `password`  
+   - Réponse typique : `{ step: "EMAIL_OTP_REQUIRED", challengeId, expiresInSeconds }` (pas de JWT encore).  
+   - Variable d’environnement `LOGIN_OTP_ENABLED=false` : comportement legacy (JWT immédiat) pour dépannage.
+2. `POST /api/v1/auth/login/verify-otp` avec `{ challengeId, otp }` (code à 6 chiffres reçu par email)  
+   - Réponse : `token` + `refreshToken` + `user`.
+
+### Reset mot de passe
+
+- `POST /api/v1/auth/forgot-password` `{ "email": "..." }` — réponse générique (pas d’énumération).
+- `POST /api/v1/auth/reset-password` `{ token, newPassword, confirmPassword }` — révoque les refresh tokens existants.
 
 ### Refresh
 
 - `POST /api/v1/auth/refresh` avec `refreshToken`
+
+## Utilisateurs école (ADMIN campus)
+
+- `POST /api/v1/school-users` — crée `MANAGER` | `AGENT` | `VIEWER` | `STUDENT` (jamais `SUPERADMIN` / `ADMIN`).
+- `GET /api/v1/school-users` — liste paginée du campus (sans `SUPERADMIN`).
+- `PATCH /api/v1/school-users/:id` — rôle / `isActive` / `classId`.
+
+## Évaluations (critères enum + note /20)
+
+Chaque évaluation doit envoyer **cinq** champs `RatingBand` :
+
+`VERY_POOR` | `POOR` | `FAIR` | `GOOD` | `EXCELLENT`
+
+- `comprehensionRating` — compréhension du cours  
+- `explanationRating` — qualité des explications du professeur  
+- `pedagogyRating`, `availabilityRating`, `rhythmRating`
+
+La note `score` (0–20) est **calculée côté API** : moyenne des 5 niveaux (1–5) × 4.
 
 ## RBAC (rôles)
 
@@ -60,9 +87,18 @@ En cas d’entrée invalide → **422** avec `error` structuré.
 
 Exemples typiques :
 
-- UUID invalide (ex: `classId`, `moduleId`, `professorId`)
+- ID invalide (ex: `classId`, `moduleId`, `professorId`)  
+  > Note: selon les environnements/seed, certains IDs peuvent être des strings “lisibles” (ex: `class-l3-info`) et pas forcément des UUID. L’API accepte ces formats tant qu’ils matchent le format d’ID attendu (alphanum + `_`/`-`).
 - champs `title/content` trop courts
 - `dueDate` non ISO (doit être `date-time` valide)
+
+## Tests API (Postman/Newman) — note OTP
+
+Si tu exécutes les collections Postman via Newman, le plus simple est de désactiver temporairement l’OTP pour que `POST /auth/login` retourne directement `{ token, refreshToken }` :
+
+- `LOGIN_OTP_ENABLED=false`
+
+Sinon, en mode OTP, il faut faire le flow en 2 étapes (`/auth/login` → `/auth/login/verify-otp`) et récupérer le code OTP côté mail provider (ex: `MAIL_PROVIDER=console` en dev).
 
 ## Pagination (listes)
 

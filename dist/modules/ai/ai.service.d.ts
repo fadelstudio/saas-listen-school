@@ -6,7 +6,7 @@ export declare const aiService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: import("@prisma/client").$Enums.AiJobStatus;
+        status: import(".prisma/client").$Enums.AiJobStatus;
         reportId: string | null;
         evaluationId: string | null;
         jobType: string;
@@ -19,7 +19,7 @@ export declare const aiService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: import("@prisma/client").$Enums.AiJobStatus;
+        status: import(".prisma/client").$Enums.AiJobStatus;
         reportId: string | null;
         evaluationId: string | null;
         jobType: string;
@@ -28,7 +28,7 @@ export declare const aiService: {
         decisionId: string | null;
     }>>;
     getJobResult(jobId: string): Promise<{
-        status: import("@prisma/client").$Enums.AiJobStatus;
+        status: import(".prisma/client").$Enums.AiJobStatus;
         result: Prisma.JsonValue;
         errorMessage: string | null;
     }>;

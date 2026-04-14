@@ -6,6 +6,8 @@ import { ForbiddenError, UnauthorizedError } from "../errors/AppError";
 export interface JwtPayload {
   userId: string;
   role: string;
+  campusId?: string | null;
+  classId?: string | null;
   iat: number;
   exp: number;
 }

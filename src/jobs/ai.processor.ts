@@ -88,7 +88,18 @@ async function handleEvaluationScoring(payload: AiAnalysisPayload): Promise<AiAn
   const evaluation = await prisma.evaluation.findUnique({ where: { id: payload.evaluationId! } });
   if (!evaluation) throw new Error(`Evaluation not found: ${payload.evaluationId}`);
 
-  const raw    = await callAI(analysisPrompt(`Score: ${evaluation.score ?? 'N/A'} | ${evaluation.comment ?? ''}`));
+  const rubric = [
+    evaluation.comprehensionRating,
+    evaluation.explanationRating,
+    evaluation.pedagogyRating,
+    evaluation.availabilityRating,
+    evaluation.rhythmRating,
+  ].join(', ');
+  const raw = await callAI(
+    analysisPrompt(
+      `Score: ${evaluation.score ?? 'N/A'} | Rubric: ${rubric} | ${evaluation.comment ?? ''}`
+    )
+  );
   const validated = parseAiJsonStrict(raw);
   const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
 

@@ -5,6 +5,8 @@ import { Role } from '@prisma/client';
 export interface JwtPayload {
   userId: string;
   role: Role;
+  campusId?: string | null;
+  classId?: string | null;
   iat: number;
   exp: number;
 }
@@ -44,6 +46,14 @@ export interface AuthResponse {
   user: SafeUser;
 }
 
+export interface LoginOtpRequired {
+  step: "EMAIL_OTP_REQUIRED";
+  challengeId: string;
+  expiresInSeconds: number;
+}
+
+export type LoginResult = AuthResponse | LoginOtpRequired;
+
 /** User without passwordHash — safe to send in API responses */
 export interface SafeUser {
   id: string;
@@ -52,8 +62,23 @@ export interface SafeUser {
   lastName: string;
   role: Role;
   isActive: boolean;
+  emailVerified: boolean;
   campusId?: string | null;
   classId?: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  newPassword: string;
+}
+
+export interface VerifyLoginOtpInput {
+  challengeId: string;
+  otp: string;
 }

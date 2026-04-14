@@ -17,6 +17,7 @@ import { classModulesRouter }    from "../../modules/class-modules/class-modules
 import { evaluationCampaignsRouter } from "../../modules/evaluation-campaigns/evaluation-campaigns.route";
 import { notificationsRouter } from "../../modules/notifications/notifications.route";
 import saasRouter from "../../modules/saas/saas.route";
+import { schoolUsersRouter } from "../../modules/school-users/school-users.route";
 
 const router = Router();
 
@@ -60,5 +61,6 @@ router.use("/assignments",      classModulesRouter);
 router.use("/evaluation-campaigns", evaluationCampaignsRouter);
 router.use("/notifications",        notificationsRouter);
 router.use("/saas",             saasRouter);
+router.use("/school-users",     schoolUsersRouter);
 
 export default router;

@@ -3,6 +3,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluationsRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const client_1 = require("@prisma/client");
+const evaluations_scoring_1 = require("./evaluations.scoring");
+const AppError_1 = require("../../core/errors/AppError");
+function mergeRatings(existing, patch) {
+    return {
+        comprehensionRating: patch.comprehensionRating ?? existing.comprehensionRating,
+        explanationRating: patch.explanationRating ?? existing.explanationRating,
+        pedagogyRating: patch.pedagogyRating ?? existing.pedagogyRating,
+        availabilityRating: patch.availabilityRating ?? existing.availabilityRating,
+        rhythmRating: patch.rhythmRating ?? existing.rhythmRating,
+    };
+}
 exports.evaluationsRepository = {
     async getUserContext(userId) {
         return prisma_1.prisma.user.findUnique({
@@ -11,6 +22,21 @@ exports.evaluationsRepository = {
         });
     },
     async create(data, evaluatorId) {
+        if (!data.comprehensionRating ||
+            !data.explanationRating ||
+            !data.pedagogyRating ||
+            !data.availabilityRating ||
+            !data.rhythmRating) {
+            throw new AppError_1.BadRequestError('All five rating fields (comprehension, explanation, pedagogy, availability, rhythm) are required');
+        }
+        const ratings = {
+            comprehensionRating: data.comprehensionRating,
+            explanationRating: data.explanationRating,
+            pedagogyRating: data.pedagogyRating,
+            availabilityRating: data.availabilityRating,
+            rhythmRating: data.rhythmRating,
+        };
+        const score = (0, evaluations_scoring_1.computeScoreFromRatings)(ratings);
         return prisma_1.prisma.evaluation.create({
             data: {
                 report: data.reportId ? { connect: { id: data.reportId } } : undefined,
@@ -18,11 +44,12 @@ exports.evaluationsRepository = {
                 professor: { connect: { id: data.professorId } },
                 module: { connect: { id: data.moduleId } },
                 class: { connect: { id: data.classId } },
-                score: data.score,
-                clarityScore: data.clarityScore,
-                pedagogyScore: data.pedagogyScore,
-                availabilityScore: data.availabilityScore,
-                rhythmScore: data.rhythmScore,
+                score,
+                comprehensionRating: data.comprehensionRating,
+                explanationRating: data.explanationRating,
+                pedagogyRating: data.pedagogyRating,
+                availabilityRating: data.availabilityRating,
+                rhythmRating: data.rhythmRating,
                 comment: data.comment,
                 isAnonymous: data.isAnonymous ?? false,
                 status: client_1.EvaluationStatus.PENDING,
@@ -72,15 +99,25 @@ exports.evaluationsRepository = {
         return { items, total };
     },
     async update(id, data) {
+        const existing = await prisma_1.prisma.evaluation.findUnique({ where: { id } });
+        if (!existing) {
+            throw new AppError_1.NotFoundError('Evaluation');
+        }
+        const merged = mergeRatings(existing, data);
+        let score;
+        if ((0, evaluations_scoring_1.hasAllRatings)(merged)) {
+            score = (0, evaluations_scoring_1.computeScoreFromRatings)(merged);
+        }
         return prisma_1.prisma.evaluation.update({
             where: { id },
             data: {
-                score: data.score,
-                clarityScore: data.clarityScore,
-                pedagogyScore: data.pedagogyScore,
-                availabilityScore: data.availabilityScore,
-                rhythmScore: data.rhythmScore,
+                comprehensionRating: data.comprehensionRating,
+                explanationRating: data.explanationRating,
+                pedagogyRating: data.pedagogyRating,
+                availabilityRating: data.availabilityRating,
+                rhythmRating: data.rhythmRating,
                 comment: data.comment,
+                ...(score !== undefined ? { score } : {}),
             },
         });
     },
@@ -105,20 +142,12 @@ exports.evaluationsRepository = {
             _avg: {
                 score: true,
                 aiScore: true,
-                clarityScore: true,
-                pedagogyScore: true,
-                availabilityScore: true,
-                rhythmScore: true
             },
         });
         return {
             totalCount: agg._count.id,
             averageScore: agg._avg.score,
-            averageClarityScore: agg._avg.clarityScore,
-            averagePedagogyScore: agg._avg.pedagogyScore,
-            averageAvailabilityScore: agg._avg.availabilityScore,
-            averageRhythmScore: agg._avg.rhythmScore,
-            distribution: {},
+            averageAiScore: agg._avg.aiScore,
         };
     },
 };

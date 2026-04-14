@@ -11,7 +11,7 @@ export declare const saasService: {
         user: {
             id: string;
             email: string;
-            role: import("@prisma/client").$Enums.Role;
+            role: import(".prisma/client").$Enums.Role;
         };
     }>;
 };

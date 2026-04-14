@@ -169,6 +169,8 @@ async function main() {
         role: u.role,
         classId: u.class,
         campusId: campusDakar.id,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
       },
       create: {
         email: u.email,
@@ -180,6 +182,8 @@ async function main() {
         matricule: u.mat,
         classId: u.class,
         campusId: campusDakar.id,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
       },
     });
   }

@@ -70,6 +70,9 @@ exports.authRouter.post('/register', (0, validate_middleware_1.validate)({ body:
  *         description: Login réussi, retourne un token JWT
  */
 exports.authRouter.post('/login', (0, validate_middleware_1.validate)({ body: auth_schema_1.loginSchema }), auth_controller_1.authController.login);
+exports.authRouter.post('/login/verify-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.verifyLoginOtpSchema }), auth_controller_1.authController.verifyLoginOtp);
+exports.authRouter.post('/forgot-password', (0, validate_middleware_1.validate)({ body: auth_schema_1.forgotPasswordSchema }), auth_controller_1.authController.forgotPassword);
+exports.authRouter.post('/reset-password', (0, validate_middleware_1.validate)({ body: auth_schema_1.resetPasswordSchema }), auth_controller_1.authController.resetPassword);
 // ─── Protected routes ─────────────────────────────────────────────────────────
 /**
  * @swagger

@@ -63,7 +63,7 @@ export declare const classesService: {
             lastName: string;
         }[];
         reports: {
-            type: import("@prisma/client").$Enums.ReportType;
+            type: import(".prisma/client").$Enums.ReportType;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -71,9 +71,9 @@ export declare const classesService: {
             title: string;
             moduleId: string | null;
             professorId: string | null;
-            status: import("@prisma/client").$Enums.ReportStatus;
+            status: import(".prisma/client").$Enums.ReportStatus;
             content: string;
-            priority: import("@prisma/client").$Enums.Priority;
+            priority: import(".prisma/client").$Enums.Priority;
             isAnonymous: boolean;
             category: string | null;
             authorId: string | null;

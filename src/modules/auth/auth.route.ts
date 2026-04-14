@@ -7,6 +7,9 @@ import {
   loginSchema,
   changePasswordSchema,
   updateProfileSchema,
+  verifyLoginOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from './auth.schema';
 
 export const authRouter = Router();
@@ -77,6 +80,24 @@ authRouter.post('/register', validate({ body: registerSchema }), authController.
  *         description: Login réussi, retourne un token JWT
  */
 authRouter.post('/login', validate({ body: loginSchema }), authController.login);
+
+authRouter.post(
+  '/login/verify-otp',
+  validate({ body: verifyLoginOtpSchema }),
+  authController.verifyLoginOtp
+);
+
+authRouter.post(
+  '/forgot-password',
+  validate({ body: forgotPasswordSchema }),
+  authController.forgotPassword
+);
+
+authRouter.post(
+  '/reset-password',
+  validate({ body: resetPasswordSchema }),
+  authController.resetPassword
+);
 
 // ─── Protected routes ─────────────────────────────────────────────────────────
 

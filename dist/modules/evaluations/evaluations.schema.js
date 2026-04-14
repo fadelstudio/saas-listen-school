@@ -3,30 +3,34 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluationQuerySchema = exports.evaluationParamsSchema = exports.updateEvaluationSchema = exports.createEvaluationSchema = void 0;
 const zod_1 = require("zod");
 const client_1 = require("@prisma/client");
-const scoreField = (label) => zod_1.z.number().min(0, `${label} min 0`).max(20, `${label} max 20`).optional();
+const idSchema_1 = require("../../utils/idSchema");
+const ratingBandSchema = zod_1.z.nativeEnum(client_1.RatingBand);
+const fiveRatings = {
+    comprehensionRating: ratingBandSchema,
+    explanationRating: ratingBandSchema,
+    pedagogyRating: ratingBandSchema,
+    availabilityRating: ratingBandSchema,
+    rhythmRating: ratingBandSchema,
+};
 exports.createEvaluationSchema = zod_1.z.object({
-    reportId: zod_1.z.string().uuid('Invalid report ID').optional(),
-    professorId: zod_1.z.string().uuid('Invalid professor ID'),
-    moduleId: zod_1.z.string().uuid('Invalid module ID'),
-    classId: zod_1.z.string().uuid('Invalid class ID'),
-    score: scoreField('Score'),
-    clarityScore: zod_1.z.number().min(0).max(5).optional(),
-    pedagogyScore: zod_1.z.number().min(0).max(5).optional(),
-    availabilityScore: zod_1.z.number().min(0).max(5).optional(),
-    rhythmScore: zod_1.z.number().min(0).max(5).optional(),
+    reportId: idSchema_1.idStringSchema.optional(),
+    professorId: idSchema_1.idStringSchema,
+    moduleId: idSchema_1.idStringSchema,
+    classId: idSchema_1.idStringSchema,
+    ...fiveRatings,
     comment: zod_1.z.string().max(2000).optional(),
     isAnonymous: zod_1.z.boolean().optional().default(false),
 });
 exports.updateEvaluationSchema = zod_1.z.object({
-    score: scoreField('Score'),
-    clarityScore: zod_1.z.number().min(0).max(5).optional(),
-    pedagogyScore: zod_1.z.number().min(0).max(5).optional(),
-    availabilityScore: zod_1.z.number().min(0).max(5).optional(),
-    rhythmScore: zod_1.z.number().min(0).max(5).optional(),
+    comprehensionRating: ratingBandSchema.optional(),
+    explanationRating: ratingBandSchema.optional(),
+    pedagogyRating: ratingBandSchema.optional(),
+    availabilityRating: ratingBandSchema.optional(),
+    rhythmRating: ratingBandSchema.optional(),
     comment: zod_1.z.string().max(2000).optional(),
 });
 exports.evaluationParamsSchema = zod_1.z.object({
-    id: zod_1.z.string().uuid('Invalid evaluation ID'),
+    id: idSchema_1.idStringSchema,
 });
 exports.evaluationQuerySchema = zod_1.z.object({
     page: zod_1.z.coerce.number().min(1).optional(),
@@ -34,8 +38,8 @@ exports.evaluationQuerySchema = zod_1.z.object({
     sortBy: zod_1.z.string().optional(),
     sortOrder: zod_1.z.enum(['asc', 'desc']).optional(),
     status: zod_1.z.nativeEnum(client_1.EvaluationStatus).optional(),
-    evaluatorId: zod_1.z.string().uuid().optional(),
-    reportId: zod_1.z.string().uuid().optional(),
+    evaluatorId: idSchema_1.idStringSchema.optional(),
+    reportId: idSchema_1.idStringSchema.optional(),
     startDate: zod_1.z.string().datetime({ offset: true }).optional(),
     endDate: zod_1.z.string().datetime({ offset: true }).optional(),
 });
