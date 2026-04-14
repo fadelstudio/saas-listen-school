@@ -12,14 +12,25 @@ const options: swaggerJsdoc.Options = {
         name: 'AFI Development Team',
       },
     },
+    // Order matters: Swagger UI defaults to the first entry. A relative URL
+    // resolves to the same host as the docs page, so "Try it out" works on
+    // Railway, Render, and localhost without picking the wrong origin.
     servers: [
       {
-        url: `http://localhost:${env.PORT}`,
-        description: 'Local development',
+        url: '/',
+        description: 'Current host (recommended — Try it out uses this site)',
+      },
+      {
+        url: 'https://saas-listen.up.railway.app',
+        description: 'Railway (production)',
+      },
+      {
+        url: `http://127.0.0.1:${env.PORT}`,
+        description: `Local API (explicit — PORT=${env.PORT})`,
       },
       {
         url: 'https://saas-listen.onrender.com',
-        description: 'Render (production)',
+        description: 'Render (legacy)',
       },
     ],
     components: {

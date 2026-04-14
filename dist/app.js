@@ -25,6 +25,8 @@ app.use(express_1.default.urlencoded({ extended: true }));
 // ── Custom middlewares ───────────────────────────────────────────────────────
 const response_middleware_1 = require("./core/middleware/response.middleware");
 app.use(response_middleware_1.responseMiddleware);
+app.set('trust proxy', 1);
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 // Rate limiting: 100 requests per 15 minutes by default
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
