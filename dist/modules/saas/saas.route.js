@@ -51,6 +51,12 @@ const saasRouter = (0, express_1.Router)();
 saasRouter.post('/schools', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.SUPERADMIN), (0, validate_middleware_1.validate)({ body: saas_schema_1.createSchoolSchema }), saas_controller_1.saasController.createSchool);
 /**
  * @swagger
+ * /api/saas/schools:
+ *   get:
+ *     summary: "[SUPERADMIN] Liste des écoles"
+ *     tags: [SaaS]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: search
@@ -63,7 +69,7 @@ saasRouter.post('/schools', auth_middleware_1.authMiddleware, (0, auth_middlewar
  *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste exhaustive des tenats (Écoles)
+ *         description: Liste exhaustive des tenants (Écoles)
  *         content:
  *           application/json:
  *             schema:
