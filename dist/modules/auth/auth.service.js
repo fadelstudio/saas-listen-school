@@ -46,6 +46,7 @@ function toSafeUser(user) {
         emailVerified: user.emailVerified,
         campusId: user.campusId,
         classId: user.classId,
+        schoolId: user.schoolId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
     };
@@ -55,6 +56,8 @@ async function generateTokens(user) {
         userId: user.id,
         role: user.role,
     };
+    if (user.schoolId != null)
+        payload.schoolId = user.schoolId;
     if (user.campusId != null)
         payload.campusId = user.campusId;
     if (user.classId != null)
@@ -81,6 +84,7 @@ exports.authService = {
             const { accessToken, refreshToken } = await generateTokens({
                 id: user.id,
                 role: user.role,
+                schoolId: user.schoolId,
                 campusId: user.campusId,
                 classId: user.classId,
             });
@@ -104,17 +108,14 @@ exports.authService = {
         if (!isValidPassword) {
             throw new AppError_1.UnauthorizedError('Invalid email or password');
         }
-        if (!(await isOtpRequired())) {
-            const { accessToken, refreshToken } = await generateTokens({
-                id: user.id,
-                role: user.role,
-                campusId: user.campusId,
-                classId: user.classId,
-            });
-            return { token: accessToken, refreshToken, user: toSafeUser(user) };
-        }
-        await auth_repository_1.authRepository.deleteLoginChallengesForUser(user.id);
-        return this.sendNewLoginOtp(user);
+        const { accessToken, refreshToken } = await generateTokens({
+            id: user.id,
+            role: user.role,
+            schoolId: user.schoolId,
+            campusId: user.campusId,
+            classId: user.classId,
+        });
+        return { token: accessToken, refreshToken, user: toSafeUser(user) };
     },
     async sendNewLoginOtp(user) {
         const otp = generateNumericOtp();
@@ -175,6 +176,7 @@ exports.authService = {
         const { accessToken, refreshToken } = await generateTokens({
             id: user.id,
             role: user.role,
+            schoolId: user.schoolId,
             campusId: user.campusId,
             classId: user.classId,
         });
@@ -238,6 +240,7 @@ exports.authService = {
         const { accessToken, refreshToken } = await generateTokens({
             id: user.id,
             role: user.role,
+            schoolId: user.schoolId,
             campusId: user.campusId,
             classId: user.classId,
         });

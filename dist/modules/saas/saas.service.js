@@ -27,12 +27,26 @@ exports.saasService = {
         }
         // 2. Hash password
         const passwordHash = await bcrypt_1.default.hash(input.adminPassword, SALT_ROUNDS);
-        // 3. Transaction to create Campus + Admin
+        // 3. Transaction to create School + Campus + Admin + Settings
         return prisma_1.prisma.$transaction(async (tx) => {
-            const campus = await tx.campus.create({
+            const school = await tx.school.create({
                 data: {
                     name: input.name,
+                }
+            });
+            const campus = await tx.campus.create({
+                data: {
+                    schoolId: school.id,
+                    name: `${input.name} - Main Campus`,
                     location: input.location,
+                }
+            });
+            await tx.systemSettings.create({
+                data: {
+                    schoolId: school.id,
+                    schoolName: input.name,
+                    aiEnabled: true,
+                    aiConfigs: [],
                 }
             });
             const user = await tx.user.create({
@@ -42,21 +56,22 @@ exports.saasService = {
                     firstName: input.adminFirstName,
                     lastName: input.adminLastName,
                     role: client_1.Role.ADMIN,
+                    schoolId: school.id,
                     campusId: campus.id,
                     matricule: input.matricule,
                     isActive: true
                 }
             });
-            return { campus, user: { id: user.id, email: user.email, role: user.role } };
+            return { school, campus, user: { id: user.id, email: user.email, role: user.role } };
         });
     },
     async listSchools() {
-        return prisma_1.prisma.campus.findMany({
+        return prisma_1.prisma.school.findMany({
             include: {
+                campuses: true,
                 _count: {
                     select: {
                         users: true,
-                        classes: true
                     }
                 }
             },
@@ -64,26 +79,41 @@ exports.saasService = {
         });
     },
     async getSchoolById(id) {
-        const campus = await prisma_1.prisma.campus.findUnique({
+        const school = await prisma_1.prisma.school.findUnique({
             where: { id },
             include: {
-                _count: {
-                    select: {
-                        users: true,
-                        classes: true,
-                        professors: true
+                campuses: {
+                    include: {
+                        _count: {
+                            select: {
+                                users: true,
+                                classes: true,
+                                professors: true
+                            }
+                        }
                     }
-                }
+                },
+                settings: true
             }
         });
-        if (!campus)
-            throw new AppError_1.NotFoundError('School/Campus');
-        return campus;
+        if (!school)
+            throw new AppError_1.NotFoundError('School');
+        return school;
     },
     async updateSchool(id, data) {
-        return prisma_1.prisma.campus.update({
+        return prisma_1.prisma.school.update({
             where: { id },
             data
+        });
+    },
+    async createCampus(schoolId, data) {
+        await this.getSchoolById(schoolId);
+        return prisma_1.prisma.campus.create({
+            data: {
+                schoolId,
+                name: data.name,
+                location: data.location
+            }
         });
     }
 };

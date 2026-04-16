@@ -19,7 +19,7 @@ exports.campusesRouter = router;
  * @swagger
  * /api/campuses:
  *   get:
- *     summary: Liste de tous les campus
+ *     summary: "[ADMIN+] Liste de tous les campus"
  *     tags: [Campuses]
  *     security:
  *       - bearerAuth: []
@@ -27,7 +27,7 @@ exports.campusesRouter = router;
  *       200:
  *         description: Liste des campus
  */
-router.get('/', auth_middleware_1.authMiddleware, campuses_controller_1.campusesController.getAll);
+router.get('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)('SUPERADMIN'), campuses_controller_1.campusesController.getAll);
 /**
  * @swagger
  * /api/campuses/{id}:
@@ -105,4 +105,76 @@ router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.req
  *         description: Supprimé
  */
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: campuses_schema_1.campusParamsSchema }), campuses_controller_1.campusesController.remove);
+/**
+ * @swagger
+ * /api/campuses/{id}/classes:
+ *   get:
+ *     summary: "Lister les classes d'un campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des classes
+ */
+router.get('/:id/classes', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: campuses_schema_1.campusParamsSchema }), campuses_controller_1.campusesController.getClasses);
+/**
+ * @swagger
+ * /api/campuses/{id}/students:
+ *   get:
+ *     summary: "Lister tous les étudiants d'un campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des étudiants
+ */
+router.get('/:id/students', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: campuses_schema_1.campusParamsSchema }), campuses_controller_1.campusesController.getStudents);
+/**
+ * @swagger
+ * /api/campuses/{id}/stats:
+ *   get:
+ *     summary: "Statistiques rapides du campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Compteurs clés
+ */
+router.get('/:id/stats', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: campuses_schema_1.campusParamsSchema }), campuses_controller_1.campusesController.getStats);
+/**
+ * @swagger
+ * /api/campuses/{id}/professors:
+ *   get:
+ *     summary: "Lister tous les professeurs d'un campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des professeurs affectés à ce campus
+ */
+router.get('/:id/professors', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: campuses_schema_1.campusParamsSchema }), campuses_controller_1.campusesController.getProfessors);
 //# sourceMappingURL=campuses.route.js.map

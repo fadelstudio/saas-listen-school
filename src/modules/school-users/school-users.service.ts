@@ -15,12 +15,8 @@ const ASSIGNABLE: Role[] = [Role.MANAGER, Role.AGENT, Role.VIEWER, Role.STUDENT]
 
 async function assertCampusAdmin(adminUserId: string) {
   const admin = await prisma.user.findUnique({ where: { id: adminUserId } });
-  if (!admin || ![Role.ADMIN, Role.SUPERADMIN].includes(admin.role)) {
+  if (!admin || !([Role.ADMIN, Role.SUPERADMIN] as Role[]).includes(admin.role)) {
     throw new ForbiddenError('Only administrators can manage users');
-  }
-  // SUPERADMIN doesn't necessarily have a campusId, but ADMIN must
-  if (admin.role === Role.ADMIN && !admin.campusId) {
-    throw new ForbiddenError('Administrator must be linked to a campus');
   }
   return admin;
 }
@@ -55,9 +51,12 @@ export const schoolUsersService = {
 
     if (input.classId) {
       const cls = await prisma.class.findFirst({
-        where: { id: input.classId, campusId: admin.campusId },
+        where: { 
+          id: input.classId, 
+          ...(admin.campusId && { campusId: admin.campusId as string })
+        },
       });
-      if (!cls) throw new BadRequestError('Class does not belong to your campus');
+      if (!cls) throw new BadRequestError('Class does not belong to your scope');
     }
 
     const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
@@ -69,7 +68,8 @@ export const schoolUsersService = {
         firstName: input.firstName,
         lastName: input.lastName,
         role,
-        campusId: admin.campusId,
+        schoolId: admin.schoolId,
+        campusId: admin.role === Role.SUPERADMIN ? (admin.campusId || null) : admin.campusId,
         classId: input.classId ?? null,
         matricule: input.matricule ?? null,
         emailVerified: true,
@@ -97,9 +97,16 @@ export const schoolUsersService = {
     const { role, campusId, classId, search, isActive } = query;
 
     const where: any = {
-      // If the requester is not SUPERADMIN, they can only see their own campus
-      campusId: admin.role === Role.SUPERADMIN && campusId ? (campusId as string) : admin.campusId,
+      // Data isolation by school
+      schoolId: admin.schoolId,
     };
+
+    // Campus filtering
+    if (admin.role === Role.ADMIN) {
+      where.campusId = admin.campusId as string;
+    } else if (campusId) {
+      where.campusId = campusId as string;
+    }
 
     // Filter by role(s)
     if (role) {
@@ -158,7 +165,7 @@ export const schoolUsersService = {
   async listStaff(adminUserId: string, query: Record<string, unknown>) {
     const admin = await assertCampusAdmin(adminUserId);
     // Personnel management restricted to ADMIN and SUPERADMIN
-    if (![Role.SUPERADMIN, Role.ADMIN].includes(admin.role)) {
+    if (!([Role.SUPERADMIN, Role.ADMIN] as Role[]).includes(admin.role)) {
       throw new ForbiddenError('Only administrators can manage the staff');
     }
 
@@ -190,8 +197,14 @@ export const schoolUsersService = {
     }
 
     const target = await prisma.user.findUnique({ where: { id: targetId } });
-    if (!target || target.campusId !== admin.campusId) {
-      throw new NotFoundError('User');
+    if (!target) throw new NotFoundError('User');
+
+    // Access control
+    if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
+      throw new ForbiddenError('Access denied: different school');
+    }
+    if (admin.role === Role.ADMIN && target.campusId !== admin.campusId) {
+      throw new ForbiddenError('Access denied: different campus');
     }
     if (target.role === Role.SUPERADMIN) {
       throw new ForbiddenError('Cannot modify super administrator');
@@ -206,9 +219,12 @@ export const schoolUsersService = {
 
     if (input.classId) {
       const cls = await prisma.class.findFirst({
-        where: { id: input.classId, campusId: admin.campusId },
+        where: { 
+          id: input.classId, 
+          ...(admin.campusId && { campusId: admin.campusId as string })
+        },
       });
-      if (!cls) throw new BadRequestError('Class does not belong to your campus');
+      if (!cls) throw new BadRequestError('Class does not belong to your scope');
     }
 
     return prisma.user.update({
@@ -234,9 +250,12 @@ export const schoolUsersService = {
   async getById(adminUserId: string, targetId: string) {
     const admin = await assertCampusAdmin(adminUserId);
     const target = await prisma.user.findUnique({ where: { id: targetId } });
-    if (!target || target.campusId !== admin.campusId) {
-      throw new NotFoundError('User');
+    if (!target) throw new NotFoundError('User');
+    
+    if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
+       throw new ForbiddenError('Access denied');
     }
+    
     return target;
   },
 
@@ -247,8 +266,13 @@ export const schoolUsersService = {
     }
 
     const target = await prisma.user.findUnique({ where: { id: targetId } });
-    if (!target || target.campusId !== admin.campusId) {
-      throw new NotFoundError('User');
+    if (!target) throw new NotFoundError('User');
+
+    if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
+      throw new ForbiddenError('Access denied: different school');
+    }
+    if (admin.role === Role.ADMIN && target.campusId !== admin.campusId) {
+       throw new ForbiddenError('Access denied: different campus');
     }
     
     // Deactivate instead of hard delete to preserve history?

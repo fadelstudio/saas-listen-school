@@ -7,41 +7,41 @@ export declare const evaluationCampaignsService: {
         campusId: string | null;
         classId: string | null;
         title: string;
+        status: string;
+        professorId: string;
+        moduleId: string;
         description: string | null;
         scope: string;
-        moduleId: string;
-        professorId: string;
-        status: string;
         dueDate: Date;
     }>;
     getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+        _count: {
+            evaluations: number;
+        };
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         } | null;
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
-        };
-        _count: {
-            evaluations: number;
-        };
         module: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             code: string | null;
+        };
+        professor: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            firstName: string;
+            lastName: string;
+            campusId: string | null;
+            userId: string | null;
         };
     } & {
         id: string;
@@ -50,25 +50,26 @@ export declare const evaluationCampaignsService: {
         campusId: string | null;
         classId: string | null;
         title: string;
+        status: string;
+        professorId: string;
+        moduleId: string;
         description: string | null;
         scope: string;
-        moduleId: string;
-        professorId: string;
-        status: string;
         dueDate: Date;
     }>>;
     getById(id: string): Promise<{
         campus: ({
             users: {
                 id: string;
-                role: import(".prisma/client").$Enums.Role;
+                role: import("@prisma/client").$Enums.Role;
             }[];
         } & {
             name: string;
             id: string;
-            location: string | null;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+            location: string | null;
         }) | null;
         class: ({
             users: {
@@ -79,40 +80,9 @@ export declare const evaluationCampaignsService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         }) | null;
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
-        };
-        evaluations: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            classId: string;
-            moduleId: string;
-            professorId: string;
-            status: import(".prisma/client").$Enums.EvaluationStatus;
-            isAnonymous: boolean;
-            reportId: string | null;
-            evaluatorId: string | null;
-            score: number | null;
-            comprehensionRating: import(".prisma/client").$Enums.RatingBand | null;
-            explanationRating: import(".prisma/client").$Enums.RatingBand | null;
-            pedagogyRating: import(".prisma/client").$Enums.RatingBand | null;
-            availabilityRating: import(".prisma/client").$Enums.RatingBand | null;
-            rhythmRating: import(".prisma/client").$Enums.RatingBand | null;
-            comment: string | null;
-            aiScore: number | null;
-            campaignId: string | null;
-        }[];
         module: {
             name: string;
             id: string;
@@ -120,6 +90,38 @@ export declare const evaluationCampaignsService: {
             updatedAt: Date;
             code: string | null;
         };
+        professor: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            firstName: string;
+            lastName: string;
+            campusId: string | null;
+            userId: string | null;
+        };
+        evaluations: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            classId: string;
+            status: import("@prisma/client").$Enums.EvaluationStatus;
+            isAnonymous: boolean;
+            professorId: string;
+            moduleId: string;
+            reportId: string | null;
+            evaluatorId: string | null;
+            score: number | null;
+            comprehensionRating: import("@prisma/client").$Enums.RatingBand | null;
+            explanationRating: import("@prisma/client").$Enums.RatingBand | null;
+            pedagogyRating: import("@prisma/client").$Enums.RatingBand | null;
+            availabilityRating: import("@prisma/client").$Enums.RatingBand | null;
+            rhythmRating: import("@prisma/client").$Enums.RatingBand | null;
+            comment: string | null;
+            aiScore: number | null;
+            campaignId: string | null;
+        }[];
     } & {
         id: string;
         createdAt: Date;
@@ -127,11 +129,11 @@ export declare const evaluationCampaignsService: {
         campusId: string | null;
         classId: string | null;
         title: string;
+        status: string;
+        professorId: string;
+        moduleId: string;
         description: string | null;
         scope: string;
-        moduleId: string;
-        professorId: string;
-        status: string;
         dueDate: Date;
     }>;
     close(id: string): Promise<{
@@ -141,11 +143,11 @@ export declare const evaluationCampaignsService: {
         campusId: string | null;
         classId: string | null;
         title: string;
+        status: string;
+        professorId: string;
+        moduleId: string;
         description: string | null;
         scope: string;
-        moduleId: string;
-        professorId: string;
-        status: string;
         dueDate: Date;
     }>;
 };

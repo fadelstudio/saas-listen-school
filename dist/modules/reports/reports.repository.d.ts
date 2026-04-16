@@ -13,18 +13,8 @@ export declare const reportsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
-        } | null;
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
+            levelId: string;
         } | null;
         module: {
             name: string;
@@ -33,6 +23,16 @@ export declare const reportsRepository: {
             updatedAt: Date;
             code: string | null;
         } | null;
+        professor: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            firstName: string;
+            lastName: string;
+            campusId: string | null;
+            userId: string | null;
+        } | null;
         author: {
             id: string;
             email: string;
@@ -40,20 +40,21 @@ export declare const reportsRepository: {
             lastName: string;
         } | null;
     } & {
-        type: import(".prisma/client").$Enums.ReportType;
+        type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         classId: string | null;
         title: string;
-        moduleId: string | null;
-        professorId: string | null;
-        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import(".prisma/client").$Enums.Priority;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
@@ -64,18 +65,8 @@ export declare const reportsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
-        } | null;
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
+            levelId: string;
         } | null;
         module: {
             name: string;
@@ -84,18 +75,22 @@ export declare const reportsRepository: {
             updatedAt: Date;
             code: string | null;
         } | null;
-        author: {
+        professor: {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
             email: string;
             firstName: string;
             lastName: string;
+            campusId: string | null;
+            userId: string | null;
         } | null;
         aiJobs: {
             result: Prisma.JsonValue | null;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import(".prisma/client").$Enums.AiJobStatus;
+            status: import("@prisma/client").$Enums.AiJobStatus;
             reportId: string | null;
             evaluationId: string | null;
             jobType: string;
@@ -103,21 +98,28 @@ export declare const reportsRepository: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
+        author: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+        } | null;
     } & {
-        type: import(".prisma/client").$Enums.ReportType;
+        type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         classId: string | null;
         title: string;
-        moduleId: string | null;
-        professorId: string | null;
-        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import(".prisma/client").$Enums.Priority;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
@@ -129,18 +131,8 @@ export declare const reportsRepository: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                levelId: string;
                 campusId: string;
-            } | null;
-            professor: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                campusId: string | null;
-                email: string;
-                firstName: string;
-                lastName: string;
-                userId: string | null;
+                levelId: string;
             } | null;
             module: {
                 name: string;
@@ -149,6 +141,16 @@ export declare const reportsRepository: {
                 updatedAt: Date;
                 code: string | null;
             } | null;
+            professor: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                email: string;
+                firstName: string;
+                lastName: string;
+                campusId: string | null;
+                userId: string | null;
+            } | null;
             author: {
                 id: string;
                 email: string;
@@ -156,20 +158,21 @@ export declare const reportsRepository: {
                 lastName: string;
             } | null;
         } & {
-            type: import(".prisma/client").$Enums.ReportType;
+            type: import("@prisma/client").$Enums.ReportType;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             classId: string | null;
             title: string;
-            moduleId: string | null;
-            professorId: string | null;
-            status: import(".prisma/client").$Enums.ReportStatus;
             content: string;
-            priority: import(".prisma/client").$Enums.Priority;
+            priority: import("@prisma/client").$Enums.Priority;
+            status: import("@prisma/client").$Enums.ReportStatus;
             isAnonymous: boolean;
             category: string | null;
             authorId: string | null;
+            professorId: string | null;
+            moduleId: string | null;
             attachments: Prisma.JsonValue | null;
             deviceMetadata: Prisma.JsonValue | null;
             aiAnalysis: Prisma.JsonValue | null;
@@ -177,77 +180,81 @@ export declare const reportsRepository: {
         total: number;
     }>;
     update(id: string, data: UpdateReportInput): Promise<{
-        type: import(".prisma/client").$Enums.ReportType;
+        type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         classId: string | null;
         title: string;
-        moduleId: string | null;
-        professorId: string | null;
-        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import(".prisma/client").$Enums.Priority;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
     }>;
     updateStatus(id: string, status: ReportStatus): Promise<{
-        type: import(".prisma/client").$Enums.ReportType;
+        type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         classId: string | null;
         title: string;
-        moduleId: string | null;
-        professorId: string | null;
-        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import(".prisma/client").$Enums.Priority;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
     }>;
     updateAiAnalysis(id: string, aiAnalysis: string): Promise<{
-        type: import(".prisma/client").$Enums.ReportType;
+        type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         classId: string | null;
         title: string;
-        moduleId: string | null;
-        professorId: string | null;
-        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import(".prisma/client").$Enums.Priority;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
     }>;
     delete(id: string): Promise<{
-        type: import(".prisma/client").$Enums.ReportType;
+        type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         classId: string | null;
         title: string;
-        moduleId: string | null;
-        professorId: string | null;
-        status: import(".prisma/client").$Enums.ReportStatus;
         content: string;
-        priority: import(".prisma/client").$Enums.Priority;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
         isAnonymous: boolean;
         category: string | null;
         authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;

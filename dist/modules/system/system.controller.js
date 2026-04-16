@@ -4,9 +4,12 @@ exports.systemController = void 0;
 const system_service_1 = require("./system.service");
 const AiBalancer_1 = require("../../core/ai/AiBalancer");
 exports.systemController = {
-    async getSettings(_req, res, next) {
+    async getSettings(req, res, next) {
         try {
-            const settings = await system_service_1.systemService.getSettings();
+            const schoolId = req.user.schoolId || req.query.schoolId;
+            if (!schoolId)
+                throw new Error('schoolId is required');
+            const settings = await system_service_1.systemService.getSettings(schoolId);
             res.sendSuccess('Settings fetched successfully', settings);
         }
         catch (error) {
@@ -15,7 +18,10 @@ exports.systemController = {
     },
     async updateSettings(req, res, next) {
         try {
-            const settings = await system_service_1.systemService.updateSettings(req.body);
+            const schoolId = req.user.schoolId;
+            if (!schoolId)
+                throw new Error('schoolId context missing');
+            const settings = await system_service_1.systemService.updateSettings(schoolId, req.body);
             res.sendSuccess('Settings updated successfully', settings);
         }
         catch (error) {

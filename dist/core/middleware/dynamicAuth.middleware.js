@@ -15,7 +15,16 @@ const AppError_1 = require("../errors/AppError");
 function dynamicAuthMiddleware(type) {
     return async (req, _res, next) => {
         try {
-            const settings = await system_service_1.systemService.getSettings();
+            let schoolId = req.query.schoolId;
+            if (!schoolId && req.body.campusId) {
+                const campus = await system_service_1.systemService.getSchoolSettingsByCampus(req.body.campusId);
+                schoolId = campus?.schoolId || '';
+            }
+            if (!schoolId) {
+                // Fallback for types that don't have school context yet in request
+                return next();
+            }
+            const settings = await system_service_1.systemService.getSettings(schoolId);
             const isRequired = (type === 'reports' && settings.authReportsRequired) ||
                 (type === 'evaluations' && settings.authEvaluationsRequired);
             const authHeader = req.headers.authorization;

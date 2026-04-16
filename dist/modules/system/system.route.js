@@ -12,26 +12,35 @@ exports.systemRouter = (0, express_1.Router)();
  * @swagger
  * tags:
  *   name: System
- *   description: Paramètres globaux et configuration IA
+ *   description: Paramètres globaux, configuration de l'IA (Gemini/OpenAI) et règles métier (AUTH)
  */
 /**
  * @swagger
  * /api/system:
  *   get:
- *     summary: Récupérer les paramètres système (Admin)
+ *     summary: "Récupérer la configuration globale du système (ADMIN+)"
+ *     description: Retourne les réglages de visibilité, les exigences d'authentification pour les signalements et les modèles IA actifs.
  *     tags: [System]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Objet SystemSettings
+ *         description: Objet de configuration chargé depuis la base de données.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: object }
  */
 exports.systemRouter.get('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), system_controller_1.systemController.getSettings);
 /**
  * @swagger
  * /api/system:
  *   patch:
- *     summary: Mettre à jour les paramètres (Admin)
+ *     summary: "Mettre à jour les réglages système (ADMIN+)"
+ *     description: Permet de changer le nom de l'école ou de basculer l'IA.
  *     tags: [System]
  *     security:
  *       - bearerAuth: []
@@ -42,39 +51,39 @@ exports.systemRouter.get('/', auth_middleware_1.authMiddleware, (0, auth_middlew
  *           schema:
  *             type: object
  *             properties:
- *               schoolName: { type: string, example: "AFI-L'Université" }
- *               aiEnabled: { type: boolean, example: true }
- *               authReportsRequired: { type: boolean, example: false }
- *               authEvaluationsRequired: { type: boolean, example: false }
+ *               schoolName: { type: string, example: "Groupe AFI Dakar" }
+ *               aiEnabled: { type: boolean, example: true, description: "Désactiver l'IA globalement si besoin" }
+ *               authReportsRequired: { type: boolean, example: false, description: "Exiger un compte pour signaler un incident" }
+ *               authEvaluationsRequired: { type: boolean, example: false, description: "Exiger un compte pour évaluer un professeur" }
  *               aiConfigs:
  *                 type: array
  *                 items:
  *                   type: object
  *                   properties:
  *                     id: { type: string }
- *                     name: { type: string }
- *                     provider: { type: string }
- *                     model: { type: string }
+ *                     name: { type: string, example: "Gemini Pro Direct" }
+ *                     provider: { type: string, enum: [GOOGLE, OPENAI] }
+ *                     model: { type: string, example: "gemini-1.5-pro" }
  *                     apiKey: { type: string }
- *                     priority: { type: number }
- *                     isFree: { type: boolean }
- *               aiOverrideConfigId: { type: string, nullable: true }
+ *                     priority: { type: number, example: 1, description: "Ordre d'utilisation (Balancer)" }
+ *               aiOverrideConfigId: { type: string, nullable: true, description: "Forcer un modèle spécifique" }
  *     responses:
  *       200:
- *         description: Paramètres mis à jour
+ *         description: Configuration mise à jour et appliquée immédiatement.
  */
 exports.systemRouter.patch('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ body: system_schema_1.updateSystemSettingsSchema }), system_controller_1.systemController.updateSettings);
 /**
  * @swagger
  * /api/system/ai-status:
  *   get:
- *     summary: Voir le statut du balancer IA (sur quel modèle il tourne)
+ *     summary: "Statut temps réel du Balancer IA"
+ *     description: Identifie quel modèle est actuellement utilisé et si le quota est épuisé.
  *     tags: [System]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Statut IA
+ *         description: Healthcheck de la couche IA
  */
 exports.systemRouter.get('/ai-status', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), system_controller_1.systemController.getAiStatus);
 //# sourceMappingURL=system.route.js.map

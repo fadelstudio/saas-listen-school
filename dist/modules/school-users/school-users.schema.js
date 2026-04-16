@@ -27,5 +27,10 @@ exports.schoolUserParamsSchema = zod_1.z.object({
 exports.schoolUserQuerySchema = zod_1.z.object({
     page: zod_1.z.coerce.number().min(1).optional(),
     limit: zod_1.z.coerce.number().min(1).max(100).optional(),
+    role: zod_1.z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
+    campusId: idSchema_1.idStringSchema.optional(),
+    classId: idSchema_1.idStringSchema.optional(),
+    search: zod_1.z.string().optional(),
+    isActive: zod_1.z.coerce.boolean().optional(),
 });
 //# sourceMappingURL=school-users.schema.js.map

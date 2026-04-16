@@ -15,10 +15,10 @@ export const bulkImportController = {
         return res.status(400).json({ success: false, message: 'campusId is required' });
       }
 
-      const result = await bulkImportService.importStudents(schoolId, campusId, csvData);
-      res.sendSuccess('Bulk import processed', result);
+      const result = await bulkImportService.importStudents(schoolId as string, campusId, csvData);
+      return res.sendSuccess('Bulk import processed', result);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   },
 
@@ -35,10 +35,10 @@ export const bulkImportController = {
         return res.status(400).json({ success: false, message: 'campusId is required' });
       }
 
-      const result = await bulkImportService.importProfessors(schoolId, campusId, csvData);
-      res.sendSuccess('Bulk import processed', result);
+      const result = await bulkImportService.importProfessors(schoolId as string, campusId, csvData);
+      return res.sendSuccess('Bulk import processed', result);
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 };

@@ -7,7 +7,6 @@ const SALT_ROUNDS = 12;
 export const bulkImportService = {
   async importStudents(schoolId: string, campusId: string, csvData: string) {
     const lines = csvData.split('\n').filter(l => l.trim() !== '');
-    const header = lines[0].split(',');
     const results = { success: 0, errors: [] as string[] };
 
     for (let i = 1; i < lines.length; i++) {
@@ -47,7 +46,7 @@ export const bulkImportService = {
     return results;
   },
 
-  async importProfessors(schoolId: string, campusId: string, csvData: string) {
+  async importProfessors(_schoolId: string, campusId: string, csvData: string) {
     const lines = csvData.split('\n').filter(l => l.trim() !== '');
     const results = { success: 0, errors: [] as string[] };
 

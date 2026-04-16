@@ -15,7 +15,7 @@ const devFormat = combine(colorize({ all: true }), timestamp({ format: 'HH:mm:ss
 // Structured JSON format for production
 const prodFormat = combine(timestamp(), errors({ stack: true }), json());
 exports.logger = winston_1.default.createLogger({
-    level: env_1.env.NODE_ENV === 'production' ? 'warn' : 'debug',
+    level: env_1.env.NODE_ENV === 'production' ? 'info' : 'debug',
     format: env_1.env.NODE_ENV === 'production' ? prodFormat : devFormat,
     transports: [new winston_1.default.transports.Console()],
 });

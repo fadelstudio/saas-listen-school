@@ -32,5 +32,9 @@ exports.classesService = {
         await this.getById(id);
         return classes_repository_1.classesRepository.delete(id);
     },
+    async getStudents(id) {
+        await this.getById(id);
+        return classes_repository_1.classesRepository.findStudents(id);
+    },
 };
 //# sourceMappingURL=classes.service.js.map

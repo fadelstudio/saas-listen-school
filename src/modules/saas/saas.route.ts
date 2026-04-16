@@ -158,4 +158,38 @@ saasRouter.patch(
   saasController.update
 );
 
+/**
+ * @swagger
+ * /api/saas/schools/{id}/campuses:
+ *   post:
+ *     summary: "[SUPERADMIN] Ajouter un campus à une école"
+ *     tags: [SaaS]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string, example: "Campus Nord" }
+ *               location: { type: string, example: "Saint-Louis, Sénégal" }
+ *     responses:
+ *       201:
+ *         description: Campus ajouté
+ */
+saasRouter.post(
+  '/schools/:id/campuses',
+  authMiddleware,
+  requireRole(Role.SUPERADMIN),
+  saasController.createCampus
+);
+
 export default saasRouter;

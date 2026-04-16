@@ -58,5 +58,20 @@ exports.classesRepository = {
             where: { id },
         });
     },
+    async findStudents(id) {
+        return prisma_1.prisma.user.findMany({
+            where: { classId: id, role: 'STUDENT' },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                matricule: true,
+                isActive: true,
+                campusId: true,
+            },
+            orderBy: { lastName: 'asc' },
+        });
+    },
 };
 //# sourceMappingURL=classes.repository.js.map

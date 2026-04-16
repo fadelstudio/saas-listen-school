@@ -9,7 +9,7 @@ const env_1 = require("./core/config/env");
 const server = app_1.default.listen(env_1.env.PORT, () => {
     console.log(`🚀 Server running on http://localhost:${env_1.env.PORT}`);
     console.log(`   Environment: ${env_1.env.NODE_ENV}`);
-    console.log('documentation : http://localhost:3000/api-docs');
+    console.log(`   Documentation: http://localhost:${env_1.env.PORT}/api-docs`);
 });
 // Graceful shutdown
 process.on("SIGTERM", () => {

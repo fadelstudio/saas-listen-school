@@ -14,7 +14,19 @@ export type ProtectedType = 'reports' | 'evaluations';
 export function dynamicAuthMiddleware(type: ProtectedType) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      const settings = await systemService.getSettings();
+      let schoolId = req.query.schoolId as string;
+      
+      if (!schoolId && req.body.campusId) {
+        const campus = await systemService.getSchoolSettingsByCampus(req.body.campusId as string);
+        schoolId = campus?.schoolId || '';
+      }
+
+      if (!schoolId) {
+        // Fallback for types that don't have school context yet in request
+        return next(); 
+      }
+
+      const settings = await systemService.getSettings(schoolId);
       
       const isRequired = 
         (type === 'reports' && settings.authReportsRequired) || 

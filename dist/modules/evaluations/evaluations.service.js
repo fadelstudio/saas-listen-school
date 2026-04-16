@@ -38,13 +38,18 @@ exports.evaluationsService = {
         }
         return evaluation;
     },
-    async getById(id) {
+    async getById(id, userRole) {
         const evaluation = await evaluations_repository_1.evaluationsRepository.findById(id);
         if (!evaluation)
             throw new AppError_1.NotFoundError('Evaluation');
+        // Scrub evaluator if anonymous and requester is not admin
+        if (evaluation.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+            evaluation.evaluator = null;
+            evaluation.evaluatorId = null;
+        }
         return evaluation;
     },
-    async getAll(query) {
+    async getAll(query, userRole) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
@@ -54,6 +59,15 @@ exports.evaluationsService = {
             endDate: query.endDate,
         };
         const { items, total } = await evaluations_repository_1.evaluationsRepository.findAll(filters, pagination);
+        // Filter anonymous evaluators for non-admins
+        if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+            items.forEach((item) => {
+                if (item.isAnonymous) {
+                    item.evaluator = null;
+                    item.evaluatorId = null;
+                }
+            });
+        }
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
     async update(id, input, userId, userRole) {

@@ -5,5 +5,6 @@ export declare const classesController: {
     create(req: Request, res: Response, next: NextFunction): Promise<void>;
     update(req: Request, res: Response, next: NextFunction): Promise<void>;
     remove(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getStudents(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=classes.controller.d.ts.map

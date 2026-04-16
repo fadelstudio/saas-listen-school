@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 export interface JwtPayload {
     userId: string;
     role: string;
+    schoolId?: string | null;
     campusId?: string | null;
     classId?: string | null;
     iat: number;

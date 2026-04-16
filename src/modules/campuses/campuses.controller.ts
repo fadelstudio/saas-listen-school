@@ -71,6 +71,9 @@ export const campusesController = {
   },
 
   async getStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const stats = await campusesService.getStats(req.params.id as string);
+      res.sendSuccess('Campus stats fetched', stats);
     } catch (error) {
       next(error);
     }

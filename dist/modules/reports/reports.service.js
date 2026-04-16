@@ -42,17 +42,23 @@ exports.reportsService = {
         }
         return report;
     },
-    async getById(id) {
+    async getById(id, userRole) {
         const report = await reports_repository_1.reportsRepository.findById(id);
         if (!report)
             throw new AppError_1.NotFoundError('Report');
+        // Scrub author if anonymous and requester is not admin
+        if (report.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+            report.author = null;
+            report.authorId = null;
+        }
         return report;
     },
-    async getAll(query) {
+    async getAll(query, userRole) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
             authorId: query.authorId,
+            campusId: query.campusId,
             classId: query.classId,
             professorId: query.professorId,
             moduleId: query.moduleId,
@@ -62,6 +68,15 @@ exports.reportsService = {
             search: query.search,
         };
         const { items, total } = await reports_repository_1.reportsRepository.findAll(filters, pagination);
+        // Filter anonymous authors for non-admins
+        if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+            items.forEach((item) => {
+                if (item.isAnonymous) {
+                    item.author = null;
+                    item.authorId = null;
+                }
+            });
+        }
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
     async update(id, input, userId, userRole) {

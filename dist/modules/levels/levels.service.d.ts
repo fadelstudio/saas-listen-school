@@ -16,8 +16,8 @@ export declare const levelsService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         }[];
     } & {
         name: string;
