@@ -56,9 +56,21 @@ Toutes les routes retournent :
 
 ## Utilisateurs école (ADMIN campus)
 
-- `POST /api/v1/school-users` — crée `MANAGER` | `AGENT` | `VIEWER` | `STUDENT` (jamais `SUPERADMIN` / `ADMIN`).
-- `GET /api/v1/school-users` — liste paginée du campus (sans `SUPERADMIN`).
-- `PATCH /api/v1/school-users/:id` — rôle / `isActive` / `classId`.
+- `POST /api/school-users` — crée `MANAGER` | `AGENT` | `VIEWER` | `STUDENT`.
+- `GET /api/school-users/staff` — **Nouveau**: Liste uniquement le personnel (MANAGER+). Filtrable par `campusId`, `search`, `role`.
+- `GET /api/school-users/students` — **Nouveau**: Liste uniquement les étudiants. Filtrable par `campusId`, `classId`, `search`, `isActive`.
+- `GET /api/school-users` — Liste brute (legacy/tous). Supporte désormais les mêmes filtres avancés.
+- `PATCH /api/school-users/:id` — modifier rôle / `isActive` / `classId`.
+
+## Endpoints de Liaison (Navigation Dashboard)
+
+Ces endpoints permettent une navigation fluide sans charger tous les utilisateurs.
+
+- `GET /api/campuses/:id/classes` — Toutes les classes d'un campus.
+- `GET /api/campuses/:id/students` — Tous les étudiants d'un campus (format simplifié).
+- `GET /api/campuses/:id/professors` — Tous les profs d'un campus.
+- `GET /api/campuses/:id/stats` — Compteurs (classes, students, professors).
+- `GET /api/classes/:id/students` — Liste des élèves d'une classe spécifique.
 
 ## Évaluations (critères enum + note /20)
 
@@ -66,7 +78,7 @@ Chaque évaluation doit envoyer **cinq** champs `RatingBand` :
 
 `VERY_POOR` | `POOR` | `FAIR` | `GOOD` | `EXCELLENT`
 
-- `comprehensionRating` — compréhension du cours  
+- `comprehensionRating` — compréhension du cours
 - `explanationRating` — qualité des explications du professeur  
 - `pedagogyRating`, `availabilityRating`, `rhythmRating`
 

@@ -15,10 +15,14 @@ const ASSIGNABLE: Role[] = [Role.MANAGER, Role.AGENT, Role.VIEWER, Role.STUDENT]
 
 async function assertCampusAdmin(adminUserId: string) {
   const admin = await prisma.user.findUnique({ where: { id: adminUserId } });
-  if (!admin || admin.role !== Role.ADMIN || !admin.campusId) {
-    throw new ForbiddenError('Only school administrators can manage users');
+  if (!admin || ![Role.ADMIN, Role.SUPERADMIN].includes(admin.role)) {
+    throw new ForbiddenError('Only administrators can manage users');
   }
-  return { ...admin, campusId: admin.campusId as string };
+  // SUPERADMIN doesn't necessarily have a campusId, but ADMIN must
+  if (admin.role === Role.ADMIN && !admin.campusId) {
+    throw new ForbiddenError('Administrator must be linked to a campus');
+  }
+  return admin;
 }
 
 export const schoolUsersService = {
@@ -89,10 +93,42 @@ export const schoolUsersService = {
   async list(adminUserId: string, query: Record<string, unknown>) {
     const admin = await assertCampusAdmin(adminUserId);
     const pagination = parsePagination(query);
-    const where = {
-      campusId: admin.campusId,
-      role: { not: Role.SUPERADMIN },
+
+    const { role, campusId, classId, search, isActive } = query;
+
+    const where: any = {
+      // If the requester is not SUPERADMIN, they can only see their own campus
+      campusId: admin.role === Role.SUPERADMIN && campusId ? (campusId as string) : admin.campusId,
     };
+
+    // Filter by role(s)
+    if (role) {
+      where.role = role as Role;
+    } else {
+      // Default: don't show SuperAdmins to others
+      where.role = { not: Role.SUPERADMIN };
+    }
+
+    // Filter by class
+    if (classId) {
+      where.classId = classId as string;
+    }
+
+    // Filter by activity
+    if (isActive !== undefined) {
+      where.isActive = isActive === 'true' || isActive === true;
+    }
+
+    // Search by name, email or matricule
+    if (search) {
+      const s = search as string;
+      where.OR = [
+        { email: { contains: s, mode: 'insensitive' } },
+        { firstName: { contains: s, mode: 'insensitive' } },
+        { lastName: { contains: s, mode: 'insensitive' } },
+        { matricule: { contains: s, mode: 'insensitive' } },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       prisma.user.findMany({
@@ -109,6 +145,7 @@ export const schoolUsersService = {
           isActive: true,
           matricule: true,
           classId: true,
+          campusId: true,
           createdAt: true,
         },
       }),
@@ -116,6 +153,26 @@ export const schoolUsersService = {
     ]);
 
     return buildPaginated(items, total, pagination.page, pagination.limit);
+  },
+
+  async listStaff(adminUserId: string, query: Record<string, unknown>) {
+    const admin = await assertCampusAdmin(adminUserId);
+    // Personnel management restricted to ADMIN and SUPERADMIN
+    if (![Role.SUPERADMIN, Role.ADMIN].includes(admin.role)) {
+      throw new ForbiddenError('Only administrators can manage the staff');
+    }
+
+    return this.list(adminUserId, {
+      ...query,
+      role: query.role ?? { in: [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.VIEWER] },
+    });
+  },
+
+  async listStudents(adminUserId: string, query: Record<string, unknown>) {
+    return this.list(adminUserId, {
+      ...query,
+      role: Role.STUDENT,
+    });
   },
 
   async update(

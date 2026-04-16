@@ -54,6 +54,7 @@ export const reportsRepository = {
     const where: Prisma.ReportWhereInput = {
       ...(filters.status      && { status: filters.status }),
       ...(filters.authorId    && { authorId: filters.authorId }),
+      ...(filters.campusId    && { class: { campusId: filters.campusId } }),
       ...(filters.classId     && { classId: filters.classId }),
       ...(filters.professorId && { professorId: filters.professorId }),
       ...(filters.moduleId    && { moduleId: filters.moduleId }),

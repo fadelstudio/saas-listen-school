@@ -15,7 +15,7 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Evaluation Campaigns
- *   description: Administration des appels à l'évaluation
+ *   description: Administration des appels à l'évaluation (Campagnes éphémères ou périodiques)
  */
 
 router.use(authMiddleware);
@@ -24,7 +24,8 @@ router.use(authMiddleware);
  * @swagger
  * /api/evaluation-campaigns:
  *   post:
- *     summary: Créer une campagne d'évaluation (Admin)
+ *     summary: "Lancer une nouvelle campagne d'évaluation (ADMIN+)"
+ *     description: Crée une invitation à évaluer pour un groupe d'élèves (classe, campus ou école entière).
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -35,20 +36,21 @@ router.use(authMiddleware);
  *             type: object
  *             required: [title, moduleId, professorId, dueDate]
  *             properties:
- *               title: { type: string }
- *               description: { type: string }
+ *               title: { type: string, example: "Évaluation Semestrielle - Algorithmique" }
+ *               description: { type: string, example: "Merci de noter le cours de M. Faye." }
  *               scope:
  *                 type: string
  *                 enum: [CLASS, CAMPUS, SCHOOL]
  *                 default: CLASS
+ *                 description: "CLASS = Restreint à une classe, CAMPUS = Tout un campus, SCHOOL = Toute l'école"
  *               classId: { type: string, format: uuid, nullable: true }
  *               campusId: { type: string, format: uuid, nullable: true }
- *               moduleId: { type: string, format: uuid }
- *               professorId: { type: string, format: uuid }
- *               dueDate: { type: string, format: date-time }
+ *               moduleId: { type: string, format: uuid, description: "Module concerné" }
+ *               professorId: { type: string, format: uuid, description: "Professeur concerné" }
+ *               dueDate: { type: string, format: date-time, example: "2026-06-30T23:59:59Z" }
  *     responses:
  *       201:
- *         description: Campagne créée
+ *         description: Campagne créée avec succès. Les élèves concernés recevront une notification.
  */
 router.post(
   '/',
@@ -61,7 +63,7 @@ router.post(
  * @swagger
  * /api/evaluation-campaigns:
  *   get:
- *     summary: Liste des campagnes
+ *     summary: "Liste de toutes les campagnes d'évaluations"
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -82,10 +84,18 @@ router.post(
  *         schema: { type: string, format: uuid }
  *       - in: query
  *         name: status
- *         schema: { type: string }
+ *         schema: { type: string, enum: [OPEN, CLOSED, EXPIRED] }
  *     responses:
  *       200:
- *         description: Liste paginée
+ *         description: Liste paginée récupérée
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 router.get('/', validate({ query: evaluationCampaignQuerySchema }), evaluationCampaignsController.getAll);
 
@@ -93,7 +103,7 @@ router.get('/', validate({ query: evaluationCampaignQuerySchema }), evaluationCa
  * @swagger
  * /api/evaluation-campaigns/{id}:
  *   get:
- *     summary: Détails d'une campagne
+ *     summary: "Voir le détail d'une campagne"
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -103,7 +113,7 @@ router.get('/', validate({ query: evaluationCampaignQuerySchema }), evaluationCa
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détails
+ *         description: Fiche détaillée de la campagne (inclut statistiques de participation si dispo)
  */
 router.get('/:id', validate({ params: evaluationCampaignIdParamsSchema }), evaluationCampaignsController.getById);
 
@@ -111,7 +121,8 @@ router.get('/:id', validate({ params: evaluationCampaignIdParamsSchema }), evalu
  * @swagger
  * /api/evaluation-campaigns/{id}/close:
  *   post:
- *     summary: Clôturer une campagne
+ *     summary: "Clôturer manuellement une campagne (ADMIN+)"
+ *     description: Empêche toute nouvelle évaluation pour cette campagne.
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -121,7 +132,7 @@ router.get('/:id', validate({ params: evaluationCampaignIdParamsSchema }), evalu
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Campagne clôturée
+ *         description: Campagne clôturée avec succès
  */
 router.post(
   '/:id/close',

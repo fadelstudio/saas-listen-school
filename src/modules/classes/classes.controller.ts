@@ -51,4 +51,13 @@ export const classesController = {
       next(error);
     }
   },
+
+  async getStudents(req: Request, res: Response, next: NextFunction) {
+    try {
+      const students = await classesService.getStudents(req.params.id as string);
+      res.sendSuccess('Students for class fetched', students);
+    } catch (error) {
+      next(error);
+    }
+  },
 };

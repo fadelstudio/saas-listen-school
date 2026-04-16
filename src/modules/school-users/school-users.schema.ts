@@ -28,4 +28,9 @@ export const schoolUserParamsSchema = z.object({
 export const schoolUserQuerySchema = z.object({
   page: z.coerce.number().min(1).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
+  role: z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
+  campusId: idStringSchema.optional(),
+  classId: idStringSchema.optional(),
+  search: z.string().optional(),
+  isActive: z.coerce.boolean().optional(),
 });

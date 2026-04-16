@@ -40,9 +40,107 @@ schoolUsersRouter.use(authMiddleware);
 
 /**
  * @swagger
+ * /api/school-users/staff:
+ *   get:
+ *     summary: "[ADMIN+] Lister le personnel administratif"
+ *     description: Récupère uniquement les utilisateurs avec les rôles ADMIN, MANAGER, AGENT ou VIEWER.
+ *     tags: [School users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER] }
+ *       - in: query
+ *         name: campusId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: classId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *     responses:
+ *       200:
+ *         description: Liste du personnel récupérée
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: 
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/SchoolUser' }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
+ */
+schoolUsersRouter.get(
+  '/staff',
+  validate({ query: schoolUserQuerySchema }),
+  schoolUsersController.listStaff
+);
+
+/**
+ * @swagger
+ * /api/school-users/students:
+ *   get:
+ *     summary: "[MANAGER+] Lister les étudiants"
+ *     description: Récupère uniquement les utilisateurs avec le rôle STUDENT.
+ *     tags: [School users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: campusId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: classId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *     responses:
+ *       200:
+ *         description: Liste des étudiants récupérée
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: 
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/SchoolUser' }
+ */
+schoolUsersRouter.get(
+  '/students',
+  validate({ query: schoolUserQuerySchema }),
+  schoolUsersController.listStudents
+);
+
+/**
+ * @swagger
  * /api/school-users/{id}:
  *   get:
- *     summary: Récupérer le détail d'un utilisateur du campus
+ *     summary: Récupérer le détail d'un utilisateur
  *     tags: [School users]
  *     security:
  *       - bearerAuth: []
@@ -91,10 +189,6 @@ schoolUsersRouter.get(
  *     responses:
  *       201:
  *         description: Utilisateur créé avec succès
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SchoolUser'
  */
 schoolUsersRouter.post(
   '/',
@@ -106,26 +200,35 @@ schoolUsersRouter.post(
  * @swagger
  * /api/school-users:
  *   get:
- *     summary: Lister les utilisateurs du campus actuel
+ *     summary: Lister TOUS les utilisateurs (Filtres globaux)
  *     tags: [School users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: role
- *         schema: { type: string }
+ *         schema: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER, STUDENT] }
+ *       - in: query
+ *         name: campusId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: classId
+ *         schema: { type: string, format: uuid }
  *       - in: query
  *         name: search
  *         schema: { type: string }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste des utilisateurs récupérée
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/SchoolUser'
+ *         description: Liste filtrée
  */
 schoolUsersRouter.get(
   '/',
@@ -137,7 +240,7 @@ schoolUsersRouter.get(
  * @swagger
  * /api/school-users/{id}:
  *   patch:
- *     summary: Mettre à jour rôle, statut ou classe d'un compte
+ *     summary: Mettre à jour un compte utilisateur
  *     tags: [School users]
  *     security:
  *       - bearerAuth: []
@@ -158,10 +261,6 @@ schoolUsersRouter.get(
  *     responses:
  *       200:
  *         description: Utilisateur mis à jour
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SchoolUser'
  */
 schoolUsersRouter.patch(
   '/:id',
@@ -173,7 +272,7 @@ schoolUsersRouter.patch(
  * @swagger
  * /api/school-users/{id}:
  *   delete:
- *     summary: Désactiver ou supprimer un compte utilisateur
+ *     summary: Supprimer un compte
  *     tags: [School users]
  *     security:
  *       - bearerAuth: []
@@ -184,7 +283,7 @@ schoolUsersRouter.patch(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Utilisateur supprimé/désactivé
+ *         description: Utilisateur supprimé
  */
 schoolUsersRouter.delete(
   '/:id',

@@ -11,20 +11,34 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Levels
- *   description: Gestion dynamique des niveaux académiques
+ *   description: Gestion dynamique des niveaux académiques (L1, L2, Master, etc.)
  */
 
 /**
  * @swagger
  * /api/levels:
  *   get:
- *     summary: Liste de tous les niveaux
+ *     summary: "Liste ordonnée de tous les niveaux"
  *     tags: [Levels]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Liste des niveaux
+ *         description: Liste des niveaux triés par ordre croissant
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: 
+ *                   type: array
+ *                   items: 
+ *                     type: object
+ *                     properties:
+ *                       id: { type: string, format: uuid }
+ *                       name: { type: string, example: "Licence 1" }
+ *                       order: { type: integer, example: 1 }
  */
 router.get('/', authMiddleware, levelsController.getAll);
 
@@ -32,7 +46,7 @@ router.get('/', authMiddleware, levelsController.getAll);
  * @swagger
  * /api/levels/{id}:
  *   get:
- *     summary: Détail d'un niveau
+ *     summary: "Détail d'un niveau académique"
  *     tags: [Levels]
  *     security:
  *       - bearerAuth: []
@@ -51,7 +65,7 @@ router.get('/:id', authMiddleware, validate({ params: levelParamsSchema }), leve
  * @swagger
  * /api/levels:
  *   post:
- *     summary: Créer un niveau (Admin)
+ *     summary: "Créer un nouveau niveau (ADMIN+)"
  *     tags: [Levels]
  *     security:
  *       - bearerAuth: []
@@ -63,11 +77,11 @@ router.get('/:id', authMiddleware, validate({ params: levelParamsSchema }), leve
  *             type: object
  *             required: [name]
  *             properties:
- *               name: { type: string, example: "L1" }
- *               order: { type: integer, example: 1 }
+ *               name: { type: string, example: "Licence 3 - Génie Logiciel" }
+ *               order: { type: integer, example: 3, description: "Position d'affichage" }
  *     responses:
  *       201:
- *         description: Niveau créé
+ *         description: Niveau créé avec succès
  */
 router.post(
   '/',
@@ -81,7 +95,7 @@ router.post(
  * @swagger
  * /api/levels/{id}:
  *   patch:
- *     summary: Modifier un niveau
+ *     summary: "Modifier un niveau existant"
  *     tags: [Levels]
  *     security:
  *       - bearerAuth: []
@@ -114,7 +128,7 @@ router.patch(
  * @swagger
  * /api/levels/{id}:
  *   delete:
- *     summary: Supprimer un niveau
+ *     summary: "Supprimer un niveau (ADMIN+)"
  *     tags: [Levels]
  *     security:
  *       - bearerAuth: []
@@ -125,7 +139,7 @@ router.patch(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Niveau supprimé
+ *         description: Niveau supprimé définitivement
  */
 router.delete(
   '/:id',

@@ -76,13 +76,38 @@ enum RatingBand {
   EXCELLENT
 }
 
+model School {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. "AFI L'UE"
+  domain      String?  @unique // e.g. "afi-ue.sn"
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campuses    Campus[]
+  users       User[]
+  settings    SystemSettings?
+  
+  // Data separation
+  reports     Report[]
+  evaluations Evaluation[]
+
+  @@map("schools")
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ACADEMIC STRUCTURE
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Campus {
   id        String   @id @default(uuid())
+  schoolId  String
   name      String   @unique
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school      School        @relation(fields: [schoolId], references: [id])
   location  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,12 +219,14 @@ model User {
   emailVerifiedAt DateTime?
 
   // Relations
+  schoolId     String?
   campusId     String?
   classId      String?
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  school    School?    @relation(fields: [schoolId], references: [id])
   campus    Campus?    @relation(fields: [campusId], references: [id])
   class     Class?     @relation(fields: [classId],  references: [id])
   professor Professor?
@@ -270,6 +297,7 @@ model Report {
   category    String?
   
   // Linkage
+  schoolId    String?
   authorId    String?
   classId     String?
   professorId String?
@@ -284,6 +312,7 @@ model Report {
   updatedAt   DateTime     @updatedAt
 
   // Relations
+  school      School?      @relation(fields: [schoolId],    references: [id])
   author      User?        @relation(fields: [authorId],    references: [id])
   class       Class?       @relation(fields: [classId],     references: [id])
   professor   Professor?   @relation(fields: [professorId], references: [id])
@@ -291,6 +320,7 @@ model Report {
   
   evaluations Evaluation[]
   aiJobs      AiJob[]
+  decision    Decision?
 
   @@map("reports")
 }
@@ -301,6 +331,7 @@ model Report {
 
 model Evaluation {
   id          String           @id @default(uuid())
+  schoolId    String?
   reportId    String?
   evaluatorId String?
   professorId String
@@ -326,6 +357,7 @@ model Evaluation {
   updatedAt   DateTime         @updatedAt
 
   // Relations
+  school      School?          @relation(fields: [schoolId],    references: [id])
   report      Report?          @relation(fields: [reportId],    references: [id])
   evaluator   User?            @relation(fields: [evaluatorId], references: [id])
   professor   Professor        @relation(fields: [professorId], references: [id])
@@ -348,7 +380,8 @@ model Evaluation {
 
 model Decision {
   id           String         @id @default(uuid())
-  evaluationId String         @unique
+  evaluationId String?        @unique
+  reportId     String?        @unique
   deciderId    String
   title        String
   rationale    String?
@@ -363,7 +396,8 @@ model Decision {
   updatedAt    DateTime       @updatedAt
 
   // Relations
-  evaluation   Evaluation     @relation(fields: [evaluationId], references: [id])
+  evaluation   Evaluation?     @relation(fields: [evaluationId], references: [id])
+  report       Report?         @relation(fields: [reportId],     references: [id])
   decider      User           @relation(fields: [deciderId],    references: [id])
   aiJobs       AiJob[]
 
@@ -402,6 +436,7 @@ model AiJob {
 
 model SystemSettings {
   id                     String   @id @default(uuid())
+  schoolId               String   @unique
   schoolName             String   @default("AFI")
   
   // Auth Toggles
@@ -415,6 +450,8 @@ model SystemSettings {
   aiOverrideConfigId     String?  // If set, force this model (manual override)
   
   updatedAt              DateTime @updatedAt
+
+  school                 School   @relation(fields: [schoolId], references: [id])
 
   @@map("system_settings")
 }

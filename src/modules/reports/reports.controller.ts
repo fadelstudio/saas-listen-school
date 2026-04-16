@@ -15,7 +15,7 @@ export const reportsController = {
 
   async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await reportsService.getAll(req.query as Record<string, unknown>);
+      const result = await reportsService.getAll(req.query as Record<string, unknown>, req.user?.role);
       res.sendSuccess('Reports fetched', result.items, 200, {
         total: result.total,
         page: result.page,
@@ -29,7 +29,7 @@ export const reportsController = {
 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const report = await reportsService.getById(req.params.id as string);
+      const report = await reportsService.getById(req.params.id as string, req.user?.role);
       res.sendSuccess('Report fetched', report);
     } catch (error) {
       next(error);

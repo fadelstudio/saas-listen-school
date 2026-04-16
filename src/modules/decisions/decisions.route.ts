@@ -16,14 +16,15 @@ export const decisionsRouter = Router();
  * @swagger
  * tags:
  *   name: Decisions
- *   description: Décisions administratives et résolutions
+ *   description: Décisions administratives, plans d'action et résolutions d'incidents
  */
 
 /**
  * @swagger
  * /api/decisions:
  *   post:
- *     summary: Créer une décision (Manager+)
+ *     summary: "Créer une décision ou un plan d'action (MANAGER+)"
+ *     description: Crée une mesure corrective suite à un signalement ou une évaluation.
  *     tags: [Decisions]
  *     security:
  *       - bearerAuth: []
@@ -33,17 +34,18 @@ export const decisionsRouter = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [evaluationId, title]
+ *             required: [title, priority]
  *             properties:
- *               evaluationId: { type: string, format: uuid }
- *               title: { type: string }
- *               rationale: { type: string }
- *               priority: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
- *               responsible: { type: string }
- *               dueDate: { type: string, format: date-time }
+ *               evaluationId: { type: string, format: uuid, description: "ID de l'évaluation liée (optionnel)" }
+ *               reportId: { type: string, format: uuid, description: "ID du signalement lié (optionnel)" }
+ *               title: { type: string, example: "Réparation climatisation" }
+ *               rationale: { type: string, example: "Suite aux nombreux signalements sur la chaleur en salle 12." }
+ *               priority: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL], default: MEDIUM }
+ *               responsible: { type: string, example: "Service technique" }
+ *               dueDate: { type: string, format: date-time, example: "2026-05-01T10:00:00Z" }
  *     responses:
  *       201:
- *         description: Décision créée
+ *         description: Décision créée avec succès
  */
 decisionsRouter.post(
   '/',
@@ -56,7 +58,7 @@ decisionsRouter.post(
  * @swagger
  * /api/decisions:
  *   get:
- *     summary: Liste des décisions
+ *     summary: "Liste des décisions et plans d'actions"
  *     tags: [Decisions]
  *     security:
  *       - bearerAuth: []
@@ -64,9 +66,38 @@ decisionsRouter.post(
  *       - in: query
  *         name: status
  *         schema: { type: string, enum: [PENDING, APPROVED, REJECTED, DEFERRED, DONE] }
+ *       - in: query
+ *         name: priority
+ *         schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: deciderId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste paginée
+ *         description: Liste paginée récupérée
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 decisionsRouter.get(
   '/',
@@ -79,7 +110,7 @@ decisionsRouter.get(
  * @swagger
  * /api/decisions/{id}:
  *   get:
- *     summary: Voir une décision par ID
+ *     summary: "Voir le détail d'une décision"
  *     tags: [Decisions]
  *     security:
  *       - bearerAuth: []
@@ -90,7 +121,7 @@ decisionsRouter.get(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détail
+ *         description: Détail complet de la décision
  */
 decisionsRouter.get(
   '/:id',
@@ -103,7 +134,7 @@ decisionsRouter.get(
  * @swagger
  * /api/decisions/{id}:
  *   patch:
- *     summary: Modifier une décision
+ *     summary: "Modifier une décision existante"
  *     tags: [Decisions]
  *     security:
  *       - bearerAuth: []
@@ -112,9 +143,20 @@ decisionsRouter.get(
  *         name: id
  *         required: true
  *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               rationale: { type: string }
+ *               priority: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+ *               responsible: { type: string }
+ *               dueDate: { type: string, format: date-time }
  *     responses:
  *       200:
- *         description: Mis à jour
+ *         description: Modifications enregistrées
  */
 decisionsRouter.patch(
   '/:id',
@@ -127,7 +169,8 @@ decisionsRouter.patch(
  * @swagger
  * /api/decisions/{id}/status:
  *   patch:
- *     summary: Changer le statut (Manager+)
+ *     summary: "Mettre à jour l'avancement d'une décision"
+ *     description: Permet de passer de PENDING à DONE une fois l'action réalisée.
  *     tags: [Decisions]
  *     security:
  *       - bearerAuth: []
@@ -160,7 +203,7 @@ decisionsRouter.patch(
  * @swagger
  * /api/decisions/{id}:
  *   delete:
- *     summary: Supprimer une décision (Admin)
+ *     summary: "Supprimer une décision (ADMIN+)"
  *     tags: [Decisions]
  *     security:
  *       - bearerAuth: []
@@ -171,7 +214,7 @@ decisionsRouter.patch(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Supprimé
+ *         description: Action supprimée.
  */
 decisionsRouter.delete(
   '/:id',

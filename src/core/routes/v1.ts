@@ -18,6 +18,8 @@ import { evaluationCampaignsRouter } from "../../modules/evaluation-campaigns/ev
 import { notificationsRouter } from "../../modules/notifications/notifications.route";
 import saasRouter from "../../modules/saas/saas.route";
 import { schoolUsersRouter } from "../../modules/school-users/school-users.route";
+import { analyticsRouter } from "../../modules/analytics/analytics.route";
+import { bulkImportRouter } from "../../modules/bulk-import/bulk-import.route";
 
 const router = Router();
 
@@ -62,5 +64,7 @@ router.use("/evaluation-campaigns", evaluationCampaignsRouter);
 router.use("/notifications",        notificationsRouter);
 router.use("/saas",             saasRouter);
 router.use("/school-users",     schoolUsersRouter);
+router.use("/analytics",        analyticsRouter);
+router.use("/bulk-import",     bulkImportRouter);
 
 export default router;

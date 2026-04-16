@@ -18,7 +18,7 @@ const router = Router();
  * @swagger
  * /api/campuses:
  *   get:
- *     summary: Liste de tous les campus
+ *     summary: "[ADMIN+] Liste de tous les campus"
  *     tags: [Campuses]
  *     security:
  *       - bearerAuth: []
@@ -26,7 +26,7 @@ const router = Router();
  *       200:
  *         description: Liste des campus
  */
-router.get('/', authMiddleware, campusesController.getAll);
+router.get('/', authMiddleware, requireRole('SUPERADMIN'), campusesController.getAll);
 
 /**
  * @swagger
@@ -125,6 +125,102 @@ router.delete(
   requireRole(Role.ADMIN),
   validate({ params: campusParamsSchema }),
   campusesController.remove
+);
+
+/**
+ * @swagger
+ * /api/campuses/{id}/classes:
+ *   get:
+ *     summary: "Lister les classes d'un campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des classes
+ */
+router.get(
+  '/:id/classes',
+  authMiddleware,
+  validate({ params: campusParamsSchema }),
+  campusesController.getClasses
+);
+
+/**
+ * @swagger
+ * /api/campuses/{id}/students:
+ *   get:
+ *     summary: "Lister tous les étudiants d'un campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des étudiants
+ */
+router.get(
+  '/:id/students',
+  authMiddleware,
+  validate({ params: campusParamsSchema }),
+  campusesController.getStudents
+);
+
+/**
+ * @swagger
+ * /api/campuses/{id}/stats:
+ *   get:
+ *     summary: "Statistiques rapides du campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Compteurs clés
+ */
+router.get(
+  '/:id/stats',
+  authMiddleware,
+  validate({ params: campusParamsSchema }),
+  campusesController.getStats
+);
+
+/**
+ * @swagger
+ * /api/campuses/{id}/professors:
+ *   get:
+ *     summary: "Lister tous les professeurs d'un campus"
+ *     tags: [Campuses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des professeurs affectés à ce campus
+ */
+router.get(
+  '/:id/professors',
+  authMiddleware,
+  validate({ params: campusParamsSchema }),
+  campusesController.getProfessors
 );
 
 export { router as campusesRouter };

@@ -49,18 +49,26 @@ export const reportsService = {
     return report;
   },
 
-  async getById(id: string) {
+  async getById(id: string, userRole?: string) {
     const report = await reportsRepository.findById(id);
     if (!report) throw new NotFoundError('Report');
+
+    // Scrub author if anonymous and requester is not admin
+    if (report.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+      report.author = null;
+      report.authorId = null;
+    }
+
     return report;
   },
 
-  async getAll(query: Record<string, unknown>) {
+  async getAll(query: Record<string, unknown>, userRole?: string) {
     const pagination = parsePagination(query);
 
     const filters: ReportFilters = {
       status:      query.status as ReportStatus | undefined,
       authorId:    query.authorId as string | undefined,
+      campusId:    query.campusId as string | undefined,
       classId:     query.classId as string | undefined,
       professorId: query.professorId as string | undefined,
       moduleId:    query.moduleId as string | undefined,
@@ -71,6 +79,17 @@ export const reportsService = {
     };
 
     const { items, total } = await reportsRepository.findAll(filters, pagination);
+
+    // Filter anonymous authors for non-admins
+    if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+      items.forEach((item: any) => {
+        if (item.isAnonymous) {
+          item.author = null;
+          item.authorId = null;
+        }
+      });
+    }
+
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
