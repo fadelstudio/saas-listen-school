@@ -76,6 +76,7 @@ function toSafeUser(user: {
     emailVerified: user.emailVerified,
     campusId: user.campusId,
     classId: user.classId,
+    schoolId: user.schoolId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -84,6 +85,7 @@ function toSafeUser(user: {
 type TokenUser = {
   id: string;
   role: string;
+  schoolId: string | null;
   campusId: string | null;
   classId: string | null;
 };
@@ -93,6 +95,7 @@ async function generateTokens(user: TokenUser) {
     userId: user.id,
     role: user.role,
   };
+  if (user.schoolId != null) payload.schoolId = user.schoolId;
   if (user.campusId != null) payload.campusId = user.campusId;
   if (user.classId != null) payload.classId = user.classId;
 
@@ -124,6 +127,7 @@ export const authService = {
       const { accessToken, refreshToken } = await generateTokens({
         id: user.id,
         role: user.role,
+        schoolId: user.schoolId,
         campusId: user.campusId,
         classId: user.classId,
       });
@@ -156,6 +160,7 @@ export const authService = {
     const { accessToken, refreshToken } = await generateTokens({
       id: user.id,
       role: user.role,
+      schoolId: user.schoolId,
       campusId: user.campusId,
       classId: user.classId,
     });
@@ -230,6 +235,7 @@ export const authService = {
     const { accessToken, refreshToken } = await generateTokens({
       id: user.id,
       role: user.role,
+      schoolId: user.schoolId,
       campusId: user.campusId,
       classId: user.classId,
     });
@@ -304,6 +310,7 @@ export const authService = {
     const { accessToken, refreshToken } = await generateTokens({
       id: user.id,
       role: user.role,
+      schoolId: user.schoolId,
       campusId: user.campusId,
       classId: user.classId,
     });

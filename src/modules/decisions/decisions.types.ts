@@ -4,7 +4,8 @@ import { PaginatedResult } from '../../utils/pagination';
 export type DecisionPriority = Priority;
 
 export interface CreateDecisionInput {
-  evaluationId: string;
+  evaluationId?: string;
+  reportId?: string;
   title: string;
   rationale?: string;
   priority?: DecisionPriority;

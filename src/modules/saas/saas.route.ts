@@ -9,26 +9,34 @@ const saasRouter = Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: SaaS
+ *   description: Gestion multi-tenant des écoles et des campus (SUPERADMIN uniquement)
+ */
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     CreateSchoolInput:
  *       type: object
  *       required: [name, adminEmail, adminPassword, adminFirstName, adminLastName]
  *       properties:
- *         name: { type: string, example: "AFI Dakar" }
- *         location: { type: string, example: "Dakar, Plateau" }
- *         adminEmail: { type: string, format: email, example: "admin@afi.com" }
- *         adminPassword: { type: string, minLength: 8, example: "fadeldev" }
- *         adminFirstName: { type: string, example: "Jean" }
- *         adminLastName: { type: string, example: "Dupont" }
- *         matricule: { type: string, example: "ADM-AFI-001" }
+ *         name: { type: string, example: "Groupe AFI - Dakar" }
+ *         location: { type: string, example: "Point E, Dakar" }
+ *         adminEmail: { type: string, format: email, example: "admin.afi@groupes.com" }
+ *         adminPassword: { type: string, minLength: 8, example: "AFI_Admin_2026!" }
+ *         adminFirstName: { type: string, example: "Adama" }
+ *         adminLastName: { type: string, example: "Diop" }
+ *         matricule: { type: string, example: "ADM-AFI-01" }
  */
 
 /**
  * @swagger
  * /api/saas/schools:
  *   post:
- *     summary: "[SUPERADMIN] Créer une nouvelle école (Campus + Premier Admin)"
+ *     summary: "[SUPERADMIN] Créer une nouvelle école (Tenant)"
+ *     description: Initialise un nouveau campus et crée le premier compte Administrateur pour ce campus.
  *     tags: [SaaS]
  *     security:
  *       - bearerAuth: []
@@ -40,7 +48,7 @@ const saasRouter = Router();
  *             $ref: '#/components/schemas/CreateSchoolInput'
  *     responses:
  *       201:
- *         description: École et admin créés avec succès
+ *         description: École (Campus) créée avec son administrateur référent.
  */
 saasRouter.post(
   '/schools',
@@ -52,30 +60,35 @@ saasRouter.post(
 
 /**
  * @swagger
- * /api/saas/schools:
- *   get:
- *     summary: "[SUPERADMIN] List all schools/campuses"
- *     tags: [SaaS]
- *     security:
- *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste des campus récupérée avec succès
+ *         description: Liste exhaustive des tenats (Écoles)
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id: { type: string, format: uuid }
- *                   name: { type: string }
- *                   location: { type: string }
- *                   _count:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: 
+ *                   type: array
+ *                   items:
  *                     type: object
  *                     properties:
- *                       users: { type: number }
- *                       classes: { type: number }
+ *                       id: { type: string, format: uuid }
+ *                       name: { type: string }
+ *                       campuses: { type: array, items: { type: object } }
+ *                       _count: { type: object }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 saasRouter.get(
   '/schools',
@@ -88,7 +101,7 @@ saasRouter.get(
  * @swagger
  * /api/saas/schools/{id}:
  *   get:
- *     summary: "[SUPERADMIN] Détails détaillés d'une école"
+ *     summary: "[SUPERADMIN] Détails d'une école"
  *     tags: [SaaS]
  *     security:
  *       - bearerAuth: []
@@ -99,7 +112,7 @@ saasRouter.get(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détails de l'école (campus)
+ *         description: Fiche technique du campus
  *       404:
  *         description: École non trouvée
  */
@@ -115,7 +128,7 @@ saasRouter.get(
  * @swagger
  * /api/saas/schools/{id}:
  *   patch:
- *     summary: "[SUPERADMIN] Modifier les informations d'une école"
+ *     summary: "[SUPERADMIN] Modifier les métadonnées d'une école"
  *     tags: [SaaS]
  *     security:
  *       - bearerAuth: []
@@ -131,11 +144,11 @@ saasRouter.get(
  *           schema:
  *             type: object
  *             properties:
- *               name: { type: string, example: "AFI-L'Université" }
- *               location: { type: string, example: "Dakar, Sacré-Coeur" }
+ *               name: { type: string, example: "AFI Université Internationale" }
+ *               location: { type: string, example: "Dakar Plateau, Immeuble AFI" }
  *     responses:
  *       200:
- *         description: École mise à jour avec succès
+ *         description: Modifications appliquées
  */
 saasRouter.patch(
   '/schools/:id',

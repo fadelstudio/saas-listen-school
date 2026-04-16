@@ -13,13 +13,11 @@ import {
   resendOtpSchema,
 } from './auth.schema';
 
-export const authRouter = Router();
-
 /**
  * @swagger
  * tags:
- *   name: 1. Authentication
- *   description: Authentification et gestion de compte
+ *   name: Auth
+ *   description: Authentification, Inscription (Étudiants) et gestion de compte (Profil, Mot de passe)
  */
 
 // ─── Public routes ────────────────────────────────────────────────────────────
@@ -28,8 +26,9 @@ export const authRouter = Router();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Inscrire un nouvel étudiant
- *     tags: [1. Authentication]
+ *     summary: "Inscription d'un nouvel Étudiant"
+ *     description: Permet l'auto-inscription. Si le SaaS le requiert, un OTP sera envoyé par email.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -38,15 +37,15 @@ export const authRouter = Router();
  *             type: object
  *             required: [email, password, firstName, lastName]
  *             properties:
- *               email: { type: string, format: email }
- *               password: { type: string, minLength: 8 }
- *               firstName: { type: string }
- *               lastName: { type: string }
+ *               email: { type: string, format: email, example: "etudiant@afi.com" }
+ *               password: { type: string, minLength: 8, example: "monMdpSecret123" }
+ *               firstName: { type: string, example: "Mamadou" }
+ *               lastName: { type: string, example: "Niane" }
  *     responses:
  *       201:
- *         description: Utilisateur créé. Si l'OTP est activé, un code de vérification est envoyé.
+ *         description: Créé. Retourne un challengeId s'il faut valider l'OTP.
  *       200:
- *         description: Inscription réussie (si OTP désactivé)
+ *         description: Connecté direct (si OTP désactivé)
  */
 authRouter.post('/register', validate({ body: registerSchema }), authController.register);
 
@@ -54,8 +53,9 @@ authRouter.post('/register', validate({ body: registerSchema }), authController.
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Se connecter
- *     tags: [1. Authentication]
+ *     summary: "Connexion (Email ou Matricule)"
+ *     description: Identifie l'utilisateur via son email ou son matricule unique.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -65,22 +65,22 @@ authRouter.post('/register', validate({ body: registerSchema }), authController.
  *             required: [password]
  *             properties:
  *               email: { type: string, format: email, description: "Email de l'utilisateur" }
- *               matricule: { type: string, description: "Matricule (obligatoire si email absent)" }
+ *               matricule: { type: string, description: "Matricule (pour les membres du staff)" }
  *               password: { type: string, example: "fadeldev" }
  *           examples:
  *             AdminAFI:
- *               summary: Login Admin via Matricule
+ *               summary: Connexion Administrateur (Matricule)
  *               value:
  *                 matricule: "ADM-AFI-001"
  *                 password: "fadeldev"
- *             SuperAdmin:
- *               summary: Login SuperAdmin via Email
+ *             Etudiant:
+ *               summary: Connexion Étudiant (Email)
  *               value:
- *                 email: "superadmin@saas.com"
+ *                 email: "etudiant@afi.com"
  *                 password: "fadeldev"
  *     responses:
  *       200:
- *         description: Login réussi, retourne un token JWT
+ *         description: Authentification réussie. Retourne l'AccessToken et le RefreshToken.
  */
 authRouter.post('/login', validate({ body: loginSchema }), authController.login);
 
@@ -88,8 +88,9 @@ authRouter.post('/login', validate({ body: loginSchema }), authController.login)
  * @swagger
  * /api/auth/login/verify-otp:
  *   post:
- *     summary: Vérifier le code OTP (Inscription initiale uniquement)
- *     tags: [1. Authentication]
+ *     summary: "Valider l'inscription par OTP"
+ *     description: Nécessaire uniquement lors du flux d'inscription si l'OTP est activé.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -98,13 +99,11 @@ authRouter.post('/login', validate({ body: loginSchema }), authController.login)
  *             type: object
  *             required: [challengeId, otp]
  *             properties:
- *               challengeId: { type: string, example: "uuid-du-challenge" }
- *               otp: { type: string, example: "123456" }
+ *               challengeId: { type: string, format: uuid }
+ *               otp: { type: string, example: "123456", description: "Code à 6 chiffres" }
  *     responses:
  *       200:
- *         description: OTP valide, login réussi
- *       401:
- *         description: Code invalide ou expiré
+ *         description: Validation réussie, tokens générés.
  */
 authRouter.post(
   '/login/verify-otp',
@@ -116,8 +115,8 @@ authRouter.post(
  * @swagger
  * /api/auth/login/resend-otp:
  *   post:
- *     summary: Renvoyer un code OTP (si expiré ou non reçu)
- *     tags: [1. Authentication]
+ *     summary: "Renvoyer un code de validation"
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -126,10 +125,10 @@ authRouter.post(
  *             type: object
  *             required: [challengeId]
  *             properties:
- *               challengeId: { type: string, example: "uuid-du-challenge" }
+ *               challengeId: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Nouveau OTP envoyé
+ *         description: Code renvoyé par email.
  */
 authRouter.post(
   '/login/resend-otp',
@@ -141,8 +140,9 @@ authRouter.post(
  * @swagger
  * /api/auth/forgot-password:
  *   post:
- *     summary: Demander une réinitialisation de mot de passe
- *     tags: [1. Authentication]
+ *     summary: "Mot de passe oublié"
+ *     description: Envoie un lien de réinitialisation sécurisé par email.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -154,7 +154,7 @@ authRouter.post(
  *               email: { type: string, format: email, example: "etudiant@afi.com" }
  *     responses:
  *       200:
- *         description: Email envoyé si le compte existe
+ *         description: Instruction envoyée (toujours retourner 200 pour éviter l'énumération d'utilisateurs).
  */
 authRouter.post(
   '/forgot-password',
@@ -166,8 +166,8 @@ authRouter.post(
  * @swagger
  * /api/auth/reset-password:
  *   post:
- *     summary: Réinitialiser le mot de passe avec le token reçu par email
- *     tags: [1. Authentication]
+ *     summary: "Réinitialiser avec un token"
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -176,11 +176,11 @@ authRouter.post(
  *             type: object
  *             required: [token, newPassword]
  *             properties:
- *               token: { type: string, example: "token-secret" }
+ *               token: { type: string, description: "Token reçu par email" }
  *               newPassword: { type: string, minLength: 8, example: "NouveauMdp123!" }
  *     responses:
  *       200:
- *         description: Mot de passe mis à jour
+ *         description: Mot de passe mis à jour.
  */
 authRouter.post(
   '/reset-password',
@@ -194,13 +194,14 @@ authRouter.post(
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Récupérer le profil de l'utilisateur connecté
- *     tags: [1. Authentication]
+ *     summary: "Profil de l'utilisateur connecté"
+ *     description: Récupère les infos, le rôle et le campus de l'utilisateur porteur du token.
+ *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Informations du profil
+ *         description: Données utilisateur.
  */
 authRouter.get('/me', authMiddleware, authController.me);
 
@@ -208,8 +209,8 @@ authRouter.get('/me', authMiddleware, authController.me);
  * @swagger
  * /api/auth/me:
  *   patch:
- *     summary: Mettre à jour le profil
- *     tags: [1. Authentication]
+ *     summary: "Mettre à jour ses informations personnelles"
+ *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -222,7 +223,7 @@ authRouter.get('/me', authMiddleware, authController.me);
  *               lastName: { type: string }
  *     responses:
  *       200:
- *         description: Profil mis à jour
+ *         description: Profil mis à jour.
  */
 authRouter.patch('/me', authMiddleware, validate({ body: updateProfileSchema }), authController.updateProfile);
 
@@ -230,8 +231,8 @@ authRouter.patch('/me', authMiddleware, validate({ body: updateProfileSchema }),
  * @swagger
  * /api/auth/change-password:
  *   post:
- *     summary: Changer le mot de passe
- *     tags: [1. Authentication]
+ *     summary: "Changer son mot de passe (En étant connecté)"
+ *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -246,7 +247,7 @@ authRouter.patch('/me', authMiddleware, validate({ body: updateProfileSchema }),
  *               newPassword: { type: string, minLength: 8 }
  *     responses:
  *       200:
- *         description: Mot de passe changé
+ *         description: Réussi. Les autres sessions sont maintenues.
  */
 authRouter.post(
   '/change-password',
@@ -259,8 +260,9 @@ authRouter.post(
  * @swagger
  * /api/auth/refresh:
  *   post:
- *     summary: Rafraîchir les tokens
- *     tags: [1. Authentication]
+ *     summary: "Obtenir un nouvel AccessToken"
+ *     description: Utilise le RefreshToken pour prolonger la session.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -272,7 +274,7 @@ authRouter.post(
  *               refreshToken: { type: string }
  *     responses:
  *       200:
- *         description: Nouveaux tokens générés
+ *         description: Nouveaux tokens.
  */
 authRouter.post('/refresh', authController.refresh);
 
@@ -280,8 +282,9 @@ authRouter.post('/refresh', authController.refresh);
  * @swagger
  * /api/auth/logout:
  *   post:
- *     summary: Déconnexion (révoquer le refresh token)
- *     tags: [1. Authentication]
+ *     summary: "Déconnexion (Révocation)"
+ *     description: Invalide le RefreshToken pour empêcher toute nouvelle génération d'access token.
+ *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
@@ -293,6 +296,6 @@ authRouter.post('/refresh', authController.refresh);
  *               refreshToken: { type: string }
  *     responses:
  *       200:
- *         description: Déconnexion réussie
+ *         description: Déconnexion réussie.
  */
 authRouter.post('/logout', authController.logout);

@@ -4,9 +4,11 @@ import { UpdateSystemSettingsInput } from './system.schema';
 import { aiBalancer } from '../../core/ai/AiBalancer';
 
 export const systemController = {
-  async getSettings(_req: Request, res: Response, next: NextFunction) {
+  async getSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const settings = await systemService.getSettings();
+      const schoolId = req.user!.schoolId || (req.query.schoolId as string);
+      if (!schoolId) throw new Error('schoolId is required');
+      const settings = await systemService.getSettings(schoolId);
       res.sendSuccess('Settings fetched successfully', settings);
     } catch (error) {
       next(error);
@@ -15,7 +17,9 @@ export const systemController = {
 
   async updateSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const settings = await systemService.updateSettings(req.body as UpdateSystemSettingsInput);
+      const schoolId = req.user!.schoolId;
+      if (!schoolId) throw new Error('schoolId context missing');
+      const settings = await systemService.updateSettings(schoolId, req.body as UpdateSystemSettingsInput);
       res.sendSuccess('Settings updated successfully', settings);
     } catch (error) {
       next(error);

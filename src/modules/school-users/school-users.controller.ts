@@ -25,6 +25,34 @@ export const schoolUsersController = {
     }
   },
 
+  async listStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await schoolUsersService.listStaff(req.user!.userId, req.query as Record<string, unknown>);
+      res.sendSuccess('Staff retrieved', result.items, 200, {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async listStudents(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await schoolUsersService.listStudents(req.user!.userId, req.query as Record<string, unknown>);
+      res.sendSuccess('Students retrieved', result.items, 200, {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      });
+    } catch (e) {
+      next(e);
+    }
+  },
+
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await schoolUsersService.getById(req.user!.userId, req.params.id as string);

@@ -11,20 +11,39 @@ const router = Router();
  * @swagger
  * tags:
  *   name: AcademicModules
- *   description: Gestion des matières et unités d'enseignement
+ *   description: Gestion des matières et unités d'enseignement (Matières académiques)
  */
 
 /**
  * @swagger
  * /api/academic-modules:
  *   get:
- *     summary: Liste des modules académiques
+ *     summary: "Liste de toutes les matières académiques"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         description: Recherche par nom ou code de matière
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste des modules
+ *         description: Liste paginée des matières
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 router.get('/', authMiddleware, validate({ query: academicModuleQuerySchema }), academicModulesController.getAll);
 
@@ -32,7 +51,7 @@ router.get('/', authMiddleware, validate({ query: academicModuleQuerySchema }), 
  * @swagger
  * /api/academic-modules/{id}:
  *   get:
- *     summary: Détail d'un module académique
+ *     summary: "Détail d'une matière académique"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -43,7 +62,7 @@ router.get('/', authMiddleware, validate({ query: academicModuleQuerySchema }), 
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détail
+ *         description: Fiche détaillée de la matière
  */
 router.get('/:id', authMiddleware, validate({ params: academicModuleParamsSchema }), academicModulesController.getById);
 
@@ -51,7 +70,7 @@ router.get('/:id', authMiddleware, validate({ params: academicModuleParamsSchema
  * @swagger
  * /api/academic-modules:
  *   post:
- *     summary: Créer un module (Admin/Manager)
+ *     summary: "Créer une nouvelle matière (Admin+)"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -63,11 +82,12 @@ router.get('/:id', authMiddleware, validate({ params: academicModuleParamsSchema
  *             type: object
  *             required: [name]
  *             properties:
- *               name: { type: string, example: "Algorithmique" }
- *               code: { type: string, example: "INF-GEN" }
+ *               name: { type: string, example: "Algorithmique Avancée" }
+ *               code: { type: string, example: "ALGO-301" }
+ *               description: { type: string }
  *     responses:
  *       201:
- *         description: Créé
+ *         description: Matière créée avec succès
  */
 router.post(
   '/',
@@ -81,7 +101,7 @@ router.post(
  * @swagger
  * /api/academic-modules/{id}:
  *   patch:
- *     summary: Modifier un module académique
+ *     summary: "Modifier une matière académique"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -98,9 +118,10 @@ router.post(
  *             properties:
  *               name: { type: string }
  *               code: { type: string }
+ *               description: { type: string }
  *     responses:
  *       200:
- *         description: Mis à jour
+ *         description: Informations mises à jour
  */
 router.patch(
   '/:id',
@@ -114,7 +135,7 @@ router.patch(
  * @swagger
  * /api/academic-modules/{id}:
  *   delete:
- *     summary: Supprimer un module académique
+ *     summary: "Supprimer une matière (ADMIN+)"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -125,7 +146,7 @@ router.patch(
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Supprimé
+ *         description: Supprimée définitivement
  */
 router.delete(
   '/:id',

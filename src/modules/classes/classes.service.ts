@@ -35,4 +35,9 @@ export const classesService = {
     await this.getById(id);
     return classesRepository.delete(id);
   },
+
+  async getStudents(id: string) {
+    await this.getById(id);
+    return classesRepository.findStudents(id);
+  },
 };

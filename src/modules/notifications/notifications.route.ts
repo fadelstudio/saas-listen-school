@@ -8,7 +8,7 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Notifications
- *   description: Système d'alertes et messages internes
+ *   description: Système d'alertes et messages internes (Push/In-app)
  */
 
 router.use(authMiddleware);
@@ -17,7 +17,7 @@ router.use(authMiddleware);
  * @swagger
  * /api/notifications:
  *   get:
- *     summary: Récupérer mes notifications
+ *     summary: "Récupérer le flux de notifications de l'utilisateur"
  *     tags: [Notifications]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -30,16 +30,16 @@ router.use(authMiddleware);
  *       - in: query
  *         name: isRead
  *         schema: { type: boolean }
- *         description: Filtrer notifications lues/non lues
+ *         description: Filtrer par statut de lecture
  *       - in: query
  *         name: type
  *         schema:
  *           type: string
- *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, SYSTEM]
- *         description: Filtrer par type de notification
+ *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, SYSTEM, DECISION_TAKEN, NEW_REPORT]
+ *         description: Filtrer par catégorie d'alerte
  *     responses:
  *       200:
- *         description: Liste des notifications (user + globales)
+ *         description: Flux de notifications (personnelles et annonces globales)
  */
 router.get('/', notificationsController.getMyNotifications);
 
@@ -47,7 +47,7 @@ router.get('/', notificationsController.getMyNotifications);
  * @swagger
  * /api/notifications/{id}/read:
  *   patch:
- *     summary: Marquer une notification comme lue
+ *     summary: "Marquer une notification comme lue"
  *     tags: [Notifications]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -57,7 +57,7 @@ router.get('/', notificationsController.getMyNotifications);
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Notification marquée comme lue
+ *         description: Statut mis à jour avec succès
  */
 router.patch('/:id/read', notificationsController.markAsRead);
 

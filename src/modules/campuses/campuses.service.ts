@@ -33,4 +33,24 @@ export const campusesService = {
     await this.getById(id);
     return campusesRepository.delete(id);
   },
+
+  async getClasses(id: string) {
+    await this.getById(id);
+    // Directly using prisma for the linking query to avoid circular dependencies if any
+    return campusesRepository.findClasses(id);
+  },
+
+  async getStudents(id: string) {
+    await this.getById(id);
+    return campusesRepository.findStudents(id);
+  },
+
+  async getStats(id: string) {
+    return campusesRepository.getStats(id);
+  },
+
+  async getProfessors(id: string) {
+    await this.getById(id);
+    return campusesRepository.findProfessors(id);
+  },
 };

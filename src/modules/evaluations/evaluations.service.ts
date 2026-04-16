@@ -44,13 +44,20 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  async getById(id: string) {
+  async getById(id: string, userRole?: string) {
     const evaluation = await evaluationsRepository.findById(id);
     if (!evaluation) throw new NotFoundError('Evaluation');
+
+    // Scrub evaluator if anonymous and requester is not admin
+    if (evaluation.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+      evaluation.evaluator = null;
+      evaluation.evaluatorId = null;
+    }
+
     return evaluation;
   },
 
-  async getAll(query: Record<string, unknown>) {
+  async getAll(query: Record<string, unknown>, userRole?: string) {
     const pagination = parsePagination(query);
     const filters: EvaluationFilters = {
       status:      query.status as EvaluationStatus | undefined,
@@ -60,6 +67,17 @@ export const evaluationsService = {
       endDate:     query.endDate as string | undefined,
     };
     const { items, total } = await evaluationsRepository.findAll(filters, pagination);
+
+    // Filter anonymous evaluators for non-admins
+    if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+      items.forEach((item: any) => {
+        if (item.isAnonymous) {
+          item.evaluator = null;
+          item.evaluatorId = null;
+        }
+      });
+    }
+
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
