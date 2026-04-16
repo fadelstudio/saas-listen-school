@@ -108,9 +108,6 @@ model Campus {
   updatedAt DateTime @updatedAt
 
   school      School        @relation(fields: [schoolId], references: [id])
-  location  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   classes     Class[]
   users       User[]
