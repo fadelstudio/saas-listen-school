@@ -23,7 +23,7 @@ const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage()
  * /api/bulk-import/students:
  *   post:
  *     summary: "[ADMIN+] Importation groupée d'étudiants (CSV)"
- *     description: Crée massivement des comptes étudiants. Format CSV attendu: email,firstName,lastName,matricule,classId.
+ *     description: "Crée massivement des comptes étudiants. Format CSV attendu: email,firstName,lastName,matricule,classId."
  *     tags: [Bulk Import]
  *     security:
  *       - bearerAuth: []
@@ -45,7 +45,7 @@ router.post('/students', auth_middleware_1.authMiddleware, (0, auth_middleware_1
  * /api/bulk-import/professors:
  *   post:
  *     summary: "[ADMIN+] Importation groupée de professeurs (CSV)"
- *     description: Crée massivement des profs. Format CSV attendu: email,firstName,lastName.
+ *     description: "Crée massivement des profs. Format CSV attendu: email,firstName,lastName."
  *     tags: [Bulk Import]
  *     security:
  *       - bearerAuth: []

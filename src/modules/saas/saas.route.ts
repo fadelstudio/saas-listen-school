@@ -60,6 +60,12 @@ saasRouter.post(
 
 /**
  * @swagger
+ * /api/saas/schools:
+ *   get:
+ *     summary: "[SUPERADMIN] Liste des écoles"
+ *     tags: [SaaS]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: search
@@ -72,7 +78,7 @@ saasRouter.post(
  *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste exhaustive des tenats (Écoles)
+ *         description: Liste exhaustive des tenants (Écoles)
  *         content:
  *           application/json:
  *             schema:
