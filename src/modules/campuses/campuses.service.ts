@@ -20,7 +20,7 @@ export const campusesService = {
     return campus;
   },
 
-  async create(data: { name: string; location?: string }) {
+  async create(data: { name: string; schoolId: string; location?: string }) {
     return campusesRepository.create(data);
   },
 

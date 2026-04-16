@@ -6,10 +6,11 @@ const redis_1 = require("../core/config/redis");
 const prisma_1 = require("../core/database/prisma");
 const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
+const logger_1 = require("../utils/logger");
 const AiBalancer_1 = require("../core/ai/AiBalancer");
 // ─── AI Call Helper ───────────────────────────────────────────────────────────
-async function callAI(prompt) {
-    const response = await AiBalancer_1.aiBalancer.callAI(prompt);
+async function callAI(prompt, schoolId) {
+    const response = await AiBalancer_1.aiBalancer.callAI(prompt, schoolId);
     return response.content;
 }
 const aiResultSchema = zod_1.z.object({
@@ -42,7 +43,7 @@ async function handleReportAnalysis(payload) {
     const report = await prisma_1.prisma.report.findUnique({ where: { id: payload.reportId } });
     if (!report)
         throw new Error(`Report not found: ${payload.reportId}`);
-    const raw = await callAI(analysisPrompt(`${report.title}\n${report.content}`));
+    const raw = await callAI(analysisPrompt(`${report.title}\n${report.content}`), report.schoolId);
     const validated = parseAiJsonStrict(raw);
     const result = { ...validated, processedAt: new Date().toISOString() };
     await prisma_1.prisma.report.update({
@@ -62,7 +63,7 @@ async function handleEvaluationScoring(payload) {
         evaluation.availabilityRating,
         evaluation.rhythmRating,
     ].join(', ');
-    const raw = await callAI(analysisPrompt(`Score: ${evaluation.score ?? 'N/A'} | Rubric: ${rubric} | ${evaluation.comment ?? ''}`));
+    const raw = await callAI(analysisPrompt(`Score: ${evaluation.score ?? 'N/A'} | Rubric: ${rubric} | ${evaluation.comment ?? ''}`), evaluation.schoolId);
     const validated = parseAiJsonStrict(raw);
     const result = { ...validated, processedAt: new Date().toISOString() };
     const computedScore = typeof result.score === 'number'
@@ -80,7 +81,11 @@ async function handleDecisionSuggestion(payload) {
     });
     if (!decision)
         throw new Error(`Decision not found: ${payload.decisionId}`);
-    const raw = await callAI(analysisPrompt(decision.evaluation.comment ?? 'No comment'));
+    const promptContent = decision.evaluation?.comment || 'No comment';
+    const schoolId = decision.evaluation?.schoolId || (await prisma_1.prisma.report.findUnique({ where: { id: decision.reportId || '' } }))?.schoolId;
+    if (!schoolId)
+        throw new Error('Could not determine school context for AI analysis');
+    const raw = await callAI(analysisPrompt(promptContent), schoolId);
     const validated = parseAiJsonStrict(raw);
     const result = { ...validated, processedAt: new Date().toISOString() };
     await prisma_1.prisma.decision.update({
@@ -88,18 +93,21 @@ async function handleDecisionSuggestion(payload) {
     });
     return result;
 }
-async function handleGlobalSynthesis() {
+async function handleGlobalSynthesis(payload) {
+    const schoolId = payload.userId ? (await prisma_1.prisma.user.findUnique({ where: { id: payload.userId }, select: { schoolId: true } }))?.schoolId : null;
+    if (!schoolId)
+        throw new Error('Global synthesis context missing');
     const [reports, evals] = await Promise.all([
-        prisma_1.prisma.report.findMany({ take: 50, select: { title: true, content: true, type: true } }),
-        prisma_1.prisma.evaluation.findMany({ take: 50, select: { score: true, comment: true } }),
+        prisma_1.prisma.report.findMany({ where: { schoolId }, take: 50, select: { title: true, content: true, type: true } }),
+        prisma_1.prisma.evaluation.findMany({ where: { schoolId }, take: 50, select: { score: true, comment: true } }),
     ]);
     const context = `Signalements: ${JSON.stringify(reports)}\nEvaluations: ${JSON.stringify(evals)}`;
     const prompt = `En tant qu'assistant de pilotage académique, analyse les données suivantes et fais une synthèse stratégique.
-Donne une réponse UNIQUEMENT en JSON strict.
-Format: {"summary":"Synthèse des points clés","recommendation":"Actions suggérées","confidence":0.9}
-
-Données: ${context}`;
-    const raw = await callAI(prompt);
+  Donne une réponse UNIQUEMENT en JSON strict.
+  Format: {"summary":"Synthèse des points clés","recommendation":"Actions suggérées","confidence":0.9}
+  
+  Données: ${context}`;
+    const raw = await callAI(prompt, schoolId);
     const processedAt = new Date().toISOString();
     try {
         const validated = parseAiJsonStrict(raw);
@@ -116,19 +124,23 @@ Données: ${context}`;
     }
 }
 async function handleChatQuery(payload) {
+    const user = await prisma_1.prisma.user.findUnique({ where: { id: payload.userId }, select: { schoolId: true } });
+    if (!user?.schoolId)
+        throw new Error('Chat context missing schoolId');
+    const schoolId = user.schoolId;
     const [recentReports, recentEvals] = await Promise.all([
-        prisma_1.prisma.report.findMany({ take: 10, select: { title: true, content: true } }),
-        prisma_1.prisma.evaluation.findMany({ take: 10, select: { comment: true } }),
+        prisma_1.prisma.report.findMany({ where: { schoolId }, take: 10, select: { title: true, content: true } }),
+        prisma_1.prisma.evaluation.findMany({ where: { schoolId }, take: 10, select: { comment: true } }),
     ]);
     const prompt = `Contexte récent de l'école:
-Signalements: ${JSON.stringify(recentReports)}
-Evaluations: ${JSON.stringify(recentEvals)}
-
-Question de l'utilisateur: ${payload.question}
-
-Réponds de manière concise et utile en JSON strict.
-Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
-    const raw = await callAI(prompt);
+  Signalements: ${JSON.stringify(recentReports)}
+  Evaluations: ${JSON.stringify(recentEvals)}
+  
+  Question de l'utilisateur: ${payload.question}
+  
+  Réponds de manière concise et utile en JSON strict.
+  Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
+    const raw = await callAI(prompt, schoolId);
     const processedAt = new Date().toISOString();
     try {
         const validated = parseAiJsonStrict(raw);
@@ -168,7 +180,7 @@ const aiWorker = new bullmq_1.Worker(queue_1.QUEUE_NAMES.AI_ANALYSIS, async (job
                 result = await handleDecisionSuggestion(job.data);
                 break;
             case 'global-synthesis':
-                result = await handleGlobalSynthesis();
+                result = await handleGlobalSynthesis(job.data);
                 break;
             case 'chat-query':
                 result = await handleChatQuery(job.data);
@@ -194,15 +206,15 @@ const aiWorker = new bullmq_1.Worker(queue_1.QUEUE_NAMES.AI_ANALYSIS, async (job
     concurrency: 3,
 });
 const notifications_service_1 = require("../modules/notifications/notifications.service");
-aiWorker.on('completed', (job) => console.log(`✅ AI job completed: ${job.id} [${job.data.type}]`));
+aiWorker.on('completed', (job) => logger_1.logger.info(`✅ AI job completed: ${job.id} [${job.data.type}]`));
 aiWorker.on('failed', async (job, err) => {
-    console.error(`❌ AI job failed: ${job?.id}`, err.message);
+    logger_1.logger.error(`❌ AI job failed: ${job?.id}`, { message: err.message });
     // Notify internal profiles about AI failure
     await notifications_service_1.notificationService.create({
         title: `Échec du traitement IA [${job?.data.type}]`,
         message: `Le traitement automatique a échoué: ${err.message}. ID Job: ${job?.id}`,
         type: 'AI_FAILURE',
-    }).catch(e => console.error('Failed to create failure notification:', e));
+    }).catch(e => logger_1.logger.error('Failed to create failure notification:', { error: e.message }));
 });
 aiWorker.on('error', (_err) => { });
 exports.default = aiWorker;

@@ -24,16 +24,18 @@ export declare const authRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string | null;
+            schoolId: string | null;
             email: string;
             passwordHash: string;
             firstName: string;
             lastName: string;
             matricule: string | null;
-            role: import(".prisma/client").$Enums.Role;
+            role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
+            fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
+            campusId: string | null;
             classId: string | null;
         };
     } & {
@@ -50,9 +52,9 @@ export declare const authRepository: {
         token: string;
         expiresAt: Date;
     }>;
-    deleteAllUserRefreshTokens(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    deleteAllUserRefreshTokens(userId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     setActive(userId: string, isActive: boolean): Promise<User>;
-    deleteLoginChallengesForUser(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    deleteLoginChallengesForUser(userId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     createLoginOtpChallenge(userId: string, otpHash: string, expiresAt: Date): Promise<{
         id: string;
         createdAt: Date;
@@ -66,16 +68,18 @@ export declare const authRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string | null;
+            schoolId: string | null;
             email: string;
             passwordHash: string;
             firstName: string;
             lastName: string;
             matricule: string | null;
-            role: import(".prisma/client").$Enums.Role;
+            role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
+            fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
+            campusId: string | null;
             classId: string | null;
         };
     } & {
@@ -102,7 +106,7 @@ export declare const authRepository: {
         otpHash: string;
         attempts: number;
     }>;
-    deletePasswordResetTokensForUser(userId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    deletePasswordResetTokensForUser(userId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<{
         id: string;
         createdAt: Date;
@@ -116,16 +120,18 @@ export declare const authRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string | null;
+            schoolId: string | null;
             email: string;
             passwordHash: string;
             firstName: string;
             lastName: string;
             matricule: string | null;
-            role: import(".prisma/client").$Enums.Role;
+            role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
+            fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
+            campusId: string | null;
             classId: string | null;
         };
     } & {

@@ -1,8 +1,9 @@
 import type { UpdateSystemSettingsInput } from './system.schema';
 export declare const systemRepository: {
-    getSettings(): Promise<{
+    getSettings(schoolId: string): Promise<{
         id: string;
         updatedAt: Date;
+        schoolId: string;
         schoolName: string;
         authReportsRequired: boolean;
         authEvaluationsRequired: boolean;
@@ -11,9 +12,10 @@ export declare const systemRepository: {
         aiConfigs: import("@prisma/client/runtime/client").JsonValue;
         aiOverrideConfigId: string | null;
     } | null>;
-    updateSettings(data: UpdateSystemSettingsInput): Promise<{
+    updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<{
         id: string;
         updatedAt: Date;
+        schoolId: string;
         schoolName: string;
         authReportsRequired: boolean;
         authEvaluationsRequired: boolean;

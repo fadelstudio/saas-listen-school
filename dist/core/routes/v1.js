@@ -22,6 +22,8 @@ const evaluation_campaigns_route_1 = require("../../modules/evaluation-campaigns
 const notifications_route_1 = require("../../modules/notifications/notifications.route");
 const saas_route_1 = __importDefault(require("../../modules/saas/saas.route"));
 const school_users_route_1 = require("../../modules/school-users/school-users.route");
+const analytics_route_1 = require("../../modules/analytics/analytics.route");
+const bulk_import_route_1 = require("../../modules/bulk-import/bulk-import.route");
 const router = (0, express_1.Router)();
 // Basic API v1 info (non-sensitive)
 /**
@@ -63,5 +65,7 @@ router.use("/evaluation-campaigns", evaluation_campaigns_route_1.evaluationCampa
 router.use("/notifications", notifications_route_1.notificationsRouter);
 router.use("/saas", saas_route_1.default);
 router.use("/school-users", school_users_route_1.schoolUsersRouter);
+router.use("/analytics", analytics_route_1.analyticsRouter);
+router.use("/bulk-import", bulk_import_route_1.bulkImportRouter);
 exports.default = router;
 //# sourceMappingURL=v1.js.map

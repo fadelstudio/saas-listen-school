@@ -29,5 +29,16 @@ export declare const schoolUserParamsSchema: z.ZodObject<{
 export declare const schoolUserQuerySchema: z.ZodObject<{
     page: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
     limit: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    role: z.ZodOptional<z.ZodEnum<{
+        ADMIN: "ADMIN";
+        MANAGER: "MANAGER";
+        AGENT: "AGENT";
+        STUDENT: "STUDENT";
+        VIEWER: "VIEWER";
+    }>>;
+    campusId: z.ZodOptional<z.ZodString>;
+    classId: z.ZodOptional<z.ZodString>;
+    search: z.ZodOptional<z.ZodString>;
+    isActive: z.ZodOptional<z.ZodCoercedBoolean<unknown>>;
 }, z.core.$strip>;
 //# sourceMappingURL=school-users.schema.d.ts.map

@@ -5,15 +5,16 @@ export declare const campusesRepository: {
     findAll(filters: CampusFilters, pagination: PaginationArgs): Promise<{
         items: ({
             _count: {
-                users: number;
                 classes: number;
+                users: number;
             };
         } & {
             name: string;
             id: string;
-            location: string | null;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+            location: string | null;
         })[];
         total: number;
     }>;
@@ -27,25 +28,28 @@ export declare const campusesRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         })[];
     } & {
         name: string;
         id: string;
-        location: string | null;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
+        location: string | null;
     }) | null>;
     create(data: {
         name: string;
+        schoolId: string;
         location?: string;
     }): Promise<{
         name: string;
         id: string;
-        location: string | null;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
+        location: string | null;
     }>;
     update(id: string, data: {
         name?: string;
@@ -53,17 +57,69 @@ export declare const campusesRepository: {
     }): Promise<{
         name: string;
         id: string;
-        location: string | null;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
+        location: string | null;
     }>;
     delete(id: string): Promise<{
         name: string;
         id: string;
-        location: string | null;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
+        location: string | null;
     }>;
+    findClasses(id: string): Promise<({
+        _count: {
+            users: number;
+        };
+        academicLevel: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            order: number;
+        };
+    } & {
+        name: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        campusId: string;
+        levelId: string;
+    })[]>;
+    findStudents(id: string): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        isActive: boolean;
+        classId: string | null;
+        class: {
+            name: string;
+        } | null;
+    }[]>;
+    getStats(id: string): Promise<{
+        classes: number;
+        students: number;
+        professors: number;
+    }>;
+    findProfessors(id: string): Promise<({
+        _count: {
+            evaluations: number;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        email: string;
+        firstName: string;
+        lastName: string;
+        campusId: string | null;
+        userId: string | null;
+    })[]>;
 };
 export {};
 //# sourceMappingURL=campuses.repository.d.ts.map

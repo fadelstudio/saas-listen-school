@@ -13,26 +13,51 @@ exports.professorsRouter = router;
  * @swagger
  * tags:
  *   name: Professors
- *   description: Gestion du corps enseignant
+ *   description: Gestion du corps enseignant et des affectations
  */
 /**
  * @swagger
  * /api/professors:
  *   get:
- *     summary: Liste des professeurs (Filtres)
+ *     summary: "Liste des professeurs (Filtres)"
  *     tags: [Professors]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: campusId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: search
+ *         description: Recherche par nom ou email
+ *         schema: { type: string }
+ *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste des professeurs
+ *         description: Liste paginée des professeurs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ query: professors_schema_1.professorQuerySchema }), professors_controller_1.professorsController.getAll);
 /**
  * @swagger
  * /api/professors/{id}:
  *   get:
- *     summary: Détail d'un professeur
+ *     summary: "Détail complet d'un professeur"
  *     tags: [Professors]
  *     security:
  *       - bearerAuth: []
@@ -43,14 +68,14 @@ router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.vali
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détail
+ *         description: Fiche détaillée du professeur
  */
 router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: professors_schema_1.professorParamsSchema }), professors_controller_1.professorsController.getById);
 /**
  * @swagger
  * /api/professors:
  *   post:
- *     summary: Créer un professeur (Admin/Manager)
+ *     summary: "Créer un professeur (Admin/Manager)"
  *     tags: [Professors]
  *     security:
  *       - bearerAuth: []
@@ -62,20 +87,21 @@ router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.v
  *             type: object
  *             required: [firstName, lastName, email]
  *             properties:
- *               firstName: { type: string }
- *               lastName: { type: string }
- *               email: { type: string, format: email }
- *               campusId: { type: string, format: uuid, description: "Facultatif : Campus d'affectation principal" }
+ *               firstName: { type: string, example: "Moussa" }
+ *               lastName: { type: string, example: "Faye" }
+ *               email: { type: string, format: email, example: "moussa.faye@afi.com" }
+ *               campusId: { type: string, format: uuid, description: "Campus d'affectation principal" }
+ *               matricule: { type: string, example: "PROF-2024-001" }
  *     responses:
  *       201:
- *         description: Créé
+ *         description: Professeur créé avec succès
  */
 router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ body: professors_schema_1.createProfessorSchema }), professors_controller_1.professorsController.create);
 /**
  * @swagger
  * /api/professors/{id}:
  *   patch:
- *     summary: Modifier un professeur
+ *     summary: "Modifier la fiche d'un professeur"
  *     tags: [Professors]
  *     security:
  *       - bearerAuth: []
@@ -94,16 +120,17 @@ router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.require
  *               lastName: { type: string }
  *               email: { type: string, format: email }
  *               campusId: { type: string, format: uuid }
+ *               isActive: { type: boolean }
  *     responses:
  *       200:
- *         description: Mis à jour
+ *         description: Informations mises à jour
  */
 router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: professors_schema_1.professorParamsSchema, body: professors_schema_1.updateProfessorSchema }), professors_controller_1.professorsController.update);
 /**
  * @swagger
  * /api/professors/{id}:
  *   delete:
- *     summary: Supprimer un professeur
+ *     summary: "Supprimer un professeur (ADMIN+)"
  *     tags: [Professors]
  *     security:
  *       - bearerAuth: []
@@ -114,7 +141,7 @@ router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.req
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Supprimé
+ *         description: Supprimé définitivement
  */
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: professors_schema_1.professorParamsSchema }), professors_controller_1.professorsController.remove);
 //# sourceMappingURL=professors.route.js.map

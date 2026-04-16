@@ -53,5 +53,41 @@ exports.campusesController = {
             next(error);
         }
     },
+    async getClasses(req, res, next) {
+        try {
+            const classes = await campuses_service_1.campusesService.getClasses(req.params.id);
+            res.sendSuccess('Classes for campus fetched', classes);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async getStudents(req, res, next) {
+        try {
+            const students = await campuses_service_1.campusesService.getStudents(req.params.id);
+            res.sendSuccess('Students for campus fetched', students);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async getStats(req, res, next) {
+        try {
+            const stats = await campuses_service_1.campusesService.getStats(req.params.id);
+            res.sendSuccess('Campus stats fetched', stats);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async getProfessors(req, res, next) {
+        try {
+            const professors = await campuses_service_1.campusesService.getProfessors(req.params.id);
+            res.sendSuccess('Professors for campus fetched', professors);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
 };
 //# sourceMappingURL=campuses.controller.js.map

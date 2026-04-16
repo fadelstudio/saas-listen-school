@@ -19,7 +19,12 @@ app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.de
 // ── Security & Performance middleware ────────────────────────────────────────
 app.use((0, helmet_1.default)());
 app.use((0, compression_1.default)());
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: true, // Allow all origins but echo them back (better for some browsers)
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    credentials: true,
+}));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // ── Custom middlewares ───────────────────────────────────────────────────────

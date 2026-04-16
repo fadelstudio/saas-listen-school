@@ -8,9 +8,14 @@ export declare const classesRepository: {
             campus: {
                 name: string;
                 id: string;
-                location: string | null;
                 createdAt: Date;
                 updatedAt: Date;
+                schoolId: string;
+                location: string | null;
+            };
+            _count: {
+                users: number;
+                reports: number;
             };
             academicLevel: {
                 name: string;
@@ -34,17 +39,13 @@ export declare const classesRepository: {
                 classId: string;
                 moduleId: string;
             })[];
-            _count: {
-                users: number;
-                reports: number;
-            };
         } & {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         })[];
         total: number;
     }>;
@@ -52,16 +53,10 @@ export declare const classesRepository: {
         campus: {
             name: string;
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
             location: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-        academicLevel: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            order: number;
         };
         users: {
             id: string;
@@ -69,26 +64,44 @@ export declare const classesRepository: {
             firstName: string;
             lastName: string;
         }[];
-        reports: {
-            type: import(".prisma/client").$Enums.ReportType;
+        academicLevel: {
+            name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            order: number;
+        };
+        reports: {
+            type: import("@prisma/client").$Enums.ReportType;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
             classId: string | null;
             title: string;
-            moduleId: string | null;
-            professorId: string | null;
-            status: import(".prisma/client").$Enums.ReportStatus;
             content: string;
-            priority: import(".prisma/client").$Enums.Priority;
+            priority: import("@prisma/client").$Enums.Priority;
+            status: import("@prisma/client").$Enums.ReportStatus;
             isAnonymous: boolean;
             category: string | null;
             authorId: string | null;
+            professorId: string | null;
+            moduleId: string | null;
             attachments: Prisma.JsonValue | null;
             deviceMetadata: Prisma.JsonValue | null;
             aiAnalysis: Prisma.JsonValue | null;
         }[];
         classModules: ({
+            professors: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                email: string;
+                firstName: string;
+                lastName: string;
+                campusId: string | null;
+                userId: string | null;
+            }[];
             module: {
                 name: string;
                 id: string;
@@ -96,16 +109,6 @@ export declare const classesRepository: {
                 updatedAt: Date;
                 code: string | null;
             };
-            professors: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                campusId: string | null;
-                email: string;
-                firstName: string;
-                lastName: string;
-                userId: string | null;
-            }[];
         } & {
             id: string;
             createdAt: Date;
@@ -118,8 +121,8 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        levelId: string;
         campusId: string;
+        levelId: string;
     }) | null>;
     create(data: {
         name: string;
@@ -129,9 +132,10 @@ export declare const classesRepository: {
         campus: {
             name: string;
             id: string;
-            location: string | null;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+            location: string | null;
         };
         academicLevel: {
             name: string;
@@ -145,8 +149,8 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        levelId: string;
         campusId: string;
+        levelId: string;
     }>;
     update(id: string, data: {
         name?: string;
@@ -156,9 +160,10 @@ export declare const classesRepository: {
         campus: {
             name: string;
             id: string;
-            location: string | null;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+            location: string | null;
         };
         academicLevel: {
             name: string;
@@ -172,17 +177,26 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        levelId: string;
         campusId: string;
+        levelId: string;
     }>;
     delete(id: string): Promise<{
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        levelId: string;
         campusId: string;
+        levelId: string;
     }>;
+    findStudents(id: string): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        isActive: boolean;
+        campusId: string | null;
+    }[]>;
 };
 export {};
 //# sourceMappingURL=classes.repository.d.ts.map

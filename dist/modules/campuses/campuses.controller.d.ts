@@ -5,5 +5,9 @@ export declare const campusesController: {
     create(req: Request, res: Response, next: NextFunction): Promise<void>;
     update(req: Request, res: Response, next: NextFunction): Promise<void>;
     remove(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getClasses(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getStudents(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getStats(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getProfessors(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=campuses.controller.d.ts.map

@@ -7,10 +7,10 @@ export declare const professorsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         email: string;
         firstName: string;
         lastName: string;
+        campusId: string | null;
         userId: string | null;
     }>>;
     getById(id: string): Promise<{
@@ -26,19 +26,20 @@ export declare const professorsService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             classId: string;
-            moduleId: string;
-            professorId: string;
-            status: import(".prisma/client").$Enums.EvaluationStatus;
+            status: import("@prisma/client").$Enums.EvaluationStatus;
             isAnonymous: boolean;
+            professorId: string;
+            moduleId: string;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
-            comprehensionRating: import(".prisma/client").$Enums.RatingBand | null;
-            explanationRating: import(".prisma/client").$Enums.RatingBand | null;
-            pedagogyRating: import(".prisma/client").$Enums.RatingBand | null;
-            availabilityRating: import(".prisma/client").$Enums.RatingBand | null;
-            rhythmRating: import(".prisma/client").$Enums.RatingBand | null;
+            comprehensionRating: import("@prisma/client").$Enums.RatingBand | null;
+            explanationRating: import("@prisma/client").$Enums.RatingBand | null;
+            pedagogyRating: import("@prisma/client").$Enums.RatingBand | null;
+            availabilityRating: import("@prisma/client").$Enums.RatingBand | null;
+            rhythmRating: import("@prisma/client").$Enums.RatingBand | null;
             comment: string | null;
             aiScore: number | null;
             campaignId: string | null;
@@ -47,10 +48,10 @@ export declare const professorsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         email: string;
         firstName: string;
         lastName: string;
+        campusId: string | null;
         userId: string | null;
     }>;
     create(data: {
@@ -62,10 +63,10 @@ export declare const professorsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         email: string;
         firstName: string;
         lastName: string;
+        campusId: string | null;
         userId: string | null;
     }>;
     update(id: string, data: {
@@ -77,20 +78,20 @@ export declare const professorsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         email: string;
         firstName: string;
         lastName: string;
+        campusId: string | null;
         userId: string | null;
     }>;
     delete(id: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         email: string;
         firstName: string;
         lastName: string;
+        campusId: string | null;
         userId: string | null;
     }>;
 };

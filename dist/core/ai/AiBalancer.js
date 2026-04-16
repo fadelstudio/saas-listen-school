@@ -18,8 +18,8 @@ class AiBalancer {
     getStatus() {
         return { currentActiveId: this.currentActiveId };
     }
-    async callAI(prompt) {
-        const settings = await system_service_1.systemService.getSettings();
+    async callAI(prompt, schoolId) {
+        const settings = await system_service_1.systemService.getSettings(schoolId);
         if (!settings.aiEnabled) {
             throw new Error('AI is currently disabled by system settings');
         }

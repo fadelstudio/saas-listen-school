@@ -53,5 +53,14 @@ exports.classesController = {
             next(error);
         }
     },
+    async getStudents(req, res, next) {
+        try {
+            const students = await classes_service_1.classesService.getStudents(req.params.id);
+            res.sendSuccess('Students for class fetched', students);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
 };
 //# sourceMappingURL=classes.controller.js.map

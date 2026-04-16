@@ -11,9 +11,9 @@ export declare const notificationService: {
         message: string;
         id: string;
         createdAt: Date;
-        userId: string | null;
         title: string;
         campaignId: string | null;
+        userId: string | null;
         isRead: boolean;
     }>;
     getAllForUser(userId: string, opts?: {
@@ -27,9 +27,9 @@ export declare const notificationService: {
             message: string;
             id: string;
             createdAt: Date;
-            userId: string | null;
             title: string;
             campaignId: string | null;
+            userId: string | null;
             isRead: boolean;
         }[];
         total: number;

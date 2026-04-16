@@ -8,6 +8,7 @@ exports.decisionsRepository = {
         return prisma_1.prisma.decision.create({
             data: {
                 evaluationId: data.evaluationId,
+                reportId: data.reportId,
                 deciderId,
                 title: data.title,
                 rationale: data.rationale,
@@ -19,6 +20,7 @@ exports.decisionsRepository = {
             include: {
                 decider: { select: { id: true, firstName: true, lastName: true } },
                 evaluation: { select: { id: true, score: true, status: true } },
+                report: { select: { id: true, title: true, type: true } },
             },
         });
     },
@@ -28,6 +30,7 @@ exports.decisionsRepository = {
             include: {
                 decider: { select: { id: true, firstName: true, lastName: true, email: true } },
                 evaluation: true,
+                report: true,
                 aiJobs: { orderBy: { createdAt: 'desc' }, take: 3 },
             },
         });

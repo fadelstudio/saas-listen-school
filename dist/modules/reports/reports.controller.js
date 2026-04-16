@@ -15,7 +15,7 @@ exports.reportsController = {
     },
     async getAll(req, res, next) {
         try {
-            const result = await reports_service_1.reportsService.getAll(req.query);
+            const result = await reports_service_1.reportsService.getAll(req.query, req.user?.role);
             res.sendSuccess('Reports fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -29,7 +29,7 @@ exports.reportsController = {
     },
     async getById(req, res, next) {
         try {
-            const report = await reports_service_1.reportsService.getById(req.params.id);
+            const report = await reports_service_1.reportsService.getById(req.params.id, req.user?.role);
             res.sendSuccess('Report fetched', report);
         }
         catch (error) {

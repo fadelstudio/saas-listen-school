@@ -30,5 +30,21 @@ exports.campusesService = {
         await this.getById(id);
         return campuses_repository_1.campusesRepository.delete(id);
     },
+    async getClasses(id) {
+        await this.getById(id);
+        // Directly using prisma for the linking query to avoid circular dependencies if any
+        return campuses_repository_1.campusesRepository.findClasses(id);
+    },
+    async getStudents(id) {
+        await this.getById(id);
+        return campuses_repository_1.campusesRepository.findStudents(id);
+    },
+    async getStats(id) {
+        return campuses_repository_1.campusesRepository.getStats(id);
+    },
+    async getProfessors(id) {
+        await this.getById(id);
+        return campuses_repository_1.campusesRepository.findProfessors(id);
+    },
 };
 //# sourceMappingURL=campuses.service.js.map

@@ -13,6 +13,8 @@ import {
   resendOtpSchema,
 } from './auth.schema';
 
+const authRouter = Router();
+
 /**
  * @swagger
  * tags:
@@ -299,3 +301,5 @@ authRouter.post('/refresh', authController.refresh);
  *         description: Déconnexion réussie.
  */
 authRouter.post('/logout', authController.logout);
+
+export { authRouter };

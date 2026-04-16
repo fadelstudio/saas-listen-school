@@ -26,6 +26,34 @@ exports.schoolUsersController = {
             next(e);
         }
     },
+    async listStaff(req, res, next) {
+        try {
+            const result = await school_users_service_1.schoolUsersService.listStaff(req.user.userId, req.query);
+            res.sendSuccess('Staff retrieved', result.items, 200, {
+                page: result.page,
+                limit: result.limit,
+                total: result.total,
+                totalPages: result.totalPages,
+            });
+        }
+        catch (e) {
+            next(e);
+        }
+    },
+    async listStudents(req, res, next) {
+        try {
+            const result = await school_users_service_1.schoolUsersService.listStudents(req.user.userId, req.query);
+            res.sendSuccess('Students retrieved', result.items, 200, {
+                page: result.page,
+                limit: result.limit,
+                total: result.total,
+                totalPages: result.totalPages,
+            });
+        }
+        catch (e) {
+            next(e);
+        }
+    },
     async getById(req, res, next) {
         try {
             const result = await school_users_service_1.schoolUsersService.getById(req.user.userId, req.params.id);

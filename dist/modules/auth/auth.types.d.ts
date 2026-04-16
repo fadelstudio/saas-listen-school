@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 export interface JwtPayload {
     userId: string;
     role: Role;
+    schoolId?: string | null;
     campusId?: string | null;
     classId?: string | null;
     iat: number;
@@ -50,6 +51,7 @@ export interface SafeUser {
     emailVerified: boolean;
     campusId?: string | null;
     classId?: string | null;
+    schoolId?: string | null;
     createdAt: Date;
     updatedAt: Date;
 }

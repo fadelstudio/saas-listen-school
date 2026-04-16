@@ -30,6 +30,15 @@ exports.classesRouter = router;
  *       - in: query
  *         name: levelId
  *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
  *         description: Liste des classes
@@ -122,4 +131,22 @@ router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.req
  *         description: Supprimé
  */
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: classes_schema_1.classParamsSchema }), classes_controller_1.classesController.remove);
+/**
+ * @swagger
+ * /api/classes/{id}/students:
+ *   get:
+ *     summary: "Lister les étudiants d'une classe"
+ *     tags: [Classes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Liste des étudiants
+ */
+router.get('/:id/students', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: classes_schema_1.classParamsSchema }), classes_controller_1.classesController.getStudents);
 //# sourceMappingURL=classes.route.js.map

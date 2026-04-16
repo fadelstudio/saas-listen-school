@@ -13,33 +13,53 @@ exports.classModulesRouter = router;
  * @swagger
  * tags:
  *   name: Assignments
- *   description: Affectations de modules aux classes et professeurs
+ *   description: Affectations des matières (modules) aux classes et affectation des professeurs référents
  */
 /**
  * @swagger
  * /api/assignments:
  *   get:
- *     summary: Liste des affectations (Filtrable par classe ou module)
+ *     summary: "Liste de toutes les affectations (Filtrable)"
  *     tags: [Assignments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: classId
+ *         description: Filtrer par classe
  *         schema: { type: string, format: uuid }
  *       - in: query
  *         name: moduleId
+ *         description: Filtrer par matière académique
  *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: campusId
+ *         description: Filtrer par campus (Admin+)
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste des affectations
+ *         description: Liste paginée des affectations récupérée
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ query: class_modules_schema_1.assignmentQuerySchema }), class_modules_controller_1.classModulesController.getAll);
 /**
  * @swagger
  * /api/assignments/{id}:
  *   get:
- *     summary: Détail d'une affectation
+ *     summary: "Détail d'une affectation spécifique"
  *     tags: [Assignments]
  *     security:
  *       - bearerAuth: []
@@ -50,14 +70,15 @@ router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.vali
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détail
+ *         description: Fiche détaillée de l'affectation (inclut profs, module, classe)
  */
 router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: class_modules_schema_1.assignmentParamsSchema }), class_modules_controller_1.classModulesController.getById);
 /**
  * @swagger
  * /api/assignments:
  *   post:
- *     summary: Assigner un module à une classe (Admin/Manager)
+ *     summary: "Créer une nouvelle affectation (Admin+)"
+ *     description: Lie une matière à une classe et optionnellement définit les professeurs.
  *     tags: [Assignments]
  *     security:
  *       - bearerAuth: []
@@ -69,19 +90,19 @@ router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.v
  *             type: object
  *             required: [classId, moduleId]
  *             properties:
- *               classId: { type: string, format: uuid }
- *               moduleId: { type: string, format: uuid }
- *               professorIds: { type: array, items: { type: string, format: uuid } }
+ *               classId: { type: string, format: uuid, example: "uuid-class" }
+ *               moduleId: { type: string, format: uuid, example: "uuid-module" }
+ *               professorIds: { type: array, items: { type: string, format: uuid }, description: "Liste des profs enseignant ce module dans cette classe" }
  *     responses:
  *       201:
- *         description: Affectation créée
+ *         description: Affectation créée avec succès
  */
 router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ body: class_modules_schema_1.createAssignmentSchema }), class_modules_controller_1.classModulesController.create);
 /**
  * @swagger
  * /api/assignments/{id}:
  *   patch:
- *     summary: Modifier les professeurs d'une affectation
+ *     summary: "Modifier une affectation (Mise à jour des professeurs)"
  *     tags: [Assignments]
  *     security:
  *       - bearerAuth: []
@@ -99,14 +120,14 @@ router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.require
  *               professorIds: { type: array, items: { type: string, format: uuid } }
  *     responses:
  *       200:
- *         description: Mis à jour
+ *         description: Affectation mise à jour
  */
 router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: class_modules_schema_1.assignmentParamsSchema, body: class_modules_schema_1.updateAssignmentSchema }), class_modules_controller_1.classModulesController.update);
 /**
  * @swagger
  * /api/assignments/{id}:
  *   delete:
- *     summary: Supprimer une affectation
+ *     summary: "Supprimer une affectation (ADMIN+)"
  *     tags: [Assignments]
  *     security:
  *       - bearerAuth: []
@@ -117,7 +138,7 @@ router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.req
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Supprimé
+ *         description: Affectation supprimée définitivement
  */
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: class_modules_schema_1.assignmentParamsSchema }), class_modules_controller_1.classModulesController.remove);
 //# sourceMappingURL=class-modules.route.js.map

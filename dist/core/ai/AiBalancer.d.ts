@@ -14,7 +14,7 @@ export declare class AiBalancer {
     getStatus(): {
         currentActiveId: string | null;
     };
-    callAI(prompt: string): Promise<AiResponse>;
+    callAI(prompt: string, schoolId: string): Promise<AiResponse>;
     private executeCall;
     private callGemini;
     private callGroq;

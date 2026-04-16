@@ -3,13 +3,19 @@ export declare const classModulesRepository: {
         classId?: string;
         moduleId?: string;
     }): Promise<({
+        professors: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+        }[];
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         };
         module: {
             name: string;
@@ -18,12 +24,6 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             code: string | null;
         };
-        professors: {
-            id: string;
-            email: string;
-            firstName: string;
-            lastName: string;
-        }[];
     } & {
         id: string;
         createdAt: Date;
@@ -32,13 +32,23 @@ export declare const classModulesRepository: {
         moduleId: string;
     })[]>;
     findById(id: string): Promise<({
+        professors: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            firstName: string;
+            lastName: string;
+            campusId: string | null;
+            userId: string | null;
+        }[];
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         };
         module: {
             name: string;
@@ -47,16 +57,6 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             code: string | null;
         };
-        professors: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
-        }[];
     } & {
         id: string;
         createdAt: Date;
@@ -69,10 +69,10 @@ export declare const classModulesRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string | null;
             email: string;
             firstName: string;
             lastName: string;
+            campusId: string | null;
             userId: string | null;
         }[];
     } & {
@@ -87,13 +87,23 @@ export declare const classModulesRepository: {
         moduleId: string;
         professorIds?: string[];
     }): Promise<{
+        professors: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            firstName: string;
+            lastName: string;
+            campusId: string | null;
+            userId: string | null;
+        }[];
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         };
         module: {
             name: string;
@@ -102,16 +112,6 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             code: string | null;
         };
-        professors: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
-        }[];
     } & {
         id: string;
         createdAt: Date;
@@ -122,13 +122,23 @@ export declare const classModulesRepository: {
     update(id: string, data: {
         professorIds?: string[];
     }): Promise<{
+        professors: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            firstName: string;
+            lastName: string;
+            campusId: string | null;
+            userId: string | null;
+        }[];
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            levelId: string;
             campusId: string;
+            levelId: string;
         };
         module: {
             name: string;
@@ -137,16 +147,6 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             code: string | null;
         };
-        professors: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string | null;
-            email: string;
-            firstName: string;
-            lastName: string;
-            userId: string | null;
-        }[];
     } & {
         id: string;
         createdAt: Date;

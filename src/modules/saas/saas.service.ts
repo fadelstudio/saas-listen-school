@@ -113,5 +113,16 @@ export const saasService = {
       where: { id },
       data
     });
+  },
+
+  async createCampus(schoolId: string, data: { name: string, location?: string }) {
+    await this.getSchoolById(schoolId);
+    return prisma.campus.create({
+      data: {
+        schoolId,
+        name: data.name,
+        location: data.location
+      }
+    });
   }
 };

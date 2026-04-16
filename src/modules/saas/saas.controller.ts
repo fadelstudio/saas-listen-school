@@ -36,5 +36,14 @@ export const saasController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async createCampus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const campus = await saasService.createCampus(req.params.id as string, req.body);
+      res.sendSuccess('Campus created successfully', campus, 201);
+    } catch (error) {
+      next(error);
+    }
   }
 };

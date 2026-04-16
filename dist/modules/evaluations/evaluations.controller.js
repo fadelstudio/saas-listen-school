@@ -15,7 +15,7 @@ exports.evaluationsController = {
     },
     async getAll(req, res, next) {
         try {
-            const result = await evaluations_service_1.evaluationsService.getAll(req.query);
+            const result = await evaluations_service_1.evaluationsService.getAll(req.query, req.user?.role);
             res.sendSuccess('Evaluations fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -29,7 +29,7 @@ exports.evaluationsController = {
     },
     async getById(req, res, next) {
         try {
-            const result = await evaluations_service_1.evaluationsService.getById(req.params.id);
+            const result = await evaluations_service_1.evaluationsService.getById(req.params.id, req.user?.role);
             res.sendSuccess('Evaluation fetched', result);
         }
         catch (error) {

@@ -63,6 +63,7 @@ function toSafeUser(user: {
   emailVerified: boolean;
   campusId: string | null;
   classId: string | null;
+  schoolId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): SafeUser {

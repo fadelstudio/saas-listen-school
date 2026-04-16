@@ -13,26 +13,45 @@ exports.academicModulesRouter = router;
  * @swagger
  * tags:
  *   name: AcademicModules
- *   description: Gestion des matières et unités d'enseignement
+ *   description: Gestion des matières et unités d'enseignement (Matières académiques)
  */
 /**
  * @swagger
  * /api/academic-modules:
  *   get:
- *     summary: Liste des modules académiques
+ *     summary: "Liste de toutes les matières académiques"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         description: Recherche par nom ou code de matière
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
- *         description: Liste des modules
+ *         description: Liste paginée des matières
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta: { $ref: '#/components/schemas/PaginationMeta' }
  */
 router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ query: academic_modules_schema_1.academicModuleQuerySchema }), academic_modules_controller_1.academicModulesController.getAll);
 /**
  * @swagger
  * /api/academic-modules/{id}:
  *   get:
- *     summary: Détail d'un module académique
+ *     summary: "Détail d'une matière académique"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -43,14 +62,14 @@ router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.vali
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Détail
+ *         description: Fiche détaillée de la matière
  */
 router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ params: academic_modules_schema_1.academicModuleParamsSchema }), academic_modules_controller_1.academicModulesController.getById);
 /**
  * @swagger
  * /api/academic-modules:
  *   post:
- *     summary: Créer un module (Admin/Manager)
+ *     summary: "Créer une nouvelle matière (Admin+)"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -62,18 +81,19 @@ router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.v
  *             type: object
  *             required: [name]
  *             properties:
- *               name: { type: string, example: "Algorithmique" }
- *               code: { type: string, example: "INF-GEN" }
+ *               name: { type: string, example: "Algorithmique Avancée" }
+ *               code: { type: string, example: "ALGO-301" }
+ *               description: { type: string }
  *     responses:
  *       201:
- *         description: Créé
+ *         description: Matière créée avec succès
  */
 router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ body: academic_modules_schema_1.createAcademicModuleSchema }), academic_modules_controller_1.academicModulesController.create);
 /**
  * @swagger
  * /api/academic-modules/{id}:
  *   patch:
- *     summary: Modifier un module académique
+ *     summary: "Modifier une matière académique"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -90,16 +110,17 @@ router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.require
  *             properties:
  *               name: { type: string }
  *               code: { type: string }
+ *               description: { type: string }
  *     responses:
  *       200:
- *         description: Mis à jour
+ *         description: Informations mises à jour
  */
 router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: academic_modules_schema_1.academicModuleParamsSchema, body: academic_modules_schema_1.updateAcademicModuleSchema }), academic_modules_controller_1.academicModulesController.update);
 /**
  * @swagger
  * /api/academic-modules/{id}:
  *   delete:
- *     summary: Supprimer un module académique
+ *     summary: "Supprimer une matière (ADMIN+)"
  *     tags: [AcademicModules]
  *     security:
  *       - bearerAuth: []
@@ -110,7 +131,7 @@ router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.req
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Supprimé
+ *         description: Supprimée définitivement
  */
 router.delete('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: academic_modules_schema_1.academicModuleParamsSchema }), academic_modules_controller_1.academicModulesController.remove);
 //# sourceMappingURL=academic-modules.route.js.map

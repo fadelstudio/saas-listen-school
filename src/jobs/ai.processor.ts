@@ -35,8 +35,8 @@ import { aiBalancer } from '../core/ai/AiBalancer';
 
 // ─── AI Call Helper ───────────────────────────────────────────────────────────
 
-async function callAI(prompt: string): Promise<string> {
-  const response = await aiBalancer.callAI(prompt);
+async function callAI(prompt: string, schoolId: string): Promise<string> {
+  const response = await aiBalancer.callAI(prompt, schoolId);
   return response.content;
 }
 
@@ -74,7 +74,7 @@ async function handleReportAnalysis(payload: AiAnalysisPayload): Promise<AiAnaly
   const report = await prisma.report.findUnique({ where: { id: payload.reportId! } });
   if (!report) throw new Error(`Report not found: ${payload.reportId}`);
 
-  const raw    = await callAI(analysisPrompt(`${report.title}\n${report.content}`));
+  const raw    = await callAI(analysisPrompt(`${report.title}\n${report.content}`), report.schoolId as string);
   const validated = parseAiJsonStrict(raw);
   const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
 
@@ -99,7 +99,8 @@ async function handleEvaluationScoring(payload: AiAnalysisPayload): Promise<AiAn
   const raw = await callAI(
     analysisPrompt(
       `Score: ${evaluation.score ?? 'N/A'} | Rubric: ${rubric} | ${evaluation.comment ?? ''}`
-    )
+    ),
+    evaluation.schoolId as string
   );
   const validated = parseAiJsonStrict(raw);
   const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
@@ -121,7 +122,12 @@ async function handleDecisionSuggestion(payload: AiAnalysisPayload): Promise<AiA
   });
   if (!decision) throw new Error(`Decision not found: ${payload.decisionId}`);
 
-  const raw    = await callAI(analysisPrompt(decision.evaluation.comment ?? 'No comment'));
+  const promptContent = decision.evaluation?.comment || 'No comment';
+  const schoolId = decision.evaluation?.schoolId || (await prisma.report.findUnique({ where: { id: decision.reportId || '' } }))?.schoolId;
+  
+  if (!schoolId) throw new Error('Could not determine school context for AI analysis');
+
+  const raw    = await callAI(analysisPrompt(promptContent), schoolId);
   const validated = parseAiJsonStrict(raw);
   const result: AiAnalysisResult = { ...validated, processedAt: new Date().toISOString() };
 
@@ -131,20 +137,23 @@ async function handleDecisionSuggestion(payload: AiAnalysisPayload): Promise<AiA
   return result;
 }
 
-async function handleGlobalSynthesis(): Promise<AiAnalysisResult> {
+async function handleGlobalSynthesis(payload: AiAnalysisPayload): Promise<AiAnalysisResult> {
+  const schoolId = payload.userId ? (await prisma.user.findUnique({ where: { id: payload.userId }, select: { schoolId: true } }))?.schoolId : null;
+  if (!schoolId) throw new Error('Global synthesis context missing');
+
   const [reports, evals] = await Promise.all([
-    prisma.report.findMany({ take: 50, select: { title: true, content: true, type: true } }),
-    prisma.evaluation.findMany({ take: 50, select: { score: true, comment: true } }),
+    prisma.report.findMany({ where: { schoolId }, take: 50, select: { title: true, content: true, type: true } }),
+    prisma.evaluation.findMany({ where: { schoolId }, take: 50, select: { score: true, comment: true } }),
   ]);
   
   const context = `Signalements: ${JSON.stringify(reports)}\nEvaluations: ${JSON.stringify(evals)}`;
   const prompt = `En tant qu'assistant de pilotage académique, analyse les données suivantes et fais une synthèse stratégique.
-Donne une réponse UNIQUEMENT en JSON strict.
-Format: {"summary":"Synthèse des points clés","recommendation":"Actions suggérées","confidence":0.9}
+  Donne une réponse UNIQUEMENT en JSON strict.
+  Format: {"summary":"Synthèse des points clés","recommendation":"Actions suggérées","confidence":0.9}
+  
+  Données: ${context}`;
 
-Données: ${context}`;
-
-  const raw = await callAI(prompt);
+  const raw = await callAI(prompt, schoolId);
   const processedAt = new Date().toISOString();
 
   try {
@@ -162,21 +171,25 @@ Données: ${context}`;
 }
 
 async function handleChatQuery(payload: AiAnalysisPayload): Promise<AiAnalysisResult> {
+  const user = await prisma.user.findUnique({ where: { id: payload.userId! }, select: { schoolId: true } });
+  if (!user?.schoolId) throw new Error('Chat context missing schoolId');
+  const schoolId = user.schoolId;
+
   const [recentReports, recentEvals] = await Promise.all([
-    prisma.report.findMany({ take: 10, select: { title: true, content: true } }),
-    prisma.evaluation.findMany({ take: 10, select: { comment: true } }),
+    prisma.report.findMany({ where: { schoolId }, take: 10, select: { title: true, content: true } }),
+    prisma.evaluation.findMany({ where: { schoolId }, take: 10, select: { comment: true } }),
   ]);
 
   const prompt = `Contexte récent de l'école:
-Signalements: ${JSON.stringify(recentReports)}
-Evaluations: ${JSON.stringify(recentEvals)}
+  Signalements: ${JSON.stringify(recentReports)}
+  Evaluations: ${JSON.stringify(recentEvals)}
+  
+  Question de l'utilisateur: ${payload.question}
+  
+  Réponds de manière concise et utile en JSON strict.
+  Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
 
-Question de l'utilisateur: ${payload.question}
-
-Réponds de manière concise et utile en JSON strict.
-Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
-
-  const raw = await callAI(prompt);
+  const raw = await callAI(prompt, schoolId);
   const processedAt = new Date().toISOString();
 
   try {
@@ -215,7 +228,7 @@ const aiWorker = new Worker<AiAnalysisPayload>(
         case 'report-analysis':     result = await handleReportAnalysis(job.data);    break;
         case 'evaluation-scoring':  result = await handleEvaluationScoring(job.data); break;
         case 'decision-suggestion': result = await handleDecisionSuggestion(job.data); break;
-        case 'global-synthesis':    result = await handleGlobalSynthesis();   break;
+        case 'global-synthesis':    result = await handleGlobalSynthesis(job.data);   break;
         case 'chat-query':          result = await handleChatQuery(job.data);         break;
         default: throw new Error(`Unknown job type: ${job.data.type}`);
       }

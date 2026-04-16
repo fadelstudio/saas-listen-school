@@ -36,7 +36,7 @@ export const campusesRepository = {
     });
   },
 
-  async create(data: { name: string; location?: string }) {
+  async create(data: { name: string; schoolId: string; location?: string }) {
     return prisma.campus.create({
       data,
     });

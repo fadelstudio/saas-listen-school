@@ -27,6 +27,7 @@ export interface UpdateReportStatusInput {
 export interface ReportFilters {
     status?: ReportStatus;
     authorId?: string;
+    campusId?: string;
     classId?: string;
     professorId?: string;
     moduleId?: string;

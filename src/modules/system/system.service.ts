@@ -1,6 +1,7 @@
 import { systemRepository } from './system.repository';
 import { UpdateSystemSettingsInput } from './system.schema';
 import { SystemSettingsResponse } from './system.types';
+import { prisma } from '../../core/database/prisma';
 
 // In-memory cache per school
 const settingsCache = new Map<string, { data: SystemSettingsResponse, timestamp: number }>();
@@ -27,5 +28,12 @@ export const systemService = {
     const response = updated as unknown as SystemSettingsResponse;
     settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
     return response;
+  },
+
+  async getSchoolSettingsByCampus(campusId: string) {
+    return prisma.campus.findUnique({
+      where: { id: campusId },
+      select: { schoolId: true }
+    });
   }
 };

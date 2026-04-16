@@ -38,6 +38,15 @@ exports.saasController = {
         catch (error) {
             next(error);
         }
+    },
+    async createCampus(req, res, next) {
+        try {
+            const campus = await saas_service_1.saasService.createCampus(req.params.id, req.body);
+            res.sendSuccess('Campus created successfully', campus, 201);
+        }
+        catch (error) {
+            next(error);
+        }
     }
 };
 //# sourceMappingURL=saas.controller.js.map
