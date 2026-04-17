@@ -13,6 +13,17 @@ export declare const systemRepository: {
         aiConfigs: Prisma.JsonValue;
         aiOverrideConfigId: string | null;
     } | null>;
-    updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<any>;
+    updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<{
+        id: string;
+        updatedAt: Date;
+        schoolId: string;
+        schoolName: string;
+        authReportsRequired: boolean;
+        authEvaluationsRequired: boolean;
+        authOtpRequired: boolean;
+        aiEnabled: boolean;
+        aiConfigs: Prisma.JsonValue;
+        aiOverrideConfigId: string | null;
+    }>;
 };
 //# sourceMappingURL=system.repository.d.ts.map

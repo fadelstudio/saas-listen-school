@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 export declare const systemController: {
+    getPublicSettings(_req: Request, res: Response, next: NextFunction): Promise<void>;
     getSettings(req: Request, res: Response, next: NextFunction): Promise<void>;
     updateSettings(req: Request, res: Response, next: NextFunction): Promise<void>;
     getAiStatus(_req: Request, res: Response, next: NextFunction): Promise<void>;

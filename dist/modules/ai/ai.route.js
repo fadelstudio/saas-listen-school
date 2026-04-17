@@ -24,7 +24,7 @@ exports.aiRouter = (0, express_1.Router)();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: type
+ *         name: jobType
  *         schema: { type: string, enum: [REPORT_ANALYSIS, EVALUATION_SCORING, SYNTHESIS, CHAT] }
  *       - in: query
  *         name: status
@@ -126,12 +126,11 @@ exports.aiRouter.post('/jobs/:jobId/retry', auth_middleware_1.authMiddleware, (0
  *         application/json:
  *           schema:
  *             type: object
- *             required: [message]
+ *             required: [question]
  *             properties:
- *               message: { type: string, example: "Quel est le problème principal en Salle 12 ?" }
- *               context: { type: string, enum: [REPORTS, EVALUATIONS, GENERAL], default: GENERAL }
+ *               question: { type: string, example: "Quel est le problème principal en Salle 12 ?" }
  *     responses:
- *       202:
+ *       200:
  *         description: Traitement lancé. Récupérez le résultat via /api/ai/jobs/{jobId}/result
  */
 exports.aiRouter.post('/chat', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ body: ai_schema_1.chatSchema }), ai_controller_1.aiController.chat);
@@ -151,11 +150,10 @@ exports.aiRouter.post('/chat', auth_middleware_1.authMiddleware, (0, validate_mi
  *           schema:
  *             type: object
  *             properties:
- *               campusId: { type: string, format: uuid }
- *               moduleId: { type: string, format: uuid }
- *               period: { type: string, enum: [WEEK, MONTH, TERM], default: WEEK }
+ *               startDate: { type: string, format: date-time }
+ *               endDate: { type: string, format: date-time }
  *     responses:
- *       202:
+ *       200:
  *         description: Synthèse en file d'attente.
  */
 exports.aiRouter.post('/synthesis', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ body: ai_schema_1.synthesisSchema }), ai_controller_1.aiController.generateSynthesis);

@@ -9,6 +9,7 @@ const multer_1 = __importDefault(require("multer"));
 const uploads_controller_1 = require("./uploads.controller");
 const auth_middleware_1 = require("../../core/middleware/auth.middleware");
 const env_1 = require("../../core/config/env");
+const AppError_1 = require("../../core/errors/AppError");
 exports.uploadsRouter = (0, express_1.Router)();
 // Multer setup
 const storage = multer_1.default.memoryStorage();
@@ -62,5 +63,16 @@ const upload = (0, multer_1.default)({
  *       201:
  *         description: File uploaded successfully
  */
-exports.uploadsRouter.post('/', auth_middleware_1.authMiddleware, upload.single('file'), uploads_controller_1.uploadsController.upload);
+exports.uploadsRouter.post('/', auth_middleware_1.authMiddleware, (req, _res, next) => {
+    upload.single('file')(req, _res, (err) => {
+        if (err)
+            return next(new AppError_1.BadRequestError(err.message || 'Invalid upload'));
+        // Ensure safe defaults for non-multipart callers
+        req.body = req.body ?? {};
+        if (!req.file) {
+            return next(new AppError_1.BadRequestError('file is required (multipart/form-data)'));
+        }
+        next();
+    });
+}, uploads_controller_1.uploadsController.upload);
 //# sourceMappingURL=uploads.route.js.map

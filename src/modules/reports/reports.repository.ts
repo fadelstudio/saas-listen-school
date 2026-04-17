@@ -13,7 +13,7 @@ export const reportsRepository = {
     });
   },
 
-  async create(data: CreateReportInput, authorId?: string) {
+  async create(data: CreateReportInput, authorId?: string, schoolId?: string | null) {
     return prisma.report.create({
       data: {
         title:       data.title,
@@ -26,6 +26,7 @@ export const reportsRepository = {
         class:       data.classId ? { connect: { id: data.classId } } : undefined,
         professor:   data.professorId ? { connect: { id: data.professorId } } : undefined,
         module:      data.moduleId ? { connect: { id: data.moduleId } } : undefined,
+        school:      schoolId ? { connect: { id: schoolId } } : undefined,
         status:      ReportStatus.SUBMITTED,
       } satisfies Prisma.ReportCreateInput,
       include: { 
@@ -37,9 +38,12 @@ export const reportsRepository = {
     });
   },
 
-  async findById(id: string) {
-    return prisma.report.findUnique({
-      where: { id },
+  async findById(id: string, schoolId?: string | null) {
+    return prisma.report.findFirst({
+      where: {
+        id,
+        ...(schoolId ? { schoolId } : {}),
+      },
       include: {
         author:    { select: { id: true, firstName: true, lastName: true, email: true } },
         class:     true,
@@ -50,8 +54,9 @@ export const reportsRepository = {
     });
   },
 
-  async findAll(filters: ReportFilters, pagination: PaginationArgs) {
+  async findAll(filters: ReportFilters, pagination: PaginationArgs, schoolId?: string | null) {
     const where: Prisma.ReportWhereInput = {
+      ...(schoolId ? { schoolId } : {}),
       ...(filters.status      && { status: filters.status }),
       ...(filters.authorId    && { authorId: filters.authorId }),
       ...(filters.campusId    && { class: { campusId: filters.campusId } }),
@@ -92,9 +97,14 @@ export const reportsRepository = {
     return { items, total };
   },
 
-  async update(id: string, data: UpdateReportInput) {
+  async update(id: string, data: UpdateReportInput, schoolId?: string | null) {
+    const report = await prisma.report.findFirst({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
+      select: { id: true },
+    });
+    if (!report) return null;
     return prisma.report.update({
-      where: { id },
+      where: { id: report.id },
       data: {
         ...(data.title   !== undefined && { title: data.title }),
         ...(data.content !== undefined && { content: data.content }),
@@ -102,20 +112,32 @@ export const reportsRepository = {
     });
   },
 
-  async updateStatus(id: string, status: ReportStatus) {
-    return prisma.report.update({ where: { id }, data: { status } });
+  async updateStatus(id: string, status: ReportStatus, schoolId?: string | null) {
+    const report = await prisma.report.findFirst({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
+      select: { id: true },
+    });
+    if (!report) return null;
+    return prisma.report.update({ where: { id: report.id }, data: { status } });
   },
 
   async updateAiAnalysis(id: string, aiAnalysis: string) {
     return prisma.report.update({ where: { id }, data: { aiAnalysis } });
   },
 
-  async delete(id: string) {
-    return prisma.report.delete({ where: { id } });
+  async delete(id: string, schoolId?: string | null) {
+    return prisma.report.deleteMany({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
+    });
   },
 
-  async existsById(id: string): Promise<boolean> {
-    const count = await prisma.report.count({ where: { id } });
+  async existsById(id: string, schoolId?: string | null): Promise<boolean> {
+    const count = await prisma.report.count({
+      where: {
+        id,
+        ...(schoolId ? { schoolId } : {}),
+      },
+    });
     return count > 0;
   },
 };

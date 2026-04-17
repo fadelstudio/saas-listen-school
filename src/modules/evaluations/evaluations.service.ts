@@ -5,9 +5,10 @@ import { NotFoundError, ForbiddenError, BadRequestError } from '../../core/error
 import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { jobQueue } from '../../core/config/queue';
 import type { CreateEvaluationInput, UpdateEvaluationInput, EvaluationFilters } from './evaluations.types';
+import { prisma } from '../../core/database/prisma';
 
 export const evaluationsService = {
-  async create(input: CreateEvaluationInput, userId?: string) {
+  async create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null) {
     let finalInput = { ...input };
 
     // 1. Cross-validation: Triple-Link consistency
@@ -29,7 +30,16 @@ export const evaluationsService = {
       }
     }
 
-    const evaluation = await evaluationsRepository.create(finalInput, userId);
+    let resolvedSchoolId = schoolId ?? null;
+    if (!resolvedSchoolId && finalInput.classId) {
+      const cls = await prisma.class.findUnique({
+        where: { id: finalInput.classId },
+        select: { campus: { select: { schoolId: true } } },
+      });
+      resolvedSchoolId = cls?.campus?.schoolId ?? null;
+    }
+
+    const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
 
     // 3. Automatic AI Trigger
     try {
@@ -44,8 +54,8 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  async getById(id: string, userRole?: string) {
-    const evaluation = await evaluationsRepository.findById(id);
+  async getById(id: string, userRole?: string, schoolId?: string | null) {
+    const evaluation = await evaluationsRepository.findById(id, schoolId ?? null);
     if (!evaluation) throw new NotFoundError('Evaluation');
 
     // Scrub evaluator if anonymous and requester is not admin
@@ -57,7 +67,7 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  async getAll(query: Record<string, unknown>, userRole?: string) {
+  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null) {
     const pagination = parsePagination(query);
     const filters: EvaluationFilters = {
       status:      query.status as EvaluationStatus | undefined,
@@ -66,7 +76,7 @@ export const evaluationsService = {
       startDate:   query.startDate as string | undefined,
       endDate:     query.endDate as string | undefined,
     };
-    const { items, total } = await evaluationsRepository.findAll(filters, pagination);
+    const { items, total } = await evaluationsRepository.findAll(filters, pagination, schoolId ?? null);
 
     // Filter anonymous evaluators for non-admins
     if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
@@ -81,38 +91,44 @@ export const evaluationsService = {
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
-  async update(id: string, input: UpdateEvaluationInput, userId: string, userRole: string) {
-    const evaluation = await evaluationsRepository.findById(id);
+  async update(
+    id: string,
+    input: UpdateEvaluationInput,
+    userId: string,
+    userRole: string,
+    schoolId?: string | null
+  ) {
+    const evaluation = await evaluationsRepository.findById(id, schoolId ?? null);
     if (!evaluation) throw new NotFoundError('Evaluation');
 
     if (evaluation.evaluatorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('You do not have permission to update this evaluation');
     }
 
-    return evaluationsRepository.update(id, input);
+    return evaluationsRepository.update(id, input, schoolId ?? null);
   },
 
-  async delete(id: string, userRole: string) {
+  async delete(id: string, userRole: string, schoolId?: string | null) {
     if (userRole !== 'ADMIN') throw new ForbiddenError('Only ADMIN can delete evaluations');
-    const exists = await evaluationsRepository.existsById(id);
+    const exists = await evaluationsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Evaluation');
-    return evaluationsRepository.delete(id);
+    return evaluationsRepository.delete(id, schoolId ?? null);
   },
 
-  async getStats(query: Record<string, unknown>) {
+  async getStats(query: Record<string, unknown>, schoolId?: string | null) {
     const filters: EvaluationFilters = {
       reportId:  query.reportId as string | undefined,
       startDate: query.startDate as string | undefined,
       endDate:   query.endDate as string | undefined,
     };
-    return evaluationsRepository.getAggregatedStats(filters);
+    return evaluationsRepository.getAggregatedStats(filters, schoolId ?? null);
   },
 
-  async triggerAiScoring(id: string, userRole: string) {
+  async triggerAiScoring(id: string, userRole: string, schoolId?: string | null) {
     if (!['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('Only MANAGER or ADMIN can trigger AI scoring');
     }
-    const exists = await evaluationsRepository.existsById(id);
+    const exists = await evaluationsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Evaluation');
 
     try {

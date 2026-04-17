@@ -6,14 +6,22 @@ const AppError_1 = require("../errors/AppError");
 const env_1 = require("../config/env");
 const client_1 = require("@prisma/client");
 function errorMiddleware(err, _req, res, _next) {
+    const sendError = typeof res.sendError === "function"
+        ? (message, statusCode = 500, error = null) => res.sendError(message, statusCode, error)
+        : (message, statusCode = 500, error = null) => res.status(statusCode).json({
+            success: false,
+            message,
+            data: null,
+            error,
+        });
     // Zod validation errors
     if (err instanceof zod_1.ZodError) {
-        res.sendError("Validation failed", 422, err.flatten().fieldErrors);
+        sendError("Validation failed", 422, err.flatten().fieldErrors);
         return;
     }
     // Known operational errors
     if (err instanceof AppError_1.AppError) {
-        res.sendError(err.message, err.statusCode);
+        sendError(err.message, err.statusCode);
         return;
     }
     // Prisma Database Errors (Suppress raw stack trace in output but log for dev)
@@ -21,22 +29,22 @@ function errorMiddleware(err, _req, res, _next) {
         console.error("🛠️ Prisma DB Error:", err); // Developer log
         const code = err.code;
         if (code === 'P2002') {
-            res.sendError("Validation failed: This resource already exists (Unique constraint).", 409);
+            sendError("Validation failed: This resource already exists (Unique constraint).", 409);
             return;
         }
         if (code === 'P2003') {
-            res.sendError("Validation failed: Invalid reference (Foreign key constraint).", 422);
+            sendError("Validation failed: Invalid reference (Foreign key constraint).", 422);
             return;
         }
         if (code === 'P2025') {
-            res.sendError("Resource not found or already deleted.", 404);
+            sendError("Resource not found or already deleted.", 404);
             return;
         }
         if (code === 'P2022') {
-            res.sendError("Database schema is outdated. Please run the latest migrations.", 500);
+            sendError("Database schema is outdated. Please run the latest migrations.", 500);
             return;
         }
-        res.sendError("A database error occurred.", 422);
+        sendError("A database error occurred.", 422);
         return;
     }
     // Unknown errors — never expose stack in production
@@ -44,6 +52,6 @@ function errorMiddleware(err, _req, res, _next) {
         ? err.message
         : "Internal server error";
     console.error("❌ Unhandled error:", err);
-    res.sendError(message, 500);
+    sendError(message, 500);
 }
 //# sourceMappingURL=error.middleware.js.map

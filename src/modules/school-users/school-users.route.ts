@@ -16,7 +16,7 @@ schoolUsersRouter.use(authMiddleware);
 /**
  * @swagger
  * tags:
- *   name: School users
+ *   name: School Users
  *   description: Gestion des comptes par l'administrateur d'école (ADMIN)
  */
 
@@ -44,7 +44,7 @@ schoolUsersRouter.use(authMiddleware);
  *   get:
  *     summary: "[ADMIN+] Lister le personnel administratif"
  *     description: Récupère uniquement les utilisateurs avec les rôles ADMIN, MANAGER, AGENT ou VIEWER.
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -95,7 +95,7 @@ schoolUsersRouter.get(
  *   get:
  *     summary: "[MANAGER+] Lister les étudiants"
  *     description: Récupère uniquement les utilisateurs avec le rôle STUDENT.
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -141,7 +141,7 @@ schoolUsersRouter.get(
  * /api/school-users/{id}:
  *   get:
  *     summary: Récupérer le détail d'un utilisateur
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -168,7 +168,7 @@ schoolUsersRouter.get(
  * /api/school-users:
  *   post:
  *     summary: Créer un utilisateur (Par ADMIN campus)
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -201,7 +201,7 @@ schoolUsersRouter.post(
  * /api/school-users:
  *   get:
  *     summary: Lister TOUS les utilisateurs (Filtres globaux)
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -241,7 +241,7 @@ schoolUsersRouter.get(
  * /api/school-users/{id}:
  *   patch:
  *     summary: Mettre à jour un compte utilisateur
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -273,7 +273,7 @@ schoolUsersRouter.patch(
  * /api/school-users/{id}:
  *   delete:
  *     summary: Supprimer un compte
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -18,7 +18,7 @@ const router = Router();
  * @swagger
  * /api/campuses:
  *   get:
- *     summary: "[ADMIN+] Liste de tous les campus"
+ *     summary: "Lister les campus de son école (ADMIN/MANAGER) — ou tous (SUPERADMIN)"
  *     tags: [Campuses]
  *     security:
  *       - bearerAuth: []
@@ -26,7 +26,12 @@ const router = Router();
  *       200:
  *         description: Liste des campus
  */
-router.get('/', authMiddleware, requireRole('SUPERADMIN'), campusesController.getAll);
+router.get(
+  '/',
+  authMiddleware,
+  requireRole(Role.SUPERADMIN, Role.ADMIN, Role.MANAGER),
+  campusesController.getAll
+);
 
 /**
  * @swagger

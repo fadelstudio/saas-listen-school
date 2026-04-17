@@ -39,11 +39,27 @@ Toutes les routes retournent :
 
 ### Login (2 étapes — OTP email)
 
-1. `POST /api/v1/auth/login` avec `email` ou `matricule` + `password`  
-   - Réponse typique : `{ step: "EMAIL_OTP_REQUIRED", challengeId, expiresInSeconds }` (pas de JWT encore).  
-   - Variable d’environnement `LOGIN_OTP_ENABLED=false` : comportement legacy (JWT immédiat) pour dépannage.
-2. `POST /api/v1/auth/login/verify-otp` avec `{ challengeId, otp }` (code à 6 chiffres reçu par email)  
-   - Réponse : `token` + `refreshToken` + `user`.
+`POST /api/v1/auth/login` avec `email` ou `matricule` + `password`  
+- Réponse : **toujours** `token` + `refreshToken` + `user`.
+
+> Important: l’OTP **ne s’applique pas au login**. Il s’applique uniquement au **premier register** (voir section suivante).
+
+### Register (OTP conditionnel — 1ère inscription)
+
+Flux recommandé (Front):
+
+1. **Lire les toggles publics**  
+   `GET /api/v1/system/public` (ou `/api/system/public`)  
+   - Champs utiles: `authOtpRequired`, `authReportsRequired`, `authEvaluationsRequired`
+2. **Créer le compte**  
+   `POST /api/v1/auth/register`
+   - Si `authOtpRequired=false` → réponse **login normale**: `{ token, refreshToken, user }`
+   - Si `authOtpRequired=true` → réponse: `{ step: "REGISTER_OTP_REQUIRED", challengeId, expiresInSeconds }` (pas de token)
+3. **Valider l’OTP d’inscription** (si requis)  
+   `POST /api/v1/auth/register/verify-otp` avec `{ challengeId, otp }`  
+   - Réponse : **login normale** `{ token, refreshToken, user }`
+4. (optionnel) **Renvoyer l’OTP**  
+   `POST /api/v1/auth/register/resend-otp` avec `{ challengeId }`
 
 ### Reset mot de passe
 
@@ -106,11 +122,11 @@ Exemples typiques :
 
 ## Tests API (Postman/Newman) — note OTP
 
-Si tu exécutes les collections Postman via Newman, le plus simple est de désactiver temporairement l’OTP pour que `POST /auth/login` retourne directement `{ token, refreshToken }` :
+L’OTP étant **uniquement sur /register**, les collections centrées sur le staff/admin (login) ne sont pas impactées.
 
-- `LOGIN_OTP_ENABLED=false`
-
-Sinon, en mode OTP, il faut faire le flow en 2 étapes (`/auth/login` → `/auth/login/verify-otp`) et récupérer le code OTP côté mail provider (ex: `MAIL_PROVIDER=console` en dev).
+Pour tester l’OTP en dev:
+- `MAIL_PROVIDER=console` pour logger le code
+- Variables utiles d’email OTP: `EMAIL_FROM`, `OTP_SITE_NAME`, `OTP_EMAIL_SUBJECT`, `OTP_HELP_URL`
 
 ## Pagination (listes)
 

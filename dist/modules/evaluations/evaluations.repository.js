@@ -21,7 +21,7 @@ exports.evaluationsRepository = {
             select: { classId: true, campusId: true },
         });
     },
-    async create(data, evaluatorId) {
+    async create(data, evaluatorId, schoolId) {
         if (!data.comprehensionRating ||
             !data.explanationRating ||
             !data.pedagogyRating ||
@@ -44,6 +44,7 @@ exports.evaluationsRepository = {
                 professor: { connect: { id: data.professorId } },
                 module: { connect: { id: data.moduleId } },
                 class: { connect: { id: data.classId } },
+                school: schoolId ? { connect: { id: schoolId } } : undefined,
                 score,
                 comprehensionRating: data.comprehensionRating,
                 explanationRating: data.explanationRating,
@@ -62,9 +63,9 @@ exports.evaluationsRepository = {
             },
         });
     },
-    async findById(id) {
-        return prisma_1.prisma.evaluation.findUnique({
-            where: { id },
+    async findById(id, schoolId) {
+        return prisma_1.prisma.evaluation.findFirst({
+            where: { id, ...(schoolId ? { schoolId } : {}) },
             include: {
                 evaluator: { select: { id: true, firstName: true, lastName: true, email: true } },
                 report: { select: { id: true, title: true, status: true } },
@@ -73,8 +74,9 @@ exports.evaluationsRepository = {
             },
         });
     },
-    async findAll(filters, pagination) {
+    async findAll(filters, pagination, schoolId) {
         const where = {
+            ...(schoolId ? { schoolId } : {}),
             ...(filters.status && { status: filters.status }),
             ...(filters.evaluatorId && { evaluatorId: filters.evaluatorId }),
             ...(filters.reportId && { reportId: filters.reportId }),
@@ -98,8 +100,8 @@ exports.evaluationsRepository = {
         ]);
         return { items, total };
     },
-    async update(id, data) {
-        const existing = await prisma_1.prisma.evaluation.findUnique({ where: { id } });
+    async update(id, data, schoolId) {
+        const existing = await prisma_1.prisma.evaluation.findFirst({ where: { id, ...(schoolId ? { schoolId } : {}) } });
         if (!existing) {
             throw new AppError_1.NotFoundError('Evaluation');
         }
@@ -109,7 +111,7 @@ exports.evaluationsRepository = {
             score = (0, evaluations_scoring_1.computeScoreFromRatings)(merged);
         }
         return prisma_1.prisma.evaluation.update({
-            where: { id },
+            where: { id: existing.id },
             data: {
                 comprehensionRating: data.comprehensionRating,
                 explanationRating: data.explanationRating,
@@ -121,17 +123,18 @@ exports.evaluationsRepository = {
             },
         });
     },
-    async delete(id) {
-        return prisma_1.prisma.evaluation.delete({ where: { id } });
+    async delete(id, schoolId) {
+        return prisma_1.prisma.evaluation.deleteMany({ where: { id, ...(schoolId ? { schoolId } : {}) } });
     },
-    async existsById(id) {
-        return (await prisma_1.prisma.evaluation.count({ where: { id } })) > 0;
+    async existsById(id, schoolId) {
+        return (await prisma_1.prisma.evaluation.count({ where: { id, ...(schoolId ? { schoolId } : {}) } })) > 0;
     },
     async updateAiScore(id, aiScore) {
         return prisma_1.prisma.evaluation.update({ where: { id }, data: { aiScore } });
     },
-    async getAggregatedStats(filters) {
+    async getAggregatedStats(filters, schoolId) {
         const where = {
+            ...(schoolId ? { schoolId } : {}),
             ...(filters.reportId && { reportId: filters.reportId }),
             ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
             ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),

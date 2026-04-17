@@ -34,12 +34,13 @@ export interface AuthResponse {
     refreshToken?: string;
     user: SafeUser;
 }
-export interface LoginOtpRequired {
-    step: "EMAIL_OTP_REQUIRED";
+export interface RegisterOtpRequired {
+    step: "REGISTER_OTP_REQUIRED";
     challengeId: string;
     expiresInSeconds: number;
 }
-export type LoginResult = AuthResponse | LoginOtpRequired;
+export type LoginResult = AuthResponse;
+export type RegisterResult = AuthResponse | RegisterOtpRequired;
 /** User without passwordHash — safe to send in API responses */
 export interface SafeUser {
     id: string;
@@ -66,4 +67,5 @@ export interface VerifyLoginOtpInput {
     challengeId: string;
     otp: string;
 }
+export type VerifyRegisterOtpInput = VerifyLoginOtpInput;
 //# sourceMappingURL=auth.types.d.ts.map

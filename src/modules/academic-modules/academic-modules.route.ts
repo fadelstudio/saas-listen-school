@@ -10,7 +10,7 @@ const router = Router();
 /**
  * @swagger
  * tags:
- *   name: AcademicModules
+ *   name: Academic Modules
  *   description: Gestion des matières et unités d'enseignement (Matières académiques)
  */
 
@@ -19,7 +19,7 @@ const router = Router();
  * /api/academic-modules:
  *   get:
  *     summary: "Liste de toutes les matières académiques"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -27,12 +27,6 @@ const router = Router();
  *         name: search
  *         description: Recherche par nom ou code de matière
  *         schema: { type: string }
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
  *         description: Liste paginée des matières
@@ -52,7 +46,7 @@ router.get('/', authMiddleware, validate({ query: academicModuleQuerySchema }), 
  * /api/academic-modules/{id}:
  *   get:
  *     summary: "Détail d'une matière académique"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -71,7 +65,7 @@ router.get('/:id', authMiddleware, validate({ params: academicModuleParamsSchema
  * /api/academic-modules:
  *   post:
  *     summary: "Créer une nouvelle matière (Admin+)"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -84,7 +78,6 @@ router.get('/:id', authMiddleware, validate({ params: academicModuleParamsSchema
  *             properties:
  *               name: { type: string, example: "Algorithmique Avancée" }
  *               code: { type: string, example: "ALGO-301" }
- *               description: { type: string }
  *     responses:
  *       201:
  *         description: Matière créée avec succès
@@ -102,7 +95,7 @@ router.post(
  * /api/academic-modules/{id}:
  *   patch:
  *     summary: "Modifier une matière académique"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -118,7 +111,6 @@ router.post(
  *             properties:
  *               name: { type: string }
  *               code: { type: string }
- *               description: { type: string }
  *     responses:
  *       200:
  *         description: Informations mises à jour
@@ -136,7 +128,7 @@ router.patch(
  * /api/academic-modules/{id}:
  *   delete:
  *     summary: "Supprimer une matière (ADMIN+)"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -19,7 +19,7 @@ exports.campusesRouter = router;
  * @swagger
  * /api/campuses:
  *   get:
- *     summary: "[ADMIN+] Liste de tous les campus"
+ *     summary: "Lister les campus de son école (ADMIN/MANAGER) — ou tous (SUPERADMIN)"
  *     tags: [Campuses]
  *     security:
  *       - bearerAuth: []
@@ -27,7 +27,7 @@ exports.campusesRouter = router;
  *       200:
  *         description: Liste des campus
  */
-router.get('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)('SUPERADMIN'), campuses_controller_1.campusesController.getAll);
+router.get('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.SUPERADMIN, client_1.Role.ADMIN, client_1.Role.MANAGER), campuses_controller_1.campusesController.getAll);
 /**
  * @swagger
  * /api/campuses/{id}:

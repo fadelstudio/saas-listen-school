@@ -32,12 +32,16 @@ export const evaluationsRouter = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [professorId, moduleId, classId, score]
+ *             required: [professorId, moduleId, classId, comprehensionRating, explanationRating, pedagogyRating, availabilityRating, rhythmRating]
  *             properties:
  *               professorId: { type: string, format: uuid, example: "uuid-prof" }
  *               moduleId: { type: string, format: uuid, example: "uuid-module" }
  *               classId: { type: string, format: uuid, example: "uuid-class" }
- *               score: { type: number, minimum: 0, maximum: 20, example: 17.5, description: "Note sur 20" }
+ *               comprehensionRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               explanationRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               pedagogyRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               availabilityRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               rhythmRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
  *               comment: { type: string, example: "Excellent cours, très clair." }
  *               isAnonymous: { type: boolean, default: false }
  *     responses:
@@ -75,15 +79,6 @@ evaluationsRouter.get('/stats', authMiddleware, evaluationsController.getStats);
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: professorId
- *         schema: { type: string, format: uuid }
- *       - in: query
- *         name: moduleId
- *         schema: { type: string, format: uuid }
- *       - in: query
- *         name: classId
- *         schema: { type: string, format: uuid }
- *       - in: query
  *         name: status
  *         schema: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
  *       - in: query
@@ -99,11 +94,11 @@ evaluationsRouter.get('/stats', authMiddleware, evaluationsController.getStats);
  *         name: endDate
  *         schema: { type: string, format: date }
  *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
+ *         name: sortBy
+ *         schema: { type: string }
  *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
+ *         name: sortOrder
+ *         schema: { type: string, enum: [asc, desc] }
  *     responses:
  *       200:
  *         description: Liste paginée d'évaluations
@@ -166,9 +161,12 @@ evaluationsRouter.get(
  *           schema:
  *             type: object
  *             properties:
- *               score: { type: number, minimum: 0, maximum: 20 }
+ *               comprehensionRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               explanationRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               pedagogyRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               availabilityRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
+ *               rhythmRating: { type: string, enum: [VERY_POOR, POOR, FAIR, GOOD, EXCELLENT] }
  *               comment: { type: string }
- *               isActive: { type: boolean }
  *     responses:
  *       200:
  *         description: Mise à jour réussie

@@ -16,11 +16,33 @@ exports.aiRepository = {
             },
         });
     },
-    async findJobById(id) {
-        return prisma_1.prisma.aiJob.findUnique({ where: { id } });
+    async findJobById(id, schoolId) {
+        return prisma_1.prisma.aiJob.findFirst({
+            where: {
+                id,
+                ...(schoolId
+                    ? {
+                        OR: [
+                            { report: { schoolId } },
+                            { evaluation: { schoolId } },
+                            { decision: { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } },
+                        ],
+                    }
+                    : {}),
+            },
+        });
     },
-    async findJobs(filters, pagination) {
+    async findJobs(filters, pagination, schoolId) {
         const where = {
+            ...(schoolId
+                ? {
+                    OR: [
+                        { report: { schoolId } },
+                        { evaluation: { schoolId } },
+                        { decision: { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } },
+                    ],
+                }
+                : {}),
             ...(filters.status && { status: filters.status }),
             ...(filters.jobType && { jobType: filters.jobType }),
             ...(filters.reportId && { reportId: filters.reportId }),

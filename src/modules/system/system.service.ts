@@ -8,6 +8,28 @@ const settingsCache = new Map<string, { data: SystemSettingsResponse, timestamp:
 const CACHE_TTL = 30000; // 30 seconds
 
 export const systemService = {
+  async getPublicSettings() {
+    const settings = await prisma.systemSettings.findFirst({
+      select: {
+        schoolName: true,
+        aiEnabled: true,
+        authOtpRequired: true,
+        authReportsRequired: true,
+        authEvaluationsRequired: true,
+        updatedAt: true,
+      },
+    });
+    return (
+      settings ?? {
+        schoolName: 'AFI',
+        aiEnabled: true,
+        authOtpRequired: false,
+        authReportsRequired: false,
+        authEvaluationsRequired: false,
+        updatedAt: new Date(0),
+      }
+    );
+  },
   async getSettings(schoolId: string, forceRefresh = false): Promise<SystemSettingsResponse> {
     const cached = settingsCache.get(schoolId);
     const now = Date.now();
@@ -35,5 +57,13 @@ export const systemService = {
       where: { id: campusId },
       select: { schoolId: true }
     });
+  },
+
+  async getSchoolSettingsByClass(classId: string) {
+    const cls = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { campus: { select: { schoolId: true } } },
+    });
+    return { schoolId: cls?.campus?.schoolId || null };
   }
 };

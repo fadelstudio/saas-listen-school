@@ -20,6 +20,10 @@ function dynamicAuthMiddleware(type) {
                 const campus = await system_service_1.systemService.getSchoolSettingsByCampus(req.body.campusId);
                 schoolId = campus?.schoolId || '';
             }
+            if (!schoolId && req.body.classId) {
+                const cls = await system_service_1.systemService.getSchoolSettingsByClass(req.body.classId);
+                schoolId = cls?.schoolId || '';
+            }
             if (!schoolId) {
                 // Fallback for types that don't have school context yet in request
                 return next();

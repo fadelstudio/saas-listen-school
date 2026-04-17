@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { ForbiddenError, UnauthorizedError } from "../errors/AppError";
+import { prisma } from "../database/prisma";
 
 export interface JwtPayload {
   userId: string;
@@ -22,11 +23,11 @@ declare global {
   }
 }
 
-export function authMiddleware(
+export async function authMiddleware(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -37,6 +38,20 @@ export function authMiddleware(
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    if (payload.role !== "SUPERADMIN" && !payload.schoolId) {
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: {
+          schoolId: true,
+          campus: { select: { schoolId: true } },
+        },
+      });
+      const resolvedSchoolId = user?.schoolId || user?.campus?.schoolId || null;
+      if (!resolvedSchoolId) {
+        throw new UnauthorizedError("Token missing school context. Please log in again.");
+      }
+      payload.schoolId = resolvedSchoolId;
+    }
     req.user = payload;
     next();
   } catch {

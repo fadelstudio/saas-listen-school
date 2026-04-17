@@ -8,13 +8,13 @@ const pagination_1 = require("../../utils/pagination");
 const logger_1 = require("../../utils/logger");
 const client_1 = require("@prisma/client");
 exports.aiService = {
-    async getJobById(jobId) {
-        const job = await ai_repository_1.aiRepository.findJobById(jobId);
+    async getJobById(jobId, schoolId) {
+        const job = await ai_repository_1.aiRepository.findJobById(jobId, schoolId ?? null);
         if (!job)
             throw new AppError_1.NotFoundError('AI Job');
         return job;
     },
-    async getJobs(query) {
+    async getJobs(query, schoolId) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
@@ -22,19 +22,19 @@ exports.aiService = {
             reportId: query.reportId,
             evaluationId: query.evaluationId,
         };
-        const { items, total } = await ai_repository_1.aiRepository.findJobs(filters, pagination);
+        const { items, total } = await ai_repository_1.aiRepository.findJobs(filters, pagination, schoolId ?? null);
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
-    async getJobResult(jobId) {
-        const job = await ai_repository_1.aiRepository.findJobById(jobId);
+    async getJobResult(jobId, schoolId) {
+        const job = await ai_repository_1.aiRepository.findJobById(jobId, schoolId ?? null);
         if (!job)
             throw new AppError_1.NotFoundError('AI Job');
         return { status: job.status, result: job.result, errorMessage: job.errorMessage };
     },
-    async retryJob(jobId, userRole) {
+    async retryJob(jobId, userRole, schoolId) {
         if (userRole !== 'ADMIN')
             throw new AppError_1.ForbiddenError('Only ADMIN can retry AI jobs');
-        const job = await ai_repository_1.aiRepository.findJobById(jobId);
+        const job = await ai_repository_1.aiRepository.findJobById(jobId, schoolId ?? null);
         if (!job)
             throw new AppError_1.NotFoundError('AI Job');
         try {

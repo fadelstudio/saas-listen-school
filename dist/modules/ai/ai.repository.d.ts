@@ -24,7 +24,7 @@ export declare const aiRepository: {
         errorMessage: string | null;
         decisionId: string | null;
     }>;
-    findJobById(id: string): Promise<{
+    findJobById(id: string, schoolId?: string | null): Promise<{
         result: Prisma.JsonValue | null;
         id: string;
         createdAt: Date;
@@ -37,7 +37,7 @@ export declare const aiRepository: {
         errorMessage: string | null;
         decisionId: string | null;
     } | null>;
-    findJobs(filters: AiJobFilters, pagination: PaginationArgs): Promise<{
+    findJobs(filters: AiJobFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
         items: {
             result: Prisma.JsonValue | null;
             id: string;

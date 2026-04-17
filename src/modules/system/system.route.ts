@@ -16,6 +16,19 @@ export const systemRouter = Router();
 
 /**
  * @swagger
+ * /api/system/public:
+ *   get:
+ *     summary: "Récupérer les toggles publics (bootstrapping frontend)"
+ *     description: Endpoint libre. Renvoie uniquement les booléens nécessaires au flux (OTP, auth reports/evals) + infos non sensibles.
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Toggles publics
+ */
+systemRouter.get('/public', systemController.getPublicSettings);
+
+/**
+ * @swagger
  * /api/system:
  *   get:
  *     summary: "Récupérer la configuration globale du système (ADMIN+)"

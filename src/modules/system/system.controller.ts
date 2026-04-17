@@ -5,9 +5,19 @@ import { aiBalancer } from '../../core/ai/AiBalancer';
 import { BadRequestError } from '../../core/errors/AppError';
 
 export const systemController = {
+  async getPublicSettings(_req: Request, res: Response, next: NextFunction) {
+    try {
+      // Single-school friendly: expose only non-sensitive toggles to bootstrap clients.
+      const settings = await systemService.getPublicSettings();
+      res.sendSuccess('Public settings fetched', settings);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user!.schoolId || (req.query.schoolId as string);
+      const schoolId = req.user!.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId is required');
       const settings = await systemService.getSettings(schoolId);
       res.sendSuccess('Settings fetched successfully', settings);

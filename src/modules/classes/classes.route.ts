@@ -32,12 +32,6 @@ const router = Router();
  *       - in: query
  *         name: search
  *         schema: { type: string }
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
  *         description: Liste des classes
@@ -77,7 +71,7 @@ router.get('/:id', authMiddleware, validate({ params: classParamsSchema }), clas
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, campusId]
+ *             required: [name, levelId, campusId]
  *             properties:
  *               name: { type: string }
  *               levelId: { type: string, format: uuid }

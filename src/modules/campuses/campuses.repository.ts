@@ -6,8 +6,9 @@ import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 
 export const campusesRepository = {
-  async findAll(filters: CampusFilters, pagination: PaginationArgs) {
+  async findAll(schoolId: string, filters: CampusFilters, pagination: PaginationArgs) {
     const where: Prisma.CampusWhereInput = {
+      schoolId,
       ...(filters.search && {
         name: { contains: filters.search, mode: 'insensitive' },
       }),
@@ -27,9 +28,9 @@ export const campusesRepository = {
     return { items, total };
   },
 
-  async findById(id: string) {
-    return prisma.campus.findUnique({
-      where: { id },
+  async findById(id: string, schoolId: string) {
+    return prisma.campus.findFirst({
+      where: { id, schoolId },
       include: {
         classes: { include: { _count: { select: { users: true } } } },
       },
@@ -56,22 +57,26 @@ export const campusesRepository = {
     }
   },
 
-  async update(id: string, data: { name?: string; location?: string }) {
+  async update(id: string, data: { name?: string; location?: string }, schoolId: string) {
+    const existing = await prisma.campus.findFirst({ where: { id, schoolId }, select: { id: true } });
+    if (!existing) return null;
     return prisma.campus.update({
-      where: { id },
+      where: { id: existing.id },
       data,
     });
   },
 
-  async delete(id: string) {
+  async delete(id: string, schoolId: string) {
+    const existing = await prisma.campus.findFirst({ where: { id, schoolId }, select: { id: true } });
+    if (!existing) return null;
     return prisma.campus.delete({
-      where: { id },
+      where: { id: existing.id },
     });
   },
 
-  async findClasses(id: string) {
+  async findClasses(id: string, schoolId: string) {
     return prisma.class.findMany({
-      where: { campusId: id },
+      where: { campusId: id, campus: { schoolId } },
       include: {
         academicLevel: true,
         _count: { select: { users: true } },
@@ -80,9 +85,9 @@ export const campusesRepository = {
     });
   },
 
-  async findStudents(id: string) {
+  async findStudents(id: string, schoolId: string) {
     return prisma.user.findMany({
-      where: { campusId: id, role: 'STUDENT' },
+      where: { campusId: id, role: 'STUDENT', schoolId },
       select: {
         id: true,
         email: true,
@@ -97,18 +102,18 @@ export const campusesRepository = {
     });
   },
 
-  async getStats(id: string) {
+  async getStats(id: string, schoolId: string) {
     const [classes, students, professors] = await Promise.all([
-      prisma.class.count({ where: { campusId: id } }),
-      prisma.user.count({ where: { campusId: id, role: 'STUDENT' } }),
-      prisma.professor.count({ where: { campusId: id } }),
+      prisma.class.count({ where: { campusId: id, campus: { schoolId } } }),
+      prisma.user.count({ where: { campusId: id, role: 'STUDENT', schoolId } }),
+      prisma.professor.count({ where: { campusId: id, campus: { schoolId } } }),
     ]);
     return { classes, students, professors };
   },
 
-  async findProfessors(id: string) {
+  async findProfessors(id: string, schoolId: string) {
     return prisma.professor.findMany({
-      where: { campusId: id },
+      where: { campusId: id, campus: { schoolId } },
       include: {
         _count: { select: { evaluations: true } },
       },

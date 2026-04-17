@@ -5,7 +5,7 @@ export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.register(req.body);
-      if ('step' in result && result.step === 'EMAIL_OTP_REQUIRED') {
+      if ('step' in result && result.step === 'REGISTER_OTP_REQUIRED') {
         res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
       } else {
         res.sendSuccess('Account created successfully', result, 201);
@@ -18,20 +18,16 @@ export const authController = {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.login(req.body);
-      if ('step' in result && result.step === 'EMAIL_OTP_REQUIRED') {
-        res.sendSuccess('OTP sent to your email', result);
-      } else {
-        res.sendSuccess('Login successful', result);
-      }
+      res.sendSuccess('Login successful', result);
     } catch (error) {
       next(error);
     }
   },
 
-  async verifyLoginOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async verifyRegisterOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.verifyLoginOtp(req.body);
-      res.sendSuccess('Login successful', result);
+      const result = await authService.verifyRegisterOtp(req.body);
+      res.sendSuccess('Registration verified. Login successful.', result);
     } catch (error) {
       next(error);
     }

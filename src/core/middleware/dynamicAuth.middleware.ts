@@ -21,6 +21,11 @@ export function dynamicAuthMiddleware(type: ProtectedType) {
         schoolId = campus?.schoolId || '';
       }
 
+      if (!schoolId && req.body.classId) {
+        const cls = await systemService.getSchoolSettingsByClass(req.body.classId as string);
+        schoolId = cls?.schoolId || '';
+      }
+
       if (!schoolId) {
         // Fallback for types that don't have school context yet in request
         return next(); 

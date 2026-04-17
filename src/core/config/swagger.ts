@@ -41,9 +41,20 @@ const options: swaggerJsdoc.Options = {
           bearerFormat: 'JWT',
         },
       },
+      schemas: {
+        PaginationMeta: {
+          type: 'object',
+          properties: {
+            page:       { type: 'number', example: 1 },
+            limit:      { type: 'number', example: 10 },
+            total:      { type: 'number', example: 42 },
+            totalPages: { type: 'number', example: 5 },
+          },
+        },
+      },
     },
     tags: [
-      { name: '1. Authentication', description: 'Endpoints pour se connecter et gérer son compte' },
+      { name: 'Auth', description: 'Endpoints pour se connecter et gérer son compte' },
       { name: 'SaaS', description: '[SUPERADMIN] Administration globale' },
       { name: 'System', description: 'Configuration du système' },
       { name: 'Campuses', description: 'Gestion des campus / écoles' },
@@ -52,7 +63,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Academic Modules', description: 'Gestion des matières' },
       { name: 'Reports', description: 'Signalements et incidents' },
       { name: 'Evaluations', description: 'Évaluations pédagogiques' },
-      { name: 'School users', description: 'Comptes staff et élèves (ADMIN campus)' },
+      { name: 'School Users', description: 'Comptes staff et élèves (ADMIN campus)' },
       { name: 'Decisions', description: 'Actions et décisions administratives' },
       { name: 'AI', description: 'Analyses et Chat IA' },
       { name: 'Notifications', description: 'Système d\'alertes' },

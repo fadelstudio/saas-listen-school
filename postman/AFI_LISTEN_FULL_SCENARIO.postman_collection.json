@@ -158,7 +158,7 @@
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\"firstName\":\"Prof\",\"lastName\":\"Full{{uniq}}\",\"email\":\"prof.full.{{uniq}}@afi.com\",\"campusId\":\"{{campusId}}\"}" },
+            "body": { "mode": "raw", "raw": "{\"firstName\":\"Prof\",\"lastName\":\"Full{{uniq}}\",\"email\":\"prof.full.{{uniq}}@afi.com\"}" },
             "url": "{{baseUrl}}/professors"
           }
         }

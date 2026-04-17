@@ -10,7 +10,7 @@ exports.reportsRepository = {
             select: { classId: true, campusId: true },
         });
     },
-    async create(data, authorId) {
+    async create(data, authorId, schoolId) {
         return prisma_1.prisma.report.create({
             data: {
                 title: data.title,
@@ -23,6 +23,7 @@ exports.reportsRepository = {
                 class: data.classId ? { connect: { id: data.classId } } : undefined,
                 professor: data.professorId ? { connect: { id: data.professorId } } : undefined,
                 module: data.moduleId ? { connect: { id: data.moduleId } } : undefined,
+                school: schoolId ? { connect: { id: schoolId } } : undefined,
                 status: client_1.ReportStatus.SUBMITTED,
             },
             include: {
@@ -33,9 +34,12 @@ exports.reportsRepository = {
             },
         });
     },
-    async findById(id) {
-        return prisma_1.prisma.report.findUnique({
-            where: { id },
+    async findById(id, schoolId) {
+        return prisma_1.prisma.report.findFirst({
+            where: {
+                id,
+                ...(schoolId ? { schoolId } : {}),
+            },
             include: {
                 author: { select: { id: true, firstName: true, lastName: true, email: true } },
                 class: true,
@@ -45,8 +49,9 @@ exports.reportsRepository = {
             },
         });
     },
-    async findAll(filters, pagination) {
+    async findAll(filters, pagination, schoolId) {
         const where = {
+            ...(schoolId ? { schoolId } : {}),
             ...(filters.status && { status: filters.status }),
             ...(filters.authorId && { authorId: filters.authorId }),
             ...(filters.campusId && { class: { campusId: filters.campusId } }),
@@ -83,26 +88,45 @@ exports.reportsRepository = {
         ]);
         return { items, total };
     },
-    async update(id, data) {
+    async update(id, data, schoolId) {
+        const report = await prisma_1.prisma.report.findFirst({
+            where: { id, ...(schoolId ? { schoolId } : {}) },
+            select: { id: true },
+        });
+        if (!report)
+            return null;
         return prisma_1.prisma.report.update({
-            where: { id },
+            where: { id: report.id },
             data: {
                 ...(data.title !== undefined && { title: data.title }),
                 ...(data.content !== undefined && { content: data.content }),
             },
         });
     },
-    async updateStatus(id, status) {
-        return prisma_1.prisma.report.update({ where: { id }, data: { status } });
+    async updateStatus(id, status, schoolId) {
+        const report = await prisma_1.prisma.report.findFirst({
+            where: { id, ...(schoolId ? { schoolId } : {}) },
+            select: { id: true },
+        });
+        if (!report)
+            return null;
+        return prisma_1.prisma.report.update({ where: { id: report.id }, data: { status } });
     },
     async updateAiAnalysis(id, aiAnalysis) {
         return prisma_1.prisma.report.update({ where: { id }, data: { aiAnalysis } });
     },
-    async delete(id) {
-        return prisma_1.prisma.report.delete({ where: { id } });
+    async delete(id, schoolId) {
+        return prisma_1.prisma.report.deleteMany({
+            where: { id, ...(schoolId ? { schoolId } : {}) },
+        });
     },
-    async existsById(id) {
-        const count = await prisma_1.prisma.report.count({ where: { id } });
+    async existsById(id, schoolId) {
+        const count = await prisma_1.prisma.report.count({
+            where: {
+                id,
+                ...(schoolId ? { schoolId } : {}),
+            },
+        });
         return count > 0;
     },
 };
