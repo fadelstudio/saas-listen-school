@@ -17,6 +17,9 @@ export declare const env: {
     EMAIL_FROM: string;
     REDIS_URL?: string | undefined;
     RESEND_API_KEY?: string | undefined;
+    OTP_SITE_NAME?: string | undefined;
+    OTP_EMAIL_SUBJECT?: string | undefined;
+    OTP_HELP_URL?: string | undefined;
 };
 export type Env = typeof env;
 //# sourceMappingURL=env.d.ts.map

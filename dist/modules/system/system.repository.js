@@ -11,9 +11,7 @@ exports.systemRepository = {
             });
         }
         catch (error) {
-            // Legacy single-school databases may not have system_settings.schoolId yet.
-            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
-                error.code === 'P2022') {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
                 return prisma_1.prisma.systemSettings.findFirst();
             }
             throw error;
@@ -27,26 +25,13 @@ exports.systemRepository = {
             });
         }
         catch (error) {
-            // Legacy single-school fallback: patch the first settings row.
-            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
-                error.code === 'P2022') {
-                const existing = await prisma_1.prisma.systemSettings.findFirst({
-                    select: { id: true },
-                });
-                if (!existing) {
-                    return prisma_1.prisma.systemSettings.create({
-                        data: {
-                            schoolName: data.schoolName ?? 'AFI',
-                            authReportsRequired: data.authReportsRequired ?? false,
-                            authEvaluationsRequired: data.authEvaluationsRequired ?? false,
-                            aiEnabled: data.aiEnabled ?? true,
-                            aiConfigs: data.aiConfigs ?? [],
-                            aiOverrideConfigId: data.aiOverrideConfigId ?? null,
-                        },
-                    });
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+                const first = await prisma_1.prisma.systemSettings.findFirst({ select: { id: true } });
+                if (!first) {
+                    throw error;
                 }
                 return prisma_1.prisma.systemSettings.update({
-                    where: { id: existing.id },
+                    where: { id: first.id },
                     data,
                 });
             }

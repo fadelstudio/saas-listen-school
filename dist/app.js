@@ -47,6 +47,9 @@ app.get("/health", (_req, res) => {
 });
 // ── API Routes (v1) ──────────────────────────────────────────────────────────
 const v1_1 = __importDefault(require("./core/routes/v1"));
+const system_controller_1 = require("./modules/system/system.controller");
+// Public system toggles (bootstrapping) — keep available even if router changes
+app.get(["/api/v1/system/public", "/api/system/public"], system_controller_1.systemController.getPublicSettings);
 // Mount v1 at /api/v1 AND /api for backward compatibility as requested
 app.use("/api/v1", v1_1.default);
 app.use("/api", v1_1.default);

@@ -5,7 +5,7 @@ const ai_service_1 = require("./ai.service");
 exports.aiController = {
     async getJobs(req, res, next) {
         try {
-            const result = await ai_service_1.aiService.getJobs(req.query);
+            const result = await ai_service_1.aiService.getJobs(req.query, req.user?.schoolId || null);
             res.sendSuccess('AI jobs fetched', result);
         }
         catch (error) {
@@ -14,7 +14,7 @@ exports.aiController = {
     },
     async getJobById(req, res, next) {
         try {
-            const result = await ai_service_1.aiService.getJobById(req.params.jobId);
+            const result = await ai_service_1.aiService.getJobById(req.params.jobId, req.user?.schoolId || null);
             res.sendSuccess('AI job fetched', result);
         }
         catch (error) {
@@ -23,7 +23,7 @@ exports.aiController = {
     },
     async getJobResult(req, res, next) {
         try {
-            const result = await ai_service_1.aiService.getJobResult(req.params.jobId);
+            const result = await ai_service_1.aiService.getJobResult(req.params.jobId, req.user?.schoolId || null);
             res.sendSuccess('AI job result', result);
         }
         catch (error) {
@@ -32,7 +32,7 @@ exports.aiController = {
     },
     async retryJob(req, res, next) {
         try {
-            const result = await ai_service_1.aiService.retryJob(req.params.jobId, req.user.role);
+            const result = await ai_service_1.aiService.retryJob(req.params.jobId, req.user.role, req.user?.schoolId || null);
             res.sendSuccess('AI job retried', result);
         }
         catch (error) {

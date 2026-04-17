@@ -3,6 +3,7 @@ import multer from 'multer';
 import { uploadsController } from './uploads.controller';
 import { authMiddleware } from '../../core/middleware/auth.middleware';
 import { env } from '../../core/config/env';
+import { BadRequestError } from '../../core/errors/AppError';
 
 export const uploadsRouter = Router();
 
@@ -61,6 +62,16 @@ const upload = multer({
 uploadsRouter.post(
   '/',
   authMiddleware,
-  upload.single('file'),
+  (req, _res, next) => {
+    upload.single('file')(req as any, _res as any, (err: any) => {
+      if (err) return next(new BadRequestError(err.message || 'Invalid upload'));
+      // Ensure safe defaults for non-multipart callers
+      (req as any).body = (req as any).body ?? {};
+      if (!(req as any).file) {
+        return next(new BadRequestError('file is required (multipart/form-data)'));
+      }
+      next();
+    });
+  },
   uploadsController.upload
 );

@@ -12,7 +12,7 @@ exports.academicModulesRouter = router;
 /**
  * @swagger
  * tags:
- *   name: AcademicModules
+ *   name: Academic Modules
  *   description: Gestion des matières et unités d'enseignement (Matières académiques)
  */
 /**
@@ -20,7 +20,7 @@ exports.academicModulesRouter = router;
  * /api/academic-modules:
  *   get:
  *     summary: "Liste de toutes les matières académiques"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -28,12 +28,6 @@ exports.academicModulesRouter = router;
  *         name: search
  *         description: Recherche par nom ou code de matière
  *         schema: { type: string }
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
  *         description: Liste paginée des matières
@@ -52,7 +46,7 @@ router.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.vali
  * /api/academic-modules/{id}:
  *   get:
  *     summary: "Détail d'une matière académique"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -70,7 +64,7 @@ router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.v
  * /api/academic-modules:
  *   post:
  *     summary: "Créer une nouvelle matière (Admin+)"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -83,7 +77,6 @@ router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.v
  *             properties:
  *               name: { type: string, example: "Algorithmique Avancée" }
  *               code: { type: string, example: "ALGO-301" }
- *               description: { type: string }
  *     responses:
  *       201:
  *         description: Matière créée avec succès
@@ -94,7 +87,7 @@ router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.require
  * /api/academic-modules/{id}:
  *   patch:
  *     summary: "Modifier une matière académique"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -110,7 +103,6 @@ router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.require
  *             properties:
  *               name: { type: string }
  *               code: { type: string }
- *               description: { type: string }
  *     responses:
  *       200:
  *         description: Informations mises à jour
@@ -121,7 +113,7 @@ router.patch('/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.req
  * /api/academic-modules/{id}:
  *   delete:
  *     summary: "Supprimer une matière (ADMIN+)"
- *     tags: [AcademicModules]
+ *     tags: [Academic Modules]
  *     security:
  *       - bearerAuth: []
  *     parameters:

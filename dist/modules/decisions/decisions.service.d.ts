@@ -1,7 +1,7 @@
 import { DecisionStatus } from '@prisma/client';
 import type { CreateDecisionInput, UpdateDecisionInput } from './decisions.types';
 export declare const decisionsService: {
-    create(input: CreateDecisionInput, userId: string, userRole: string): Promise<{
+    create(input: CreateDecisionInput, userId: string, userRole: string, schoolId?: string | null): Promise<{
         report: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -32,7 +32,7 @@ export declare const decisionsService: {
         responsible: string | null;
         aiSuggestion: string | null;
     }>;
-    getById(id: string): Promise<{
+    getById(id: string, schoolId?: string | null): Promise<{
         report: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -109,7 +109,7 @@ export declare const decisionsService: {
         responsible: string | null;
         aiSuggestion: string | null;
     }>;
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
         decider: {
             id: string;
             firstName: string;
@@ -130,7 +130,7 @@ export declare const decisionsService: {
         responsible: string | null;
         aiSuggestion: string | null;
     }>>;
-    update(id: string, input: UpdateDecisionInput, userRole: string): Promise<{
+    update(id: string, input: UpdateDecisionInput, userRole: string, schoolId?: string | null): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -144,8 +144,8 @@ export declare const decisionsService: {
         rationale: string | null;
         responsible: string | null;
         aiSuggestion: string | null;
-    }>;
-    updateStatus(id: string, status: DecisionStatus, userRole: string): Promise<{
+    } | null>;
+    updateStatus(id: string, status: DecisionStatus, userRole: string, schoolId?: string | null): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -159,21 +159,7 @@ export declare const decisionsService: {
         rationale: string | null;
         responsible: string | null;
         aiSuggestion: string | null;
-    }>;
-    delete(id: string, userRole: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        title: string;
-        priority: import("@prisma/client").$Enums.Priority;
-        status: import("@prisma/client").$Enums.DecisionStatus;
-        reportId: string | null;
-        dueDate: Date | null;
-        evaluationId: string | null;
-        deciderId: string;
-        rationale: string | null;
-        responsible: string | null;
-        aiSuggestion: string | null;
-    }>;
+    } | null>;
+    delete(id: string, userRole: string, schoolId?: string | null): Promise<import("@prisma/client").Prisma.BatchPayload>;
 };
 //# sourceMappingURL=decisions.service.d.ts.map

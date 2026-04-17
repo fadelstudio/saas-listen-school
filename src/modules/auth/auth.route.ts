@@ -53,6 +53,58 @@ authRouter.post('/register', validate({ body: registerSchema }), authController.
 
 /**
  * @swagger
+ * /api/auth/register/verify-otp:
+ *   post:
+ *     summary: "Valider l'OTP d'inscription"
+ *     description: Finalise l'inscription quand `/register` retourne `REGISTER_OTP_REQUIRED`. Renvoie la réponse de login normale (tokens + user).
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId, otp]
+ *             properties:
+ *               challengeId: { type: string, format: uuid }
+ *               otp: { type: string, example: "123456" }
+ *     responses:
+ *       200:
+ *         description: Inscription validée + tokens
+ */
+authRouter.post(
+  '/register/verify-otp',
+  validate({ body: verifyLoginOtpSchema }),
+  authController.verifyRegisterOtp
+);
+
+/**
+ * @swagger
+ * /api/auth/register/resend-otp:
+ *   post:
+ *     summary: "Renvoyer l'OTP d'inscription"
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId]
+ *             properties:
+ *               challengeId: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Code renvoyé par email.
+ */
+authRouter.post(
+  '/register/resend-otp',
+  validate({ body: resendOtpSchema }),
+  authController.resendOtp
+);
+
+/**
+ * @swagger
  * /api/auth/login:
  *   post:
  *     summary: "Connexion (Email ou Matricule)"
@@ -107,10 +159,11 @@ authRouter.post('/login', validate({ body: loginSchema }), authController.login)
  *       200:
  *         description: Validation réussie, tokens générés.
  */
+// Deprecated: OTP is registration-only. Kept for backward compatibility.
 authRouter.post(
   '/login/verify-otp',
   validate({ body: verifyLoginOtpSchema }),
-  authController.verifyLoginOtp
+  authController.verifyRegisterOtp
 );
 
 /**
@@ -132,6 +185,7 @@ authRouter.post(
  *       200:
  *         description: Code renvoyé par email.
  */
+// Deprecated: OTP is registration-only. Kept for backward compatibility.
 authRouter.post(
   '/login/resend-otp',
   validate({ body: resendOtpSchema }),

@@ -4,7 +4,7 @@ exports.decisionsRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const client_1 = require("@prisma/client");
 exports.decisionsRepository = {
-    async create(data, deciderId) {
+    async create(data, deciderId, _schoolId) {
         return prisma_1.prisma.decision.create({
             data: {
                 evaluationId: data.evaluationId,
@@ -24,9 +24,16 @@ exports.decisionsRepository = {
             },
         });
     },
-    async findById(id) {
-        return prisma_1.prisma.decision.findUnique({
-            where: { id },
+    async findById(id, schoolId) {
+        return prisma_1.prisma.decision.findFirst({
+            where: {
+                id,
+                ...(schoolId
+                    ? {
+                        OR: [{ evaluation: { schoolId } }, { report: { schoolId } }],
+                    }
+                    : {}),
+            },
             include: {
                 decider: { select: { id: true, firstName: true, lastName: true, email: true } },
                 evaluation: true,
@@ -35,8 +42,13 @@ exports.decisionsRepository = {
             },
         });
     },
-    async findAll(filters, pagination) {
+    async findAll(filters, pagination, schoolId) {
         const where = {
+            ...(schoolId
+                ? {
+                    OR: [{ evaluation: { schoolId } }, { report: { schoolId } }],
+                }
+                : {}),
             ...(filters.status && { status: filters.status }),
             ...(filters.deciderId && { deciderId: filters.deciderId }),
             ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
@@ -56,9 +68,18 @@ exports.decisionsRepository = {
         ]);
         return { items, total };
     },
-    async update(id, data) {
+    async update(id, data, schoolId) {
+        const decision = await prisma_1.prisma.decision.findFirst({
+            where: {
+                id,
+                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+            },
+            select: { id: true },
+        });
+        if (!decision)
+            return null;
         return prisma_1.prisma.decision.update({
-            where: { id },
+            where: { id: decision.id },
             data: {
                 ...(data.title !== undefined && { title: data.title }),
                 ...(data.rationale !== undefined && { rationale: data.rationale }),
@@ -68,14 +89,33 @@ exports.decisionsRepository = {
             },
         });
     },
-    async updateStatus(id, status) {
-        return prisma_1.prisma.decision.update({ where: { id }, data: { status } });
+    async updateStatus(id, status, schoolId) {
+        const decision = await prisma_1.prisma.decision.findFirst({
+            where: {
+                id,
+                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+            },
+            select: { id: true },
+        });
+        if (!decision)
+            return null;
+        return prisma_1.prisma.decision.update({ where: { id: decision.id }, data: { status } });
     },
-    async delete(id) {
-        return prisma_1.prisma.decision.delete({ where: { id } });
+    async delete(id, schoolId) {
+        return prisma_1.prisma.decision.deleteMany({
+            where: {
+                id,
+                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+            },
+        });
     },
-    async existsById(id) {
-        return (await prisma_1.prisma.decision.count({ where: { id } })) > 0;
+    async existsById(id, schoolId) {
+        return ((await prisma_1.prisma.decision.count({
+            where: {
+                id,
+                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+            },
+        })) > 0);
     },
 };
 //# sourceMappingURL=decisions.repository.js.map

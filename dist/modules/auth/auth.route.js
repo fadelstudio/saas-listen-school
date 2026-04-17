@@ -43,6 +43,48 @@ exports.authRouter = authRouter;
 authRouter.post('/register', (0, validate_middleware_1.validate)({ body: auth_schema_1.registerSchema }), auth_controller_1.authController.register);
 /**
  * @swagger
+ * /api/auth/register/verify-otp:
+ *   post:
+ *     summary: "Valider l'OTP d'inscription"
+ *     description: Finalise l'inscription quand `/register` retourne `REGISTER_OTP_REQUIRED`. Renvoie la réponse de login normale (tokens + user).
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId, otp]
+ *             properties:
+ *               challengeId: { type: string, format: uuid }
+ *               otp: { type: string, example: "123456" }
+ *     responses:
+ *       200:
+ *         description: Inscription validée + tokens
+ */
+authRouter.post('/register/verify-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.verifyLoginOtpSchema }), auth_controller_1.authController.verifyRegisterOtp);
+/**
+ * @swagger
+ * /api/auth/register/resend-otp:
+ *   post:
+ *     summary: "Renvoyer l'OTP d'inscription"
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [challengeId]
+ *             properties:
+ *               challengeId: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Code renvoyé par email.
+ */
+authRouter.post('/register/resend-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.resendOtpSchema }), auth_controller_1.authController.resendOtp);
+/**
+ * @swagger
  * /api/auth/login:
  *   post:
  *     summary: "Connexion (Email ou Matricule)"
@@ -96,7 +138,8 @@ authRouter.post('/login', (0, validate_middleware_1.validate)({ body: auth_schem
  *       200:
  *         description: Validation réussie, tokens générés.
  */
-authRouter.post('/login/verify-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.verifyLoginOtpSchema }), auth_controller_1.authController.verifyLoginOtp);
+// Deprecated: OTP is registration-only. Kept for backward compatibility.
+authRouter.post('/login/verify-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.verifyLoginOtpSchema }), auth_controller_1.authController.verifyRegisterOtp);
 /**
  * @swagger
  * /api/auth/login/resend-otp:
@@ -116,6 +159,7 @@ authRouter.post('/login/verify-otp', (0, validate_middleware_1.validate)({ body:
  *       200:
  *         description: Code renvoyé par email.
  */
+// Deprecated: OTP is registration-only. Kept for backward compatibility.
 authRouter.post('/login/resend-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.resendOtpSchema }), auth_controller_1.authController.resendOtp);
 /**
  * @swagger

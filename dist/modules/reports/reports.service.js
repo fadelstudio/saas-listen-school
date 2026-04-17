@@ -6,8 +6,9 @@ const class_modules_repository_1 = require("../class-modules/class-modules.repos
 const AppError_1 = require("../../core/errors/AppError");
 const pagination_1 = require("../../utils/pagination");
 const queue_1 = require("../../core/config/queue");
+const prisma_1 = require("../../core/database/prisma");
 exports.reportsService = {
-    async create(input, userId) {
+    async create(input, userId, schoolId) {
         let finalInput = { ...input };
         // 1. Cross-validation using the Triple-Link structure
         if (finalInput.moduleId && finalInput.classId) {
@@ -29,7 +30,15 @@ exports.reportsService = {
                 finalInput.classId = user.classId || undefined;
             }
         }
-        const report = await reports_repository_1.reportsRepository.create(finalInput, userId);
+        let resolvedSchoolId = schoolId ?? null;
+        if (!resolvedSchoolId && finalInput.classId) {
+            const cls = await prisma_1.prisma.class.findUnique({
+                where: { id: finalInput.classId },
+                select: { campus: { select: { schoolId: true } } },
+            });
+            resolvedSchoolId = cls?.campus?.schoolId ?? null;
+        }
+        const report = await reports_repository_1.reportsRepository.create(finalInput, userId, resolvedSchoolId);
         // 3. Automatic AI Trigger
         try {
             await queue_1.jobQueue.add('ai-analysis', {
@@ -42,8 +51,8 @@ exports.reportsService = {
         }
         return report;
     },
-    async getById(id, userRole) {
-        const report = await reports_repository_1.reportsRepository.findById(id);
+    async getById(id, userRole, schoolId) {
+        const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
         if (!report)
             throw new AppError_1.NotFoundError('Report');
         // Scrub author if anonymous and requester is not admin
@@ -53,7 +62,7 @@ exports.reportsService = {
         }
         return report;
     },
-    async getAll(query, userRole) {
+    async getAll(query, userRole, schoolId) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
@@ -67,7 +76,7 @@ exports.reportsService = {
             endDate: query.endDate,
             search: query.search,
         };
-        const { items, total } = await reports_repository_1.reportsRepository.findAll(filters, pagination);
+        const { items, total } = await reports_repository_1.reportsRepository.findAll(filters, pagination, schoolId ?? null);
         // Filter anonymous authors for non-admins
         if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
             items.forEach((item) => {
@@ -79,39 +88,39 @@ exports.reportsService = {
         }
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
-    async update(id, input, userId, userRole) {
-        const report = await reports_repository_1.reportsRepository.findById(id);
+    async update(id, input, userId, userRole, schoolId) {
+        const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
         if (!report)
             throw new AppError_1.NotFoundError('Report');
         // Only the author or admin/manager can update
         if (report.authorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('You do not have permission to update this report');
         }
-        return reports_repository_1.reportsRepository.update(id, input);
+        return reports_repository_1.reportsRepository.update(id, input, schoolId ?? null);
     },
-    async updateStatus(id, status, userRole) {
+    async updateStatus(id, status, userRole, schoolId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can change report status');
         }
-        const exists = await reports_repository_1.reportsRepository.existsById(id);
+        const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Report');
-        return reports_repository_1.reportsRepository.updateStatus(id, status);
+        return reports_repository_1.reportsRepository.updateStatus(id, status, schoolId ?? null);
     },
-    async delete(id, userRole) {
+    async delete(id, userRole, schoolId) {
         if (userRole !== 'ADMIN') {
             throw new AppError_1.ForbiddenError('Only ADMIN can delete reports');
         }
-        const exists = await reports_repository_1.reportsRepository.existsById(id);
+        const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Report');
-        return reports_repository_1.reportsRepository.delete(id);
+        return reports_repository_1.reportsRepository.delete(id, schoolId ?? null);
     },
-    async triggerAiAnalysis(id, userRole) {
+    async triggerAiAnalysis(id, userRole, schoolId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can trigger AI analysis');
         }
-        const exists = await reports_repository_1.reportsRepository.existsById(id);
+        const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Report');
         try {

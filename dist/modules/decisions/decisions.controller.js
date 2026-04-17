@@ -5,7 +5,7 @@ const decisions_service_1 = require("./decisions.service");
 exports.decisionsController = {
     async create(req, res, next) {
         try {
-            const result = await decisions_service_1.decisionsService.create(req.body, req.user.userId, req.user.role);
+            const result = await decisions_service_1.decisionsService.create(req.body, req.user.userId, req.user.role, req.user?.schoolId || null);
             res.sendSuccess('Decision created', result, 201);
         }
         catch (error) {
@@ -14,7 +14,7 @@ exports.decisionsController = {
     },
     async getAll(req, res, next) {
         try {
-            const result = await decisions_service_1.decisionsService.getAll(req.query);
+            const result = await decisions_service_1.decisionsService.getAll(req.query, req.user?.schoolId || null);
             res.sendSuccess('Decisions fetched', result);
         }
         catch (error) {
@@ -23,7 +23,7 @@ exports.decisionsController = {
     },
     async getById(req, res, next) {
         try {
-            const result = await decisions_service_1.decisionsService.getById(req.params.id);
+            const result = await decisions_service_1.decisionsService.getById(req.params.id, req.user?.schoolId || null);
             res.sendSuccess('Decision fetched', result);
         }
         catch (error) {
@@ -32,7 +32,7 @@ exports.decisionsController = {
     },
     async update(req, res, next) {
         try {
-            const result = await decisions_service_1.decisionsService.update(req.params.id, req.body, req.user.role);
+            const result = await decisions_service_1.decisionsService.update(req.params.id, req.body, req.user.role, req.user?.schoolId || null);
             res.sendSuccess('Decision updated', result);
         }
         catch (error) {
@@ -41,7 +41,7 @@ exports.decisionsController = {
     },
     async updateStatus(req, res, next) {
         try {
-            const result = await decisions_service_1.decisionsService.updateStatus(req.params.id, req.body.status, req.user.role);
+            const result = await decisions_service_1.decisionsService.updateStatus(req.params.id, req.body.status, req.user.role, req.user?.schoolId || null);
             res.sendSuccess('Decision status updated', result);
         }
         catch (error) {
@@ -50,7 +50,7 @@ exports.decisionsController = {
     },
     async remove(req, res, next) {
         try {
-            await decisions_service_1.decisionsService.delete(req.params.id, req.user.role);
+            await decisions_service_1.decisionsService.delete(req.params.id, req.user.role, req.user?.schoolId || null);
             res.sendSuccess('Decision deleted', null);
         }
         catch (error) {

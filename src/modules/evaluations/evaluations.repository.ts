@@ -34,7 +34,7 @@ export const evaluationsRepository = {
     });
   },
 
-  async create(data: CreateEvaluationInput, evaluatorId?: string) {
+  async create(data: CreateEvaluationInput, evaluatorId?: string, schoolId?: string | null) {
     if (
       !data.comprehensionRating ||
       !data.explanationRating ||
@@ -60,6 +60,7 @@ export const evaluationsRepository = {
         professor: { connect: { id: data.professorId } },
         module: { connect: { id: data.moduleId } },
         class: { connect: { id: data.classId } },
+        school: schoolId ? { connect: { id: schoolId } } : undefined,
         score,
         comprehensionRating: data.comprehensionRating,
         explanationRating: data.explanationRating,
@@ -79,9 +80,9 @@ export const evaluationsRepository = {
     });
   },
 
-  async findById(id: string) {
-    return prisma.evaluation.findUnique({
-      where: { id },
+  async findById(id: string, schoolId?: string | null) {
+    return prisma.evaluation.findFirst({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
       include: {
         evaluator: { select: { id: true, firstName: true, lastName: true, email: true } },
         report: { select: { id: true, title: true, status: true } },
@@ -91,8 +92,9 @@ export const evaluationsRepository = {
     });
   },
 
-  async findAll(filters: EvaluationFilters, pagination: PaginationArgs) {
+  async findAll(filters: EvaluationFilters, pagination: PaginationArgs, schoolId?: string | null) {
     const where: Prisma.EvaluationWhereInput = {
+      ...(schoolId ? { schoolId } : {}),
       ...(filters.status && { status: filters.status }),
       ...(filters.evaluatorId && { evaluatorId: filters.evaluatorId }),
       ...(filters.reportId && { reportId: filters.reportId }),
@@ -120,8 +122,8 @@ export const evaluationsRepository = {
     return { items, total };
   },
 
-  async update(id: string, data: UpdateEvaluationInput) {
-    const existing = await prisma.evaluation.findUnique({ where: { id } });
+  async update(id: string, data: UpdateEvaluationInput, schoolId?: string | null) {
+    const existing = await prisma.evaluation.findFirst({ where: { id, ...(schoolId ? { schoolId } : {}) } });
     if (!existing) {
       throw new NotFoundError('Evaluation');
     }
@@ -133,7 +135,7 @@ export const evaluationsRepository = {
     }
 
     return prisma.evaluation.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         comprehensionRating: data.comprehensionRating,
         explanationRating: data.explanationRating,
@@ -146,20 +148,21 @@ export const evaluationsRepository = {
     });
   },
 
-  async delete(id: string) {
-    return prisma.evaluation.delete({ where: { id } });
+  async delete(id: string, schoolId?: string | null) {
+    return prisma.evaluation.deleteMany({ where: { id, ...(schoolId ? { schoolId } : {}) } });
   },
 
-  async existsById(id: string): Promise<boolean> {
-    return (await prisma.evaluation.count({ where: { id } })) > 0;
+  async existsById(id: string, schoolId?: string | null): Promise<boolean> {
+    return (await prisma.evaluation.count({ where: { id, ...(schoolId ? { schoolId } : {}) } })) > 0;
   },
 
   async updateAiScore(id: string, aiScore: number) {
     return prisma.evaluation.update({ where: { id }, data: { aiScore } });
   },
 
-  async getAggregatedStats(filters: EvaluationFilters): Promise<EvaluationStats> {
+  async getAggregatedStats(filters: EvaluationFilters, schoolId?: string | null): Promise<EvaluationStats> {
     const where: Prisma.EvaluationWhereInput = {
+      ...(schoolId ? { schoolId } : {}),
       ...(filters.reportId && { reportId: filters.reportId }),
       ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
       ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),

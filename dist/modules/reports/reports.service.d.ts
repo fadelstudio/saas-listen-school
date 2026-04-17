@@ -1,7 +1,7 @@
 import { ReportStatus } from '@prisma/client';
 import type { CreateReportInput, UpdateReportInput } from './reports.types';
 export declare const reportsService: {
-    create(input: CreateReportInput, userId?: string): Promise<{
+    create(input: CreateReportInput, userId?: string, schoolId?: string | null): Promise<{
         class: {
             name: string;
             id: string;
@@ -53,7 +53,7 @@ export declare const reportsService: {
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
-    getById(id: string, userRole?: string): Promise<{
+    getById(id: string, userRole?: string, schoolId?: string | null): Promise<{
         class: {
             name: string;
             id: string;
@@ -118,7 +118,7 @@ export declare const reportsService: {
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
-    getAll(query: Record<string, unknown>, userRole?: string): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
         class: {
             name: string;
             id: string;
@@ -170,7 +170,7 @@ export declare const reportsService: {
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>>;
-    update(id: string, input: UpdateReportInput, userId: string, userRole: string): Promise<{
+    update(id: string, input: UpdateReportInput, userId: string, userRole: string, schoolId?: string | null): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
@@ -189,8 +189,8 @@ export declare const reportsService: {
         attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
-    }>;
-    updateStatus(id: string, status: ReportStatus, userRole: string): Promise<{
+    } | null>;
+    updateStatus(id: string, status: ReportStatus, userRole: string, schoolId?: string | null): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
@@ -209,28 +209,9 @@ export declare const reportsService: {
         attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
-    }>;
-    delete(id: string, userRole: string): Promise<{
-        type: import("@prisma/client").$Enums.ReportType;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        schoolId: string | null;
-        classId: string | null;
-        title: string;
-        content: string;
-        priority: import("@prisma/client").$Enums.Priority;
-        status: import("@prisma/client").$Enums.ReportStatus;
-        isAnonymous: boolean;
-        category: string | null;
-        authorId: string | null;
-        professorId: string | null;
-        moduleId: string | null;
-        attachments: import("@prisma/client/runtime/client").JsonValue | null;
-        deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
-        aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
-    }>;
-    triggerAiAnalysis(id: string, userRole: string): Promise<{
+    } | null>;
+    delete(id: string, userRole: string, schoolId?: string | null): Promise<import("@prisma/client").Prisma.BatchPayload>;
+    triggerAiAnalysis(id: string, userRole: string, schoolId?: string | null): Promise<{
         queued: boolean;
         reportId: string;
     }>;

@@ -6,8 +6,9 @@ const class_modules_repository_1 = require("../class-modules/class-modules.repos
 const AppError_1 = require("../../core/errors/AppError");
 const pagination_1 = require("../../utils/pagination");
 const queue_1 = require("../../core/config/queue");
+const prisma_1 = require("../../core/database/prisma");
 exports.evaluationsService = {
-    async create(input, userId) {
+    async create(input, userId, schoolId) {
         let finalInput = { ...input };
         // 1. Cross-validation: Triple-Link consistency
         const assignment = await class_modules_repository_1.classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId);
@@ -25,7 +26,15 @@ exports.evaluationsService = {
                 finalInput.classId = user.classId || '';
             }
         }
-        const evaluation = await evaluations_repository_1.evaluationsRepository.create(finalInput, userId);
+        let resolvedSchoolId = schoolId ?? null;
+        if (!resolvedSchoolId && finalInput.classId) {
+            const cls = await prisma_1.prisma.class.findUnique({
+                where: { id: finalInput.classId },
+                select: { campus: { select: { schoolId: true } } },
+            });
+            resolvedSchoolId = cls?.campus?.schoolId ?? null;
+        }
+        const evaluation = await evaluations_repository_1.evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
         // 3. Automatic AI Trigger
         try {
             await queue_1.jobQueue.add('ai-analysis', {
@@ -38,8 +47,8 @@ exports.evaluationsService = {
         }
         return evaluation;
     },
-    async getById(id, userRole) {
-        const evaluation = await evaluations_repository_1.evaluationsRepository.findById(id);
+    async getById(id, userRole, schoolId) {
+        const evaluation = await evaluations_repository_1.evaluationsRepository.findById(id, schoolId ?? null);
         if (!evaluation)
             throw new AppError_1.NotFoundError('Evaluation');
         // Scrub evaluator if anonymous and requester is not admin
@@ -49,7 +58,7 @@ exports.evaluationsService = {
         }
         return evaluation;
     },
-    async getAll(query, userRole) {
+    async getAll(query, userRole, schoolId) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
@@ -58,7 +67,7 @@ exports.evaluationsService = {
             startDate: query.startDate,
             endDate: query.endDate,
         };
-        const { items, total } = await evaluations_repository_1.evaluationsRepository.findAll(filters, pagination);
+        const { items, total } = await evaluations_repository_1.evaluationsRepository.findAll(filters, pagination, schoolId ?? null);
         // Filter anonymous evaluators for non-admins
         if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
             items.forEach((item) => {
@@ -70,36 +79,36 @@ exports.evaluationsService = {
         }
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
-    async update(id, input, userId, userRole) {
-        const evaluation = await evaluations_repository_1.evaluationsRepository.findById(id);
+    async update(id, input, userId, userRole, schoolId) {
+        const evaluation = await evaluations_repository_1.evaluationsRepository.findById(id, schoolId ?? null);
         if (!evaluation)
             throw new AppError_1.NotFoundError('Evaluation');
         if (evaluation.evaluatorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('You do not have permission to update this evaluation');
         }
-        return evaluations_repository_1.evaluationsRepository.update(id, input);
+        return evaluations_repository_1.evaluationsRepository.update(id, input, schoolId ?? null);
     },
-    async delete(id, userRole) {
+    async delete(id, userRole, schoolId) {
         if (userRole !== 'ADMIN')
             throw new AppError_1.ForbiddenError('Only ADMIN can delete evaluations');
-        const exists = await evaluations_repository_1.evaluationsRepository.existsById(id);
+        const exists = await evaluations_repository_1.evaluationsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Evaluation');
-        return evaluations_repository_1.evaluationsRepository.delete(id);
+        return evaluations_repository_1.evaluationsRepository.delete(id, schoolId ?? null);
     },
-    async getStats(query) {
+    async getStats(query, schoolId) {
         const filters = {
             reportId: query.reportId,
             startDate: query.startDate,
             endDate: query.endDate,
         };
-        return evaluations_repository_1.evaluationsRepository.getAggregatedStats(filters);
+        return evaluations_repository_1.evaluationsRepository.getAggregatedStats(filters, schoolId ?? null);
     },
-    async triggerAiScoring(id, userRole) {
+    async triggerAiScoring(id, userRole, schoolId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can trigger AI scoring');
         }
-        const exists = await evaluations_repository_1.evaluationsRepository.existsById(id);
+        const exists = await evaluations_repository_1.evaluationsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Evaluation');
         try {

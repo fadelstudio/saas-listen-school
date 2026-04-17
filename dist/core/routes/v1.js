@@ -16,6 +16,7 @@ const professors_route_1 = require("../../modules/professors/professors.route");
 const academic_modules_route_1 = require("../../modules/academic-modules/academic-modules.route");
 const levels_route_1 = require("../../modules/levels/levels.route");
 const system_route_1 = require("../../modules/system/system.route");
+const system_controller_1 = require("../../modules/system/system.controller");
 const uploads_route_1 = require("../../modules/uploads/uploads.route");
 const class_modules_route_1 = require("../../modules/class-modules/class-modules.route");
 const evaluation_campaigns_route_1 = require("../../modules/evaluation-campaigns/evaluation-campaigns.route");
@@ -58,6 +59,9 @@ router.use("/classes", classes_route_1.classesRouter);
 router.use("/professors", professors_route_1.professorsRouter);
 router.use("/academic-modules", academic_modules_route_1.academicModulesRouter);
 router.use("/levels", levels_route_1.levelsRouter);
+// Public bootstrapping endpoint (no auth): expose only toggles.
+// Kept here to ensure availability even if module router evolves.
+router.get("/system/public", system_controller_1.systemController.getPublicSettings);
 router.use("/system", system_route_1.systemRouter);
 router.use("/uploads", uploads_route_1.uploadsRouter);
 router.use("/assignments", class_modules_route_1.classModulesRouter);

@@ -11,6 +11,7 @@ const env_1 = require("../../core/config/env");
 const prisma_1 = require("../../core/database/prisma");
 const AppError_1 = require("../../core/errors/AppError");
 const auth_repository_1 = require("./auth.repository");
+const client_1 = require("@prisma/client");
 const mail_service_1 = require("../../core/email/mail.service");
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
@@ -18,13 +19,29 @@ const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
-async function isOtpRequired() {
-    // 1. Check ENV (global force)
+async function isRegisterOtpRequiredForSchool(schoolId) {
+    // 1) ENV can force OTP for registration globally
     if (env_1.env.LOGIN_OTP_ENABLED)
         return true;
-    // 2. Check Database Settings
-    const settings = await prisma_1.prisma.systemSettings.findFirst();
-    return settings?.authOtpRequired ?? false;
+    // 2) Per-school DB setting when available; fallback to first row for legacy single-school DBs
+    const settings = schoolId
+        ? await prisma_1.prisma.systemSettings.findUnique({ where: { schoolId } }).catch(() => null)
+        : null;
+    if (settings)
+        return settings.authOtpRequired ?? false;
+    const first = await prisma_1.prisma.systemSettings.findFirst();
+    return first?.authOtpRequired ?? false;
+}
+async function resolveSchoolIdForUser(user) {
+    if (user.schoolId)
+        return user.schoolId;
+    if (!user.campusId)
+        return null;
+    const campus = await prisma_1.prisma.campus.findUnique({
+        where: { id: user.campusId },
+        select: { schoolId: true },
+    });
+    return campus?.schoolId ?? null;
 }
 function hashOtp(otp) {
     return crypto_1.default.createHash('sha256').update(`${otp}:${env_1.env.JWT_SECRET}`).digest('hex');
@@ -52,12 +69,23 @@ function toSafeUser(user) {
     };
 }
 async function generateTokens(user) {
+    let resolvedSchoolId = user.schoolId;
+    if (user.role !== client_1.Role.SUPERADMIN && !resolvedSchoolId && user.campusId) {
+        const campus = await prisma_1.prisma.campus.findUnique({
+            where: { id: user.campusId },
+            select: { schoolId: true },
+        });
+        resolvedSchoolId = campus?.schoolId || null;
+    }
+    if (user.role !== client_1.Role.SUPERADMIN && !resolvedSchoolId) {
+        throw new AppError_1.UnauthorizedError('Account is missing school assignment. Contact an administrator.');
+    }
     const payload = {
         userId: user.id,
         role: user.role,
     };
-    if (user.schoolId != null)
-        payload.schoolId = user.schoolId;
+    if (resolvedSchoolId != null)
+        payload.schoolId = resolvedSchoolId;
     if (user.campusId != null)
         payload.campusId = user.campusId;
     if (user.classId != null)
@@ -80,7 +108,8 @@ exports.authService = {
             ...input,
             passwordHash,
         });
-        if (!(await isOtpRequired())) {
+        const schoolId = await resolveSchoolIdForUser({ schoolId: user.schoolId, campusId: user.campusId });
+        if (!(await isRegisterOtpRequiredForSchool(schoolId))) {
             const { accessToken, refreshToken } = await generateTokens({
                 id: user.id,
                 role: user.role,
@@ -90,7 +119,7 @@ exports.authService = {
             });
             return { token: accessToken, refreshToken, user: toSafeUser(user) };
         }
-        return this.sendNewLoginOtp(user);
+        return this.sendNewRegisterOtp(user);
     },
     async login(input) {
         const identifier = input.email || input.matricule;
@@ -117,40 +146,44 @@ exports.authService = {
         });
         return { token: accessToken, refreshToken, user: toSafeUser(user) };
     },
-    async sendNewLoginOtp(user) {
+    async sendNewRegisterOtp(user) {
         const otp = generateNumericOtp();
         const otpHash = hashOtp(otp);
         const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
         const challenge = await auth_repository_1.authRepository.createLoginOtpChallenge(user.id, otpHash, expiresAt);
         const otpExpiresMin = Math.floor(OTP_EXPIRY_MS / 60000);
+        const siteName = env_1.env.OTP_SITE_NAME || 'AFI-LISTEN';
+        const publicUrl = env_1.env.PUBLIC_APP_URL.replace(/\/$/, '');
+        const helpUrl = env_1.env.OTP_HELP_URL ? env_1.env.OTP_HELP_URL : publicUrl;
         const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #333;">Code de vérification AFI-LISTEN</h2>
+        <h2 style="color: #333;">Code de vérification ${siteName}</h2>
         <p>Bonjour,</p>
-        <p>Voici votre code de sécurité pour vous connecter à votre compte. Ce code est valide pendant ${otpExpiresMin} minutes.</p>
+        <p>Voici votre code de sécurité pour confirmer votre inscription. Ce code est valide pendant ${otpExpiresMin} minutes.</p>
         <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #000; border-radius: 5px; margin: 20px 0;">
           ${otp}
         </div>
         <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email en toute sécurité.</p>
+        <p style="color: #666; font-size: 12px;">Besoin d'aide ? ${helpUrl}</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} AFI-LISTEN. Tous droits réservés.</p>
+        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} ${siteName}. Tous droits réservés.</p>
       </div>
     `;
         await (0, mail_service_1.sendTransactionalEmail)({
             to: user.email,
-            subject: 'Code de connexion AFI-LISTEN',
-            text: `Votre code de connexion : ${otp}\nElle expire dans ${otpExpiresMin} minutes.`,
+            subject: env_1.env.OTP_EMAIL_SUBJECT || `Code de vérification ${siteName}`,
+            text: `Votre code de vérification : ${otp}\nIl expire dans ${otpExpiresMin} minutes.\nAide: ${helpUrl}`,
             html,
         }).catch((err) => {
             console.error('Failed to send OTP email:', err);
         });
         return {
-            step: 'EMAIL_OTP_REQUIRED',
+            step: 'REGISTER_OTP_REQUIRED',
             challengeId: challenge.id,
             expiresInSeconds: Math.floor(OTP_EXPIRY_MS / 1000),
         };
     },
-    async verifyLoginOtp(input) {
+    async verifyRegisterOtp(input) {
         const challenge = await auth_repository_1.authRepository.findLoginOtpChallengeById(input.challengeId);
         if (!challenge || challenge.expiresAt < new Date()) {
             if (challenge)
@@ -173,6 +206,11 @@ exports.authService = {
         }
         await auth_repository_1.authRepository.deleteLoginOtpChallenge(challenge.id);
         const user = challenge.user;
+        // Mark email verified after registration OTP succeeds
+        await prisma_1.prisma.user.update({
+            where: { id: user.id },
+            data: { emailVerified: true, emailVerifiedAt: new Date() },
+        });
         const { accessToken, refreshToken } = await generateTokens({
             id: user.id,
             role: user.role,
@@ -283,7 +321,7 @@ exports.authService = {
         }
         // Delete all existing challenges to avoid stale ones
         await auth_repository_1.authRepository.deleteLoginChallengesForUser(oldChallenge.userId);
-        return this.sendNewLoginOtp(oldChallenge.user);
+        return this.sendNewRegisterOtp(oldChallenge.user);
     },
 };
 //# sourceMappingURL=auth.service.js.map

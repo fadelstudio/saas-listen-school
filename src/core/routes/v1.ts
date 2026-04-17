@@ -12,6 +12,7 @@ import { professorsRouter }  from "../../modules/professors/professors.route";
 import { academicModulesRouter } from "../../modules/academic-modules/academic-modules.route";
 import { levelsRouter }          from "../../modules/levels/levels.route";
 import { systemRouter }          from "../../modules/system/system.route";
+import { systemController }      from "../../modules/system/system.controller";
 import { uploadsRouter }         from "../../modules/uploads/uploads.route";
 import { classModulesRouter }    from "../../modules/class-modules/class-modules.route";
 import { evaluationCampaignsRouter } from "../../modules/evaluation-campaigns/evaluation-campaigns.route";
@@ -57,6 +58,11 @@ router.use("/classes",          classesRouter);
 router.use("/professors",       professorsRouter);
 router.use("/academic-modules", academicModulesRouter);
 router.use("/levels",           levelsRouter);
+
+// Public bootstrapping endpoint (no auth): expose only toggles.
+// Kept here to ensure availability even if module router evolves.
+router.get("/system/public", systemController.getPublicSettings);
+
 router.use("/system",           systemRouter);
 router.use("/uploads",          uploadsRouter);
 router.use("/assignments",      classModulesRouter);

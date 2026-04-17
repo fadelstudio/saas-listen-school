@@ -31,15 +31,6 @@ exports.professorsRouter = router;
  *         name: search
  *         description: Recherche par nom ou email
  *         schema: { type: string }
- *       - in: query
- *         name: isActive
- *         schema: { type: boolean }
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
  *     responses:
  *       200:
  *         description: Liste paginée des professeurs
@@ -90,8 +81,7 @@ router.get('/:id', auth_middleware_1.authMiddleware, (0, validate_middleware_1.v
  *               firstName: { type: string, example: "Moussa" }
  *               lastName: { type: string, example: "Faye" }
  *               email: { type: string, format: email, example: "moussa.faye@afi.com" }
- *               campusId: { type: string, format: uuid, description: "Campus d'affectation principal" }
- *               matricule: { type: string, example: "PROF-2024-001" }
+ *               userId: { type: string, format: uuid, description: "Compte utilisateur existant à lier (optionnel)" }
  *     responses:
  *       201:
  *         description: Professeur créé avec succès
@@ -119,8 +109,7 @@ router.post('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.require
  *               firstName: { type: string }
  *               lastName: { type: string }
  *               email: { type: string, format: email }
- *               campusId: { type: string, format: uuid }
- *               isActive: { type: boolean }
+ *               userId: { type: string, format: uuid }
  *     responses:
  *       200:
  *         description: Informations mises à jour

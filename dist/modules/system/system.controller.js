@@ -5,9 +5,19 @@ const system_service_1 = require("./system.service");
 const AiBalancer_1 = require("../../core/ai/AiBalancer");
 const AppError_1 = require("../../core/errors/AppError");
 exports.systemController = {
+    async getPublicSettings(_req, res, next) {
+        try {
+            // Single-school friendly: expose only non-sensitive toggles to bootstrap clients.
+            const settings = await system_service_1.systemService.getPublicSettings();
+            res.sendSuccess('Public settings fetched', settings);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
     async getSettings(req, res, next) {
         try {
-            const schoolId = req.user.schoolId || req.query.schoolId;
+            const schoolId = req.user.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId is required');
             const settings = await system_service_1.systemService.getSettings(schoolId);

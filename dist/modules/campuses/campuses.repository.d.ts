@@ -2,7 +2,7 @@ import { CampusFilters } from './campuses.types';
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const campusesRepository: {
-    findAll(filters: CampusFilters, pagination: PaginationArgs): Promise<{
+    findAll(schoolId: string, filters: CampusFilters, pagination: PaginationArgs): Promise<{
         items: ({
             _count: {
                 classes: number;
@@ -18,7 +18,7 @@ export declare const campusesRepository: {
         })[];
         total: number;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId: string): Promise<({
         classes: ({
             _count: {
                 users: number;
@@ -47,23 +47,23 @@ export declare const campusesRepository: {
     update(id: string, data: {
         name?: string;
         location?: string;
-    }): Promise<{
+    }, schoolId: string): Promise<{
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
-    }>;
-    delete(id: string): Promise<{
+    } | null>;
+    delete(id: string, schoolId: string): Promise<{
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
-    }>;
-    findClasses(id: string): Promise<({
+    } | null>;
+    findClasses(id: string, schoolId: string): Promise<({
         _count: {
             users: number;
         };
@@ -82,7 +82,7 @@ export declare const campusesRepository: {
         campusId: string;
         levelId: string;
     })[]>;
-    findStudents(id: string): Promise<{
+    findStudents(id: string, schoolId: string): Promise<{
         id: string;
         email: string;
         firstName: string;
@@ -94,12 +94,12 @@ export declare const campusesRepository: {
             name: string;
         } | null;
     }[]>;
-    getStats(id: string): Promise<{
+    getStats(id: string, schoolId: string): Promise<{
         classes: number;
         students: number;
         professors: number;
     }>;
-    findProfessors(id: string): Promise<({
+    findProfessors(id: string, schoolId: string): Promise<({
         _count: {
             evaluations: number;
         };

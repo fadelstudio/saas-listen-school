@@ -5,16 +5,16 @@ const campuses_repository_1 = require("./campuses.repository");
 const pagination_1 = require("../../utils/pagination");
 const AppError_1 = require("../../core/errors/AppError");
 exports.campusesService = {
-    async getAll(query) {
+    async getAll(schoolId, query) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             search: query.search,
         };
-        const { items, total } = await campuses_repository_1.campusesRepository.findAll(filters, pagination);
+        const { items, total } = await campuses_repository_1.campusesRepository.findAll(schoolId, filters, pagination);
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
-    async getById(id) {
-        const campus = await campuses_repository_1.campusesRepository.findById(id);
+    async getById(id, schoolId) {
+        const campus = await campuses_repository_1.campusesRepository.findById(id, schoolId);
         if (!campus)
             throw new AppError_1.NotFoundError('Campus');
         return campus;
@@ -22,29 +22,29 @@ exports.campusesService = {
     async create(data) {
         return campuses_repository_1.campusesRepository.create(data);
     },
-    async update(id, data) {
-        await this.getById(id);
-        return campuses_repository_1.campusesRepository.update(id, data);
+    async update(id, data, schoolId) {
+        await this.getById(id, schoolId);
+        return campuses_repository_1.campusesRepository.update(id, data, schoolId);
     },
-    async delete(id) {
-        await this.getById(id);
-        return campuses_repository_1.campusesRepository.delete(id);
+    async delete(id, schoolId) {
+        await this.getById(id, schoolId);
+        return campuses_repository_1.campusesRepository.delete(id, schoolId);
     },
-    async getClasses(id) {
-        await this.getById(id);
+    async getClasses(id, schoolId) {
+        await this.getById(id, schoolId);
         // Directly using prisma for the linking query to avoid circular dependencies if any
-        return campuses_repository_1.campusesRepository.findClasses(id);
+        return campuses_repository_1.campusesRepository.findClasses(id, schoolId);
     },
-    async getStudents(id) {
-        await this.getById(id);
-        return campuses_repository_1.campusesRepository.findStudents(id);
+    async getStudents(id, schoolId) {
+        await this.getById(id, schoolId);
+        return campuses_repository_1.campusesRepository.findStudents(id, schoolId);
     },
-    async getStats(id) {
-        return campuses_repository_1.campusesRepository.getStats(id);
+    async getStats(id, schoolId) {
+        return campuses_repository_1.campusesRepository.getStats(id, schoolId);
     },
-    async getProfessors(id) {
-        await this.getById(id);
-        return campuses_repository_1.campusesRepository.findProfessors(id);
+    async getProfessors(id, schoolId) {
+        await this.getById(id, schoolId);
+        return campuses_repository_1.campusesRepository.findProfessors(id, schoolId);
     },
 };
 //# sourceMappingURL=campuses.service.js.map

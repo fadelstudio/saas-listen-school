@@ -7,7 +7,7 @@ export declare const reportsRepository: {
         campusId: string | null;
         classId: string | null;
     } | null>;
-    create(data: CreateReportInput, authorId?: string): Promise<{
+    create(data: CreateReportInput, authorId?: string, schoolId?: string | null): Promise<{
         class: {
             name: string;
             id: string;
@@ -59,7 +59,7 @@ export declare const reportsRepository: {
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId?: string | null): Promise<({
         class: {
             name: string;
             id: string;
@@ -124,7 +124,7 @@ export declare const reportsRepository: {
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
     }) | null>;
-    findAll(filters: ReportFilters, pagination: PaginationArgs): Promise<{
+    findAll(filters: ReportFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
         items: ({
             class: {
                 name: string;
@@ -179,7 +179,7 @@ export declare const reportsRepository: {
         })[];
         total: number;
     }>;
-    update(id: string, data: UpdateReportInput): Promise<{
+    update(id: string, data: UpdateReportInput, schoolId?: string | null): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
@@ -198,8 +198,8 @@ export declare const reportsRepository: {
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
-    }>;
-    updateStatus(id: string, status: ReportStatus): Promise<{
+    } | null>;
+    updateStatus(id: string, status: ReportStatus, schoolId?: string | null): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
         createdAt: Date;
@@ -218,7 +218,7 @@ export declare const reportsRepository: {
         attachments: Prisma.JsonValue | null;
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
-    }>;
+    } | null>;
     updateAiAnalysis(id: string, aiAnalysis: string): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
@@ -239,27 +239,8 @@ export declare const reportsRepository: {
         deviceMetadata: Prisma.JsonValue | null;
         aiAnalysis: Prisma.JsonValue | null;
     }>;
-    delete(id: string): Promise<{
-        type: import("@prisma/client").$Enums.ReportType;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        schoolId: string | null;
-        classId: string | null;
-        title: string;
-        content: string;
-        priority: import("@prisma/client").$Enums.Priority;
-        status: import("@prisma/client").$Enums.ReportStatus;
-        isAnonymous: boolean;
-        category: string | null;
-        authorId: string | null;
-        professorId: string | null;
-        moduleId: string | null;
-        attachments: Prisma.JsonValue | null;
-        deviceMetadata: Prisma.JsonValue | null;
-        aiAnalysis: Prisma.JsonValue | null;
-    }>;
-    existsById(id: string): Promise<boolean>;
+    delete(id: string, schoolId?: string | null): Promise<Prisma.BatchPayload>;
+    existsById(id: string, schoolId?: string | null): Promise<boolean>;
 };
 export {};
 //# sourceMappingURL=reports.repository.d.ts.map

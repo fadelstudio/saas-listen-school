@@ -12,6 +12,7 @@ const envSchema = z.object({
 
   // Auth
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+  // Registration OTP (first registration only). Keeps legacy name for compatibility.
   LOGIN_OTP_ENABLED: z.coerce.boolean().default(false),
 
   // Supabase
@@ -36,6 +37,11 @@ const envSchema = z.object({
   MAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
+
+  // OTP email branding (registration)
+  OTP_SITE_NAME: z.string().min(1).optional(),
+  OTP_EMAIL_SUBJECT: z.string().min(1).optional(),
+  OTP_HELP_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

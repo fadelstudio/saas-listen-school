@@ -1,7 +1,7 @@
 import { ChatInput, SynthesisInput } from './ai.types';
 import { Prisma } from '@prisma/client';
 export declare const aiService: {
-    getJobById(jobId: string): Promise<{
+    getJobById(jobId: string, schoolId?: string | null): Promise<{
         result: Prisma.JsonValue | null;
         id: string;
         createdAt: Date;
@@ -14,7 +14,7 @@ export declare const aiService: {
         errorMessage: string | null;
         decisionId: string | null;
     }>;
-    getJobs(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getJobs(query: Record<string, unknown>, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
         result: Prisma.JsonValue | null;
         id: string;
         createdAt: Date;
@@ -27,12 +27,12 @@ export declare const aiService: {
         errorMessage: string | null;
         decisionId: string | null;
     }>>;
-    getJobResult(jobId: string): Promise<{
+    getJobResult(jobId: string, schoolId?: string | null): Promise<{
         status: import("@prisma/client").$Enums.AiJobStatus;
         result: Prisma.JsonValue;
         errorMessage: string | null;
     }>;
-    retryJob(jobId: string, userRole: string): Promise<{
+    retryJob(jobId: string, userRole: string, schoolId?: string | null): Promise<{
         retried: boolean;
         jobId: string;
         reason?: undefined;

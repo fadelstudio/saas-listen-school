@@ -3,7 +3,7 @@ import { CreateDecisionInput, UpdateDecisionInput, DecisionFilters } from './dec
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const decisionsRepository: {
-    create(data: CreateDecisionInput, deciderId: string): Promise<{
+    create(data: CreateDecisionInput, deciderId: string, _schoolId?: string | null): Promise<{
         report: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -34,7 +34,7 @@ export declare const decisionsRepository: {
         responsible: string | null;
         aiSuggestion: string | null;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId?: string | null): Promise<({
         report: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -111,7 +111,7 @@ export declare const decisionsRepository: {
         responsible: string | null;
         aiSuggestion: string | null;
     }) | null>;
-    findAll(filters: DecisionFilters, pagination: PaginationArgs): Promise<{
+    findAll(filters: DecisionFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
         items: ({
             decider: {
                 id: string;
@@ -135,7 +135,7 @@ export declare const decisionsRepository: {
         })[];
         total: number;
     }>;
-    update(id: string, data: UpdateDecisionInput): Promise<{
+    update(id: string, data: UpdateDecisionInput, schoolId?: string | null): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -149,8 +149,8 @@ export declare const decisionsRepository: {
         rationale: string | null;
         responsible: string | null;
         aiSuggestion: string | null;
-    }>;
-    updateStatus(id: string, status: DecisionStatus): Promise<{
+    } | null>;
+    updateStatus(id: string, status: DecisionStatus, schoolId?: string | null): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -164,23 +164,9 @@ export declare const decisionsRepository: {
         rationale: string | null;
         responsible: string | null;
         aiSuggestion: string | null;
-    }>;
-    delete(id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        title: string;
-        priority: import("@prisma/client").$Enums.Priority;
-        status: import("@prisma/client").$Enums.DecisionStatus;
-        reportId: string | null;
-        dueDate: Date | null;
-        evaluationId: string | null;
-        deciderId: string;
-        rationale: string | null;
-        responsible: string | null;
-        aiSuggestion: string | null;
-    }>;
-    existsById(id: string): Promise<boolean>;
+    } | null>;
+    delete(id: string, schoolId?: string | null): Promise<Prisma.BatchPayload>;
+    existsById(id: string, schoolId?: string | null): Promise<boolean>;
 };
 export {};
 //# sourceMappingURL=decisions.repository.d.ts.map

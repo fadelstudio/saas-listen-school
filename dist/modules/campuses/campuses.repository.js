@@ -4,8 +4,9 @@ exports.campusesRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const client_1 = require("@prisma/client");
 exports.campusesRepository = {
-    async findAll(filters, pagination) {
+    async findAll(schoolId, filters, pagination) {
         const where = {
+            schoolId,
             ...(filters.search && {
                 name: { contains: filters.search, mode: 'insensitive' },
             }),
@@ -22,9 +23,9 @@ exports.campusesRepository = {
         ]);
         return { items, total };
     },
-    async findById(id) {
-        return prisma_1.prisma.campus.findUnique({
-            where: { id },
+    async findById(id, schoolId) {
+        return prisma_1.prisma.campus.findFirst({
+            where: { id, schoolId },
             include: {
                 classes: { include: { _count: { select: { users: true } } } },
             },
@@ -48,20 +49,26 @@ exports.campusesRepository = {
             throw error;
         }
     },
-    async update(id, data) {
+    async update(id, data, schoolId) {
+        const existing = await prisma_1.prisma.campus.findFirst({ where: { id, schoolId }, select: { id: true } });
+        if (!existing)
+            return null;
         return prisma_1.prisma.campus.update({
-            where: { id },
+            where: { id: existing.id },
             data,
         });
     },
-    async delete(id) {
+    async delete(id, schoolId) {
+        const existing = await prisma_1.prisma.campus.findFirst({ where: { id, schoolId }, select: { id: true } });
+        if (!existing)
+            return null;
         return prisma_1.prisma.campus.delete({
-            where: { id },
+            where: { id: existing.id },
         });
     },
-    async findClasses(id) {
+    async findClasses(id, schoolId) {
         return prisma_1.prisma.class.findMany({
-            where: { campusId: id },
+            where: { campusId: id, campus: { schoolId } },
             include: {
                 academicLevel: true,
                 _count: { select: { users: true } },
@@ -69,9 +76,9 @@ exports.campusesRepository = {
             orderBy: { academicLevel: { order: 'asc' } },
         });
     },
-    async findStudents(id) {
+    async findStudents(id, schoolId) {
         return prisma_1.prisma.user.findMany({
-            where: { campusId: id, role: 'STUDENT' },
+            where: { campusId: id, role: 'STUDENT', schoolId },
             select: {
                 id: true,
                 email: true,
@@ -85,17 +92,17 @@ exports.campusesRepository = {
             orderBy: { lastName: 'asc' },
         });
     },
-    async getStats(id) {
+    async getStats(id, schoolId) {
         const [classes, students, professors] = await Promise.all([
-            prisma_1.prisma.class.count({ where: { campusId: id } }),
-            prisma_1.prisma.user.count({ where: { campusId: id, role: 'STUDENT' } }),
-            prisma_1.prisma.professor.count({ where: { campusId: id } }),
+            prisma_1.prisma.class.count({ where: { campusId: id, campus: { schoolId } } }),
+            prisma_1.prisma.user.count({ where: { campusId: id, role: 'STUDENT', schoolId } }),
+            prisma_1.prisma.professor.count({ where: { campusId: id, campus: { schoolId } } }),
         ]);
         return { classes, students, professors };
     },
-    async findProfessors(id) {
+    async findProfessors(id, schoolId) {
         return prisma_1.prisma.professor.findMany({
-            where: { campusId: id },
+            where: { campusId: id, campus: { schoolId } },
             include: {
                 _count: { select: { evaluations: true } },
             },

@@ -28,10 +28,9 @@ exports.decisionsRouter = (0, express_1.Router)();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [title, priority]
+ *             required: [evaluationId, title]
  *             properties:
- *               evaluationId: { type: string, format: uuid, description: "ID de l'évaluation liée (optionnel)" }
- *               reportId: { type: string, format: uuid, description: "ID du signalement lié (optionnel)" }
+ *               evaluationId: { type: string, format: uuid, description: "ID de l'évaluation liée (requis)" }
  *               title: { type: string, example: "Réparation climatisation" }
  *               rationale: { type: string, example: "Suite aux nombreux signalements sur la chaleur en salle 12." }
  *               priority: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL], default: MEDIUM }
@@ -58,17 +57,14 @@ exports.decisionsRouter.post('/', auth_middleware_1.authMiddleware, (0, validate
  *         name: priority
  *         schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
  *       - in: query
- *         name: search
- *         schema: { type: string }
- *       - in: query
  *         name: deciderId
  *         schema: { type: string, format: uuid }
  *       - in: query
- *         name: startDate
- *         schema: { type: string, format: date }
+ *         name: sortBy
+ *         schema: { type: string }
  *       - in: query
- *         name: endDate
- *         schema: { type: string, format: date }
+ *         name: sortOrder
+ *         schema: { type: string, enum: [asc, desc] }
  *       - in: query
  *         name: page
  *         schema: { type: integer, default: 1 }

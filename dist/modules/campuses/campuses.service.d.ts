@@ -1,5 +1,5 @@
 export declare const campusesService: {
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
         _count: {
             classes: number;
             users: number;
@@ -12,7 +12,7 @@ export declare const campusesService: {
         schoolId: string;
         location: string | null;
     }>>;
-    getById(id: string): Promise<{
+    getById(id: string, schoolId: string): Promise<{
         classes: ({
             _count: {
                 users: number;
@@ -41,23 +41,23 @@ export declare const campusesService: {
     update(id: string, data: {
         name?: string;
         location?: string;
-    }): Promise<{
+    }, schoolId: string): Promise<{
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
-    }>;
-    delete(id: string): Promise<{
+    } | null>;
+    delete(id: string, schoolId: string): Promise<{
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
-    }>;
-    getClasses(id: string): Promise<({
+    } | null>;
+    getClasses(id: string, schoolId: string): Promise<({
         _count: {
             users: number;
         };
@@ -76,7 +76,7 @@ export declare const campusesService: {
         campusId: string;
         levelId: string;
     })[]>;
-    getStudents(id: string): Promise<{
+    getStudents(id: string, schoolId: string): Promise<{
         id: string;
         email: string;
         firstName: string;
@@ -88,12 +88,12 @@ export declare const campusesService: {
             name: string;
         } | null;
     }[]>;
-    getStats(id: string): Promise<{
+    getStats(id: string, schoolId: string): Promise<{
         classes: number;
         students: number;
         professors: number;
     }>;
-    getProfessors(id: string): Promise<({
+    getProfessors(id: string, schoolId: string): Promise<({
         _count: {
             evaluations: number;
         };

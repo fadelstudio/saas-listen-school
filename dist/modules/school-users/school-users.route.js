@@ -11,7 +11,7 @@ exports.schoolUsersRouter.use(auth_middleware_1.authMiddleware);
 /**
  * @swagger
  * tags:
- *   name: School users
+ *   name: School Users
  *   description: Gestion des comptes par l'administrateur d'école (ADMIN)
  */
 /**
@@ -37,7 +37,7 @@ exports.schoolUsersRouter.use(auth_middleware_1.authMiddleware);
  *   get:
  *     summary: "[ADMIN+] Lister le personnel administratif"
  *     description: Récupère uniquement les utilisateurs avec les rôles ADMIN, MANAGER, AGENT ou VIEWER.
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -83,7 +83,7 @@ exports.schoolUsersRouter.get('/staff', (0, validate_middleware_1.validate)({ qu
  *   get:
  *     summary: "[MANAGER+] Lister les étudiants"
  *     description: Récupère uniquement les utilisateurs avec le rôle STUDENT.
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -124,7 +124,7 @@ exports.schoolUsersRouter.get('/students', (0, validate_middleware_1.validate)({
  * /api/school-users/{id}:
  *   get:
  *     summary: Récupérer le détail d'un utilisateur
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -146,7 +146,7 @@ exports.schoolUsersRouter.get('/:id', (0, validate_middleware_1.validate)({ para
  * /api/school-users:
  *   post:
  *     summary: Créer un utilisateur (Par ADMIN campus)
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -174,7 +174,7 @@ exports.schoolUsersRouter.post('/', (0, validate_middleware_1.validate)({ body: 
  * /api/school-users:
  *   get:
  *     summary: Lister TOUS les utilisateurs (Filtres globaux)
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -209,7 +209,7 @@ exports.schoolUsersRouter.get('/', (0, validate_middleware_1.validate)({ query: 
  * /api/school-users/{id}:
  *   patch:
  *     summary: Mettre à jour un compte utilisateur
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -236,7 +236,7 @@ exports.schoolUsersRouter.patch('/:id', (0, validate_middleware_1.validate)({ pa
  * /api/school-users/{id}:
  *   delete:
  *     summary: Supprimer un compte
- *     tags: [School users]
+ *     tags: [School Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:

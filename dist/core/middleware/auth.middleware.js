@@ -8,7 +8,8 @@ exports.requireRole = requireRole;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const AppError_1 = require("../errors/AppError");
-function authMiddleware(req, _res, next) {
+const prisma_1 = require("../database/prisma");
+async function authMiddleware(req, _res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
         throw new AppError_1.UnauthorizedError("Missing or malformed authorization header");
@@ -16,6 +17,20 @@ function authMiddleware(req, _res, next) {
     const token = authHeader.slice(7);
     try {
         const payload = jsonwebtoken_1.default.verify(token, env_1.env.JWT_SECRET);
+        if (payload.role !== "SUPERADMIN" && !payload.schoolId) {
+            const user = await prisma_1.prisma.user.findUnique({
+                where: { id: payload.userId },
+                select: {
+                    schoolId: true,
+                    campus: { select: { schoolId: true } },
+                },
+            });
+            const resolvedSchoolId = user?.schoolId || user?.campus?.schoolId || null;
+            if (!resolvedSchoolId) {
+                throw new AppError_1.UnauthorizedError("Token missing school context. Please log in again.");
+            }
+            payload.schoolId = resolvedSchoolId;
+        }
         req.user = payload;
         next();
     }

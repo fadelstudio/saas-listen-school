@@ -7,13 +7,13 @@ import { logger } from '../../utils/logger';
 import { AiJobStatus, Prisma } from '@prisma/client';
 
 export const aiService = {
-  async getJobById(jobId: string) {
-    const job = await aiRepository.findJobById(jobId);
+  async getJobById(jobId: string, schoolId?: string | null) {
+    const job = await aiRepository.findJobById(jobId, schoolId ?? null);
     if (!job) throw new NotFoundError('AI Job');
     return job;
   },
 
-  async getJobs(query: Record<string, unknown>) {
+  async getJobs(query: Record<string, unknown>, schoolId?: string | null) {
     const pagination = parsePagination(query);
     const filters: AiJobFilters = {
       status:       query.status as string | undefined,
@@ -21,20 +21,20 @@ export const aiService = {
       reportId:     query.reportId as string | undefined,
       evaluationId: query.evaluationId as string | undefined,
     };
-    const { items, total } = await aiRepository.findJobs(filters, pagination);
+    const { items, total } = await aiRepository.findJobs(filters, pagination, schoolId ?? null);
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
-  async getJobResult(jobId: string) {
-    const job = await aiRepository.findJobById(jobId);
+  async getJobResult(jobId: string, schoolId?: string | null) {
+    const job = await aiRepository.findJobById(jobId, schoolId ?? null);
     if (!job) throw new NotFoundError('AI Job');
     return { status: job.status, result: job.result, errorMessage: job.errorMessage };
   },
 
-  async retryJob(jobId: string, userRole: string) {
+  async retryJob(jobId: string, userRole: string, schoolId?: string | null) {
     if (userRole !== 'ADMIN') throw new ForbiddenError('Only ADMIN can retry AI jobs');
 
-    const job = await aiRepository.findJobById(jobId);
+    const job = await aiRepository.findJobById(jobId, schoolId ?? null);
     if (!job) throw new NotFoundError('AI Job');
 
     try {
