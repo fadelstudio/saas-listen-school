@@ -108,7 +108,7 @@ authRouter.post(
  * /api/auth/login:
  *   post:
  *     summary: "Connexion (Email ou Matricule)"
- *     description: Identifie l'utilisateur via son email ou son matricule unique.
+ *     description: Identifie l'utilisateur via son email ou son matricule unique. Retourne directement les tokens (OTP non requis au login).
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -142,8 +142,8 @@ authRouter.post('/login', validate({ body: loginSchema }), authController.login)
  * @swagger
  * /api/auth/login/verify-otp:
  *   post:
- *     summary: "Valider un OTP de connexion"
- *     description: Finalise la connexion quand le backend retourne `EMAIL_OTP_REQUIRED`.
+ *     summary: "[DEPRECATED] Valider un OTP"
+ *     description: Compatibilité legacy. Utiliser `/api/auth/register/verify-otp` pour le flux OTP d'inscription.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -170,7 +170,8 @@ authRouter.post(
  * @swagger
  * /api/auth/login/resend-otp:
  *   post:
- *     summary: "Renvoyer un code de validation"
+ *     summary: "[DEPRECATED] Renvoyer un OTP"
+ *     description: Compatibilité legacy. Utiliser `/api/auth/register/resend-otp`.
  *     tags: [Auth]
  *     requestBody:
  *       required: true

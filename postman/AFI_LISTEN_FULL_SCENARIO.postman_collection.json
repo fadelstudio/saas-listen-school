@@ -227,6 +227,7 @@
             { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); pm.collectionVariables.set('evaluationId', pm.response.json().data.id);" ] } }
           ],
           "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\"professorId\":\"{{profId}}\",\"moduleId\":\"{{moduleId}}\",\"classId\":\"{{classId}}\",\"comprehensionRating\":\"GOOD\",\"explanationRating\":\"GOOD\",\"pedagogyRating\":\"GOOD\",\"availabilityRating\":\"GOOD\",\"rhythmRating\":\"GOOD\",\"comment\":\"Très bon cours\",\"isAnonymous\":true}" },
