@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { campusesService } from './campuses.service';
+import { BadRequestError } from '../../core/errors/AppError';
 
 export const campusesController = {
   async getAll(req: Request, res: Response, next: NextFunction) {
@@ -27,7 +28,14 @@ export const campusesController = {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const campus = await campusesService.create(req.body);
+      const schoolId = req.user?.schoolId || (req.body.schoolId as string | undefined);
+      if (!schoolId) {
+        throw new BadRequestError('schoolId is required to create a campus');
+      }
+      const campus = await campusesService.create({
+        ...req.body,
+        schoolId,
+      });
       res.sendSuccess('Campus created', campus, 201);
     } catch (error) {
       next(error);

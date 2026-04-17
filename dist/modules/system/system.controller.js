@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.systemController = void 0;
 const system_service_1 = require("./system.service");
 const AiBalancer_1 = require("../../core/ai/AiBalancer");
+const AppError_1 = require("../../core/errors/AppError");
 exports.systemController = {
     async getSettings(req, res, next) {
         try {
             const schoolId = req.user.schoolId || req.query.schoolId;
             if (!schoolId)
-                throw new Error('schoolId is required');
+                throw new AppError_1.BadRequestError('schoolId is required');
             const settings = await system_service_1.systemService.getSettings(schoolId);
             res.sendSuccess('Settings fetched successfully', settings);
         }
@@ -20,7 +21,7 @@ exports.systemController = {
         try {
             const schoolId = req.user.schoolId;
             if (!schoolId)
-                throw new Error('schoolId context missing');
+                throw new AppError_1.BadRequestError('schoolId context missing');
             const settings = await system_service_1.systemService.updateSettings(schoolId, req.body);
             res.sendSuccess('Settings updated successfully', settings);
         }

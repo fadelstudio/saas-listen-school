@@ -37,9 +37,23 @@ export const campusesRepository = {
   },
 
   async create(data: { name: string; schoolId: string; location?: string }) {
-    return prisma.campus.create({
-      data,
-    });
+    try {
+      return await prisma.campus.create({
+        data,
+      });
+    } catch (error) {
+      // Legacy single-school DB: campuses table may not have schoolId.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2022'
+      ) {
+        const { schoolId: _ignored, ...legacyData } = data;
+        return (prisma as any).campus.create({
+          data: legacyData,
+        });
+      }
+      throw error;
+    }
   },
 
   async update(id: string, data: { name?: string; location?: string }) {

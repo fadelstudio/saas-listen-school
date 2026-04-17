@@ -43,14 +43,7 @@ export declare const campusesRepository: {
         name: string;
         schoolId: string;
         location?: string;
-    }): Promise<{
-        name: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        schoolId: string;
-        location: string | null;
-    }>;
+    }): Promise<any>;
     update(id: string, data: {
         name?: string;
         location?: string;
