@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.campusesController = void 0;
 const campuses_service_1 = require("./campuses.service");
+const AppError_1 = require("../../core/errors/AppError");
 exports.campusesController = {
     async getAll(req, res, next) {
         try {
@@ -28,7 +29,14 @@ exports.campusesController = {
     },
     async create(req, res, next) {
         try {
-            const campus = await campuses_service_1.campusesService.create(req.body);
+            const schoolId = req.user?.schoolId || req.body.schoolId;
+            if (!schoolId) {
+                throw new AppError_1.BadRequestError('schoolId is required to create a campus');
+            }
+            const campus = await campuses_service_1.campusesService.create({
+                ...req.body,
+                schoolId,
+            });
             res.sendSuccess('Campus created', campus, 201);
         }
         catch (error) {

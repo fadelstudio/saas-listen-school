@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.campusesRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
+const client_1 = require("@prisma/client");
 exports.campusesRepository = {
     async findAll(filters, pagination) {
         const where = {
@@ -30,9 +31,22 @@ exports.campusesRepository = {
         });
     },
     async create(data) {
-        return prisma_1.prisma.campus.create({
-            data,
-        });
+        try {
+            return await prisma_1.prisma.campus.create({
+                data,
+            });
+        }
+        catch (error) {
+            // Legacy single-school DB: campuses table may not have schoolId.
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === 'P2022') {
+                const { schoolId: _ignored, ...legacyData } = data;
+                return prisma_1.prisma.campus.create({
+                    data: legacyData,
+                });
+            }
+            throw error;
+        }
     },
     async update(id, data) {
         return prisma_1.prisma.campus.update({

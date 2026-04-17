@@ -32,6 +32,10 @@ function errorMiddleware(err, _req, res, _next) {
             res.sendError("Resource not found or already deleted.", 404);
             return;
         }
+        if (code === 'P2022') {
+            res.sendError("Database schema is outdated. Please run the latest migrations.", 500);
+            return;
+        }
         res.sendError("A database error occurred.", 422);
         return;
     }

@@ -79,8 +79,8 @@ authRouter.post('/login', (0, validate_middleware_1.validate)({ body: auth_schem
  * @swagger
  * /api/auth/login/verify-otp:
  *   post:
- *     summary: "Valider l'inscription par OTP"
- *     description: Nécessaire uniquement lors du flux d'inscription si l'OTP est activé.
+ *     summary: "Valider un OTP de connexion"
+ *     description: Finalise la connexion quand le backend retourne `EMAIL_OTP_REQUIRED`.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -150,10 +150,11 @@ authRouter.post('/forgot-password', (0, validate_middleware_1.validate)({ body: 
  *         application/json:
  *           schema:
  *             type: object
- *             required: [token, newPassword]
+ *             required: [token, newPassword, confirmPassword]
  *             properties:
  *               token: { type: string, description: "Token reçu par email" }
  *               newPassword: { type: string, minLength: 8, example: "NouveauMdp123!" }
+ *               confirmPassword: { type: string, minLength: 8, example: "NouveauMdp123!" }
  *     responses:
  *       200:
  *         description: Mot de passe mis à jour.
@@ -209,10 +210,11 @@ authRouter.patch('/me', auth_middleware_1.authMiddleware, (0, validate_middlewar
  *         application/json:
  *           schema:
  *             type: object
- *             required: [oldPassword, newPassword]
+ *             required: [currentPassword, newPassword, confirmPassword]
  *             properties:
- *               oldPassword: { type: string }
+ *               currentPassword: { type: string }
  *               newPassword: { type: string, minLength: 8 }
+ *               confirmPassword: { type: string, minLength: 8 }
  *     responses:
  *       200:
  *         description: Réussi. Les autres sessions sont maintenues.

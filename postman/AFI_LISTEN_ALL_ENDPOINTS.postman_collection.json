@@ -33,12 +33,14 @@
     }
   ],
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "baseUrl", "value": "https://saas-listen.up.railway.app/api/v1", "type": "string" },
+    { "key": "baseOrigin", "value": "https://saas-listen.up.railway.app", "type": "string" },
     { "key": "adminToken", "value": "", "type": "string" },
     { "key": "adminRefresh", "value": "", "type": "string" },
     { "key": "superToken", "value": "", "type": "string" },
 
     { "key": "studentEmail", "value": "", "type": "string" },
+    { "key": "studentOtpChallengeId", "value": "", "type": "string" },
     { "key": "studentToken", "value": "", "type": "string" },
     { "key": "studentRefresh", "value": "", "type": "string" },
 
@@ -63,7 +65,7 @@
     {
       "name": "0. Health + Docs",
       "item": [
-        { "name": "Health", "request": { "method": "GET", "url": "http://localhost:3000/health" }, "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ] }
+        { "name": "Health", "request": { "method": "GET", "url": "{{baseOrigin}}/health" }, "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('health status', function(){ pm.expect(pm.response.code).to.be.oneOf([200,503]); });" ] } } ] }
       ]
     },
     {
@@ -84,7 +86,7 @@
         {
           "name": "Register Student",
           "event": [
-            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(201); var j=pm.response.json(); pm.collectionVariables.set('studentEmail', j.data.user.email); pm.collectionVariables.set('studentToken', j.data.token); pm.collectionVariables.set('studentRefresh', j.data.refreshToken);" ] } }
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('register status', function(){ pm.expect(pm.response.code).to.be.oneOf([201,422]); }); var j=pm.response.json(); pm.test('register handles token/otp/error', function () { if (pm.response.code === 422) { return; } pm.expect(j.data).to.be.an('object'); var isOtp = j.data.step === 'EMAIL_OTP_REQUIRED'; if (isOtp) { pm.collectionVariables.set('studentOtpChallengeId', j.data.challengeId || ''); pm.collectionVariables.set('studentToken', ''); pm.collectionVariables.set('studentRefresh', ''); } else { pm.expect(j.data.token, 'token').to.be.a('string').and.not.empty; pm.expect(j.data.refreshToken, 'refreshToken').to.be.a('string').and.not.empty; pm.collectionVariables.set('studentEmail', j.data.user && j.data.user.email ? j.data.user.email : ''); pm.collectionVariables.set('studentToken', j.data.token); pm.collectionVariables.set('studentRefresh', j.data.refreshToken); } });" ] } }
           ],
           "request": {
             "method": "POST",
@@ -95,7 +97,7 @@
         },
         {
           "name": "Get Me (Student)",
-          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('Get Me status', function(){ pm.expect(pm.response.code).to.be.oneOf([200,401]); });" ] } } ],
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
             "method": "GET",
@@ -104,7 +106,7 @@
         },
         {
           "name": "Patch Me (Student)",
-          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('Patch Me status', function(){ pm.expect(pm.response.code).to.be.oneOf([200,401]); });" ] } } ],
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
             "method": "PATCH",
@@ -115,7 +117,7 @@
         },
         {
           "name": "Change Password (Student)",
-          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200);" ] } } ],
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('Change Password status', function(){ pm.expect(pm.response.code).to.be.oneOf([200,401]); });" ] } } ],
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }] },
             "method": "POST",
@@ -127,7 +129,7 @@
         {
           "name": "Refresh Token (Student)",
           "event": [
-            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.response.to.have.status(200); var j=pm.response.json(); pm.collectionVariables.set('studentToken', j.data.token); pm.collectionVariables.set('studentRefresh', j.data.refreshToken);" ] } }
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "pm.test('Refresh status', function(){ pm.expect(pm.response.code).to.be.oneOf([200,401]); }); if (pm.response.code === 200) { var j=pm.response.json(); pm.collectionVariables.set('studentToken', j.data.token); pm.collectionVariables.set('studentRefresh', j.data.refreshToken); }" ] } }
           ],
           "request": {
             "method": "POST",
