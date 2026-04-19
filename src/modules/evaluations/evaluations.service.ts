@@ -49,16 +49,6 @@ export const evaluationsService = {
 
     const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
 
-    // 3. Automatic AI Trigger
-    try {
-      await jobQueue.add('ai-analysis', {
-        type: 'evaluation-scoring',
-        evaluationId: evaluation.id,
-      });
-    } catch (error) {
-      console.warn('⚠️ Could not auto-enqueue AI scoring (Redis down?):', error);
-    }
-
     return evaluation;
   },
 

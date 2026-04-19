@@ -87,22 +87,22 @@ export const evaluationCampaignsRepository = {
     scope: string;
     classId?: string;
     campusId?: string;
-    moduleId: string;
-    professorId: string;
+    moduleId?: string;
+    professorId?: string;
     dueDate: Date;
   }) {
     return prisma.evaluationCampaign.create({
       data: {
         title: data.title,
-        description: data.description,
+        description: data.description || undefined,
         scope: data.scope,
-        classId: data.classId,
-        campusId: data.campusId,
-        moduleId: data.moduleId,
-        professorId: data.professorId,
+        classId: data.classId || undefined,
+        campusId: data.campusId || undefined,
+        moduleId: data.moduleId || undefined,
+        professorId: data.professorId || undefined,
         dueDate: data.dueDate,
         status: 'ACTIVE',
-      },
+      } as any,
     });
   },
 
@@ -151,8 +151,8 @@ export const evaluationCampaignsRepository = {
     const avgAiScore = campaign.evaluations.reduce((acc, curr) => acc + (curr.aiScore || 0), 0) / (totalDone || 1);
 
     // Get the decision if it exists
-    const decision = await prisma.decision.findUnique({
-      where: { campaignId: id },
+    const decision = await prisma.decision.findFirst({
+      where: { campaignId: id } as any,
       include: { decider: { select: { firstName: true, lastName: true } } },
     });
 

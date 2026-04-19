@@ -11,12 +11,14 @@ export const createEvaluationCampaignSchema = z.object({
   scope: z.enum(['CLASS', 'CAMPUS', 'SCHOOL']).default('CLASS'),
   classId: idStringSchema.optional(),
   campusId: idStringSchema.optional(),
-  moduleId: idStringSchema,
-  professorId: idStringSchema,
+  moduleId: idStringSchema.optional(),
+  professorId: idStringSchema.optional(),
   dueDate: z.string().datetime({ offset: true }),
 }).superRefine((val, ctx) => {
-  if (val.scope === 'CLASS' && !val.classId) {
-    ctx.addIssue({ code: 'custom', message: 'classId is required when scope=CLASS', path: ['classId'] });
+  if (val.scope === 'CLASS') {
+    if (!val.classId) ctx.addIssue({ code: 'custom', message: 'classId is required when scope=CLASS', path: ['classId'] });
+    if (!val.moduleId) ctx.addIssue({ code: 'custom', message: 'moduleId is required when scope=CLASS', path: ['moduleId'] });
+    if (!val.professorId) ctx.addIssue({ code: 'custom', message: 'professorId is required when scope=CLASS', path: ['professorId'] });
   }
   if (val.scope === 'CAMPUS' && !val.campusId) {
     ctx.addIssue({ code: 'custom', message: 'campusId is required when scope=CAMPUS', path: ['campusId'] });

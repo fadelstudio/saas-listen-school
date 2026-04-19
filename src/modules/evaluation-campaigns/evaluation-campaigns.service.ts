@@ -29,14 +29,14 @@ async function assertProfessorInSchool(professorId: string, schoolId: string) {
 
 export const evaluationCampaignsService = {
   async create(data: CreateEvaluationCampaignInput, schoolId: string) {
-    const module = await prisma.module.findFirst({
-      where: { id: data.moduleId, schoolId },
-    });
-    if (!module) throw new BadRequestError('Module not found in this school');
-
-    await assertProfessorInSchool(data.professorId, schoolId);
-
     if (data.scope === 'CLASS') {
+      const module = await prisma.module.findFirst({
+        where: { id: data.moduleId!, schoolId },
+      });
+      if (!module) throw new BadRequestError('Module not found in this school');
+
+      await assertProfessorInSchool(data.professorId!, schoolId);
+
       const cls = await prisma.class.findFirst({
         where: { id: data.classId!, campus: { schoolId } },
       });
@@ -70,7 +70,7 @@ export const evaluationCampaignsService = {
       scope: 'CLASS' | 'CAMPUS' | 'SCHOOL';
       class?: { users: { id: string }[] } | null;
       campus?: { users: { id: string; role: string }[] } | null;
-      module: { name: string };
+      module?: { name: string };
     } | null;
 
     if (detailedCampaign) {
@@ -94,7 +94,9 @@ export const evaluationCampaignsService = {
         studentIds.map((userId: string) =>
           notificationService.create({
             title: `Nouvelle évaluation demandée: ${campaign.title}`,
-            message: `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`,
+            message: detailedCampaign.module 
+              ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
+              : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
             type: 'EVALUATION_CAMPAIGN',
             userId,
             campaignId: campaign.id,
@@ -141,10 +143,8 @@ export const evaluationCampaignsService = {
       await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
       analytics.campaign.status = 'COMPLETED';
       
-      // Auto-trigger analysis if all evaluations are AI-scored
-      const allScored = analytics.campaign.evaluations.every(e => e.aiScore !== null);
-      if (allScored && !analytics.decision) {
-        // Enqueue or run analysis without waiting (fire and forget for this call)
+      // Trigger global analysis if no decision exists
+      if (!analytics.decision) {
         this.generatePostDeadlineAnalysis(id, 'SYSTEM', schoolId).catch(err => 
           logger.error('Auto-analysis failed', { error: err })
         );
@@ -154,6 +154,46 @@ export const evaluationCampaignsService = {
     return analytics;
   },
 
+  async sendReminders(id: string, schoolId: string) {
+    const campaignRaw = await evaluationCampaignsRepository.findById(id, schoolId);
+    if (!campaignRaw) throw new NotFoundError('EvaluationCampaign');
+    const campaign = campaignRaw as unknown as {
+      id: string; title: string; scope: string; module?: { name: string };
+      class?: { users: { id: string }[] }; campus?: { users: { id: string; role: string }[] };
+    };
+
+    let allStudentIds: string[] = [];
+    if (campaign.scope === 'CLASS' && campaign.class?.users) {
+      allStudentIds = campaign.class.users.map((u) => u.id);
+    } else if (campaign.scope === 'CAMPUS') {
+      allStudentIds = (campaign.campus?.users ?? []).filter(u => u.role === 'STUDENT').map((u) => u.id);
+    } else if (campaign.scope === 'SCHOOL') {
+      const users = await prisma.user.findMany({ where: { role: 'STUDENT', schoolId }, select: { id: true } });
+      allStudentIds = users.map((u) => u.id);
+    }
+
+    const doneEvaluations = await prisma.evaluation.findMany({
+      where: { campaignId: id, schoolId }, select: { evaluatorId: true },
+    });
+    const doneIds = new Set(doneEvaluations.map(e => e.evaluatorId).filter(Boolean));
+    const missingIds = allStudentIds.filter(id => !doneIds.has(id));
+
+    await Promise.all(
+      missingIds.map((userId: string) =>
+        notificationService.create({
+          title: `Rappel: Évaluation requise pour ${campaign.title}`,
+          message: campaign.module 
+              ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
+              : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
+          type: 'EVALUATION_CAMPAIGN_REMINDER',
+          userId,
+          campaignId: campaign.id,
+          schoolId,
+        })
+      )
+    ).catch((e) => logger.error('Failed to send campaign reminders', { error: e }));
+  },
+
   async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {
     const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
     if (!analytics) throw new NotFoundError('EvaluationCampaign');
@@ -161,18 +201,20 @@ export const evaluationCampaignsService = {
     const { stats, campaign } = analytics;
     
     // 1. Check if a decision already exists
-    const existing = await prisma.decision.findUnique({ where: { campaignId: id } });
+    const existing = await prisma.decision.findFirst({ where: { campaignId: id } as any });
     if (existing) return existing;
 
     // 2. Build context for AI
     const context = `
       Campagne: ${campaign.title}
-      Module: ${campaign.module.name}
-      Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}
+      Périmètre: ${campaign.scope}
+      ${campaign.module ? `Module: ${campaign.module.name}` : ''}
+      ${campaign.professor ? `Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}` : ''}
       Stats: ${stats.totalDone}/${stats.totalExpected} participations (${stats.completionRate}%).
       Score Moyen Académique: ${stats.avgScore}/20.
-      Score Moyen IA (Sentiment): ${stats.avgAiScore}/20.
-      Commentaires récents: ${campaign.evaluations.slice(0, 10).map((e: any) => e.comment).join(' | ')}
+      
+      Liste des commentaires étudiants :
+      ${campaign.evaluations.map((e: any) => `- [Note: ${e.score}/20] ${e.comment || 'Sans commentaire'}`).join('\n')}
     `;
 
     // 3. Call AI for Synthesis & Decision Suggestion
@@ -206,7 +248,7 @@ export const evaluationCampaignsService = {
         aiSuggestion: aiParsed.recommendation,
         status: 'PENDING',
         priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
-      },
+      } as any,
       include: { decider: { select: { firstName: true, lastName: true } } }
     });
 

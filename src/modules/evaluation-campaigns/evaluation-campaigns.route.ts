@@ -148,6 +148,13 @@ router.get(
 );
 
 router.post(
+  '/:id/remind',
+  requireRole(Role.ADMIN),
+  validate({ params: evaluationCampaignIdParamsSchema }),
+  evaluationCampaignsController.remind
+);
+
+router.post(
   '/:id/analyze',
   requireRole(Role.ADMIN),
   validate({ params: evaluationCampaignIdParamsSchema }),

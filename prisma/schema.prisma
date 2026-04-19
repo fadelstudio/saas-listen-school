@@ -517,8 +517,8 @@ model EvaluationCampaign {
   scope       String   @default("CLASS") // CLASS | CAMPUS | SCHOOL
   classId     String?
   campusId    String?
-  moduleId    String
-  professorId String
+  moduleId    String?
+  professorId String?
   status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
   dueDate     DateTime // end date (deadline)
   
@@ -527,8 +527,8 @@ model EvaluationCampaign {
 
   class       Class?    @relation(fields: [classId], references: [id])
   campus      Campus?   @relation(fields: [campusId], references: [id])
-  module      Module   @relation(fields: [moduleId], references: [id])
-  professor   Professor @relation(fields: [professorId], references: [id])
+  module      Module?   @relation(fields: [moduleId], references: [id])
+  professor   Professor? @relation(fields: [professorId], references: [id])
   evaluations Evaluation[]
   notifications Notification[]
   decision    Decision?

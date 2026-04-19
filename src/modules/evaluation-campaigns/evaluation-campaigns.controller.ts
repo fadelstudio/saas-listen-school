@@ -67,4 +67,14 @@ export const evaluationCampaignsController = {
       next(error);
     }
   },
+
+  async remind(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      await evaluationCampaignsService.sendReminders(req.params.id as string, req.schoolId);
+      res.sendSuccess('Reminders sent successfully');
+    } catch (error) {
+      next(error);
+    }
+  },
 };

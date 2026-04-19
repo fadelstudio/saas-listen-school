@@ -30,7 +30,7 @@ export const evaluationsRepository = {
   async getUserContext(userId: string) {
     return prisma.user.findUnique({
       where: { id: userId },
-      select: { classId: true, campusId: true },
+      select: { classId: true },
     });
   },
 
