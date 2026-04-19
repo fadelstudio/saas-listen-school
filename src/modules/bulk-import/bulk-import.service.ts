@@ -23,7 +23,7 @@ export const bulkImportService = {
       }
 
       try {
-        const passwordHash = await bcrypt.hash('Afi12345!', SALT_ROUNDS);
+        const passwordHash = await bcrypt.hash(process.env.DEFAULT_PASSWORD_RESET || '', SALT_ROUNDS);
         await prisma.user.create({
           data: {
             email,
