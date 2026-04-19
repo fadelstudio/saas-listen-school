@@ -99,8 +99,8 @@ Configuration et gestion multi-école.
 
 - **Campuses** : `/campuses` (CRUD)
 - **Classes** : `/classes` (CRUD)
-- **Professors** : `/professors` (CRUD) + `POST/DELETE /professors/:id/avatar` (photo fiche ; réponses avec `avatarUrl`, `campusAccess`, `linkedUserId`)
-- **School users** : `/school-users` (création/listes/admin) — réponses avec `avatarUrl`, `campusAccess`, `campusScopeLabel` ; `POST /school-users/:id/reset-password-default`
+- **Professors** : `/professors` (CRUD) + `POST/DELETE /professors/:id/avatar` (photo fiche ; réponses avec `avatarUrl`, `userId`, `isLinkedToUser`)
+- **School users** : `/school-users` (création/listes/admin) — réponses avec `avatarUrl`, `campusIds`, `campusScopeLabel` ; `POST /school-users/:id/reset-password-default`
 - **Academic Modules** : `/academic-modules` (CRUD)
 - **Levels** : `/levels` (CRUD)
 - **Uploads** : `/uploads` (Gestion fichiers)

@@ -54,7 +54,7 @@ function toSafeUser(user) {
         matricule: user.matricule,
         numero: user.numero,
         phone: user.phone,
-        campusId: user.campusId,
+        campusIds: user.campuses?.map((c) => c.id) || [],
         classId: user.classId,
         schoolId: user.schoolId,
         createdAt: user.createdAt,
@@ -68,9 +68,9 @@ async function toSafeUserWithAvatar(user) {
 }
 async function generateTokens(user) {
     let resolvedSchoolId = user.schoolId;
-    if (user.role !== client_1.Role.SUPERADMIN && !resolvedSchoolId && user.campusId) {
+    if (user.role !== client_1.Role.SUPERADMIN && !resolvedSchoolId && user.campusIds.length > 0) {
         const campus = await prisma_1.prisma.campus.findUnique({
-            where: { id: user.campusId },
+            where: { id: user.campusIds[0] },
             select: { schoolId: true },
         });
         resolvedSchoolId = campus?.schoolId || null;
@@ -84,8 +84,8 @@ async function generateTokens(user) {
     };
     if (resolvedSchoolId != null)
         payload.schoolId = resolvedSchoolId;
-    if (user.campusId != null)
-        payload.campusId = user.campusId;
+    if (user.campusIds.length > 0)
+        payload.campusIds = user.campusIds;
     if (user.classId != null)
         payload.classId = user.classId;
     const accessToken = jsonwebtoken_1.default.sign(payload, env_1.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
@@ -114,7 +114,7 @@ exports.authService = {
                 id: user.id,
                 role: user.role,
                 schoolId: user.schoolId,
-                campusId: user.campusId,
+                campusIds: user.campuses?.map((c) => c.id) || [],
                 classId: user.classId,
             });
             return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
@@ -151,7 +151,7 @@ exports.authService = {
             id: user.id,
             role: user.role,
             schoolId: user.schoolId,
-            campusId: user.campusId,
+            campusIds: user.campuses?.map((c) => c.id) || [],
             classId: user.classId,
         });
         return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
@@ -222,12 +222,13 @@ exports.authService = {
         const verifiedUser = await prisma_1.prisma.user.update({
             where: { id: user.id },
             data: { emailVerified: true, emailVerifiedAt: new Date() },
+            include: { campuses: { select: { id: true } } },
         });
         const { accessToken, refreshToken } = await generateTokens({
             id: verifiedUser.id,
             role: verifiedUser.role,
             schoolId: verifiedUser.schoolId,
-            campusId: verifiedUser.campusId,
+            campusIds: verifiedUser.campuses?.map((c) => c.id) || [],
             classId: verifiedUser.classId,
         });
         return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(verifiedUser) };
@@ -294,7 +295,7 @@ exports.authService = {
             id: user.id,
             role: user.role,
             schoolId: user.schoolId,
-            campusId: user.campusId,
+            campusIds: user.campuses?.map((c) => c.id) || [],
             classId: user.classId,
         });
         return { token: accessToken, refreshToken };

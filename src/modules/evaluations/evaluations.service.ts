@@ -81,6 +81,10 @@ export const evaluationsService = {
       status:      query.status as EvaluationStatus | undefined,
       evaluatorId: query.evaluatorId as string | undefined,
       reportId:    query.reportId as string | undefined,
+      professorId: query.professorId as string | undefined,
+      moduleId:    query.moduleId as string | undefined,
+      classId:     query.classId as string | undefined,
+      campusId:    query.campusId as string | undefined,
       startDate:   query.startDate as string | undefined,
       endDate:     query.endDate as string | undefined,
     };
@@ -125,9 +129,13 @@ export const evaluationsService = {
 
   async getStats(query: Record<string, unknown>, schoolId?: string | null) {
     const filters: EvaluationFilters = {
-      reportId:  query.reportId as string | undefined,
-      startDate: query.startDate as string | undefined,
-      endDate:   query.endDate as string | undefined,
+      reportId:    query.reportId as string | undefined,
+      professorId: query.professorId as string | undefined,
+      moduleId:    query.moduleId as string | undefined,
+      classId:     query.classId as string | undefined,
+      campusId:    query.campusId as string | undefined,
+      startDate:   query.startDate as string | undefined,
+      endDate:     query.endDate as string | undefined,
     };
     return evaluationsRepository.getAggregatedStats(filters, schoolId ?? null);
   },

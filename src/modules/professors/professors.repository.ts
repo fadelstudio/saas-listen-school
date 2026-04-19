@@ -5,22 +5,17 @@ import { parsePagination } from '../../utils/pagination';
 
 type PaginationArgs = ReturnType<typeof parsePagination>;
 
-/** Prof rattaché à l’école : campus dans l’école OU aucun campus (= tous les campus). */
+/**
+ * Filtre les professeurs appartenant à une école donnée.
+ * Un professeur appartient à l'école si son schoolId correspond.
+ */
 export function professorInSchool(schoolId: string): Prisma.ProfessorWhereInput {
-  return {
-    OR: [{ campusId: null }, { campus: { schoolId } }],
-  };
+  return { schoolId };
 }
 
 export const professorsRepository = {
   async findAll(schoolId: string, filters: ProfessorFilters, pagination: PaginationArgs) {
     const andParts: Prisma.ProfessorWhereInput[] = [professorInSchool(schoolId)];
-
-    if (filters.campusId) {
-      andParts.push({
-        OR: [{ campusId: null }, { campusId: filters.campusId }],
-      });
-    }
 
     if (filters.search) {
       andParts.push({
@@ -43,7 +38,6 @@ export const professorsRepository = {
         take: pagination.limit,
         orderBy: { [pagination.sortBy]: pagination.sortOrder },
         include: {
-          campus: { select: { id: true, name: true, code: true } },
           user: { select: { id: true, avatarPath: true } },
           _count: { select: { evaluations: true } },
         },
@@ -58,7 +52,6 @@ export const professorsRepository = {
     return prisma.professor.findFirst({
       where: { id, ...professorInSchool(schoolId) },
       include: {
-        campus: { select: { id: true, name: true, code: true } },
         user: { select: { id: true, avatarPath: true } },
         evaluations: {
           take: 10,
@@ -74,7 +67,7 @@ export const professorsRepository = {
     lastName: string;
     email: string;
     userId?: string;
-    campusId: string | null;
+    schoolId: string;
     matricule?: string | null;
     numero?: string | null;
     phone?: string | null;
@@ -85,13 +78,12 @@ export const professorsRepository = {
         lastName: data.lastName,
         email: data.email,
         userId: data.userId,
-        campusId: data.campusId,
+        schoolId: data.schoolId,
         matricule: data.matricule ?? null,
         numero: data.numero ?? null,
         phone: data.phone ?? null,
       },
       include: {
-        campus: { select: { id: true, name: true, code: true } },
         user: { select: { id: true, avatarPath: true } },
         _count: { select: { evaluations: true } },
       },
@@ -102,11 +94,8 @@ export const professorsRepository = {
     id: string,
     schoolId: string,
     data: {
-      firstName?: string;
-      lastName?: string;
       email?: string;
       userId?: string;
-      campusId?: string | null;
       matricule?: string | null;
       numero?: string | null;
       phone?: string | null;
@@ -118,7 +107,6 @@ export const professorsRepository = {
       where: { id },
       data,
       include: {
-        campus: { select: { id: true, name: true, code: true } },
         user: { select: { id: true, avatarPath: true } },
         _count: { select: { evaluations: true } },
       },

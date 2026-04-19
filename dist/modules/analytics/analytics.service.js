@@ -22,7 +22,9 @@ exports.analyticsService = {
             if (!campus)
                 throw new AppError_1.BadRequestError('Campus not found in this school');
         }
-        const userWhere = campusId ? { schoolId, campusId } : { schoolId };
+        const userWhere = campusId
+            ? { schoolId, campuses: { some: { id: campusId } } }
+            : { schoolId };
         const reportWhere = campusId
             ? { AND: [reportsInSchool(schoolId), { class: { campusId } }] }
             : reportsInSchool(schoolId);

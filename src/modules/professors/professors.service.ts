@@ -1,7 +1,9 @@
 import { Role } from '@prisma/client';
+import bcrypt from 'bcrypt';
+import { env } from '../../core/config/env';
 import { professorsRepository } from './professors.repository';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
-import { NotFoundError, BadRequestError, ForbiddenError } from '../../core/errors/AppError';
+import { NotFoundError, ForbiddenError, ConflictError } from '../../core/errors/AppError';
 import { ProfessorFilters } from './professors.types';
 import { prisma } from '../../core/database/prisma';
 import { uploadsService } from '../uploads/uploads.service';
@@ -13,18 +15,15 @@ function optionalProfileString(v: string | null | undefined): string | null | un
   return t === '' ? null : t;
 }
 
-function enrichProfessor<T extends { campusId: string | null }>(row: T) {
-  const campusAccess = row.campusId == null ? ('ALL' as const) : ('RESTRICTED' as const);
+function enrichProfessor<T>(row: T) {
   return {
     ...row,
-    campusAccess,
-    /** Libellé UI : tous les campus de l’école si aucun campus assigné */
-    campusScopeLabel: row.campusId == null ? 'TOUS' : null,
+    campusAccess: 'ALL' as const,
+    campusScopeLabel: 'TOUS' as const,
   };
 }
 
 type ProfessorRow = {
-  campusId: string | null;
   avatarPath: string | null;
   user: { id: string; avatarPath: string | null } | null;
   [key: string]: unknown;
@@ -35,7 +34,7 @@ async function enrichProfessorWithAvatar(p: ProfessorRow) {
   const avatarUrl = await uploadsService.getSignedUrlForPath(storagePath);
   const { user, avatarPath: _a, ...rest } = p;
   return {
-    ...enrichProfessor(rest as { campusId: string | null }),
+    ...enrichProfessor(rest),
     avatarUrl,
     linkedUserId: user?.id ?? null,
   };
@@ -45,7 +44,6 @@ export const professorsService = {
   async getAll(schoolId: string, query: Record<string, unknown>) {
     const pagination = parsePagination(query);
     const filters: ProfessorFilters = {
-      campusId: query.campusId as string | undefined,
       search: query.search as string | undefined,
     };
 
@@ -67,29 +65,60 @@ export const professorsService = {
       lastName: string;
       email: string;
       userId?: string;
-      campusId?: string | null;
+      password?: string;
       matricule?: string | null;
       numero?: string | null;
       phone?: string | null;
     },
   ) {
-    const raw = data.campusId;
-    const campusId =
-      raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')
-        ? null
-        : raw;
+    let userId = data.userId;
 
-    if (campusId) {
-      const campus = await prisma.campus.findFirst({ where: { id: campusId, schoolId } });
-      if (!campus) throw new BadRequestError('Campus does not belong to this school');
+    if (!userId) {
+      // Chercher un User existant avec cet email dans la même école uniquement
+      const existingUser = await prisma.user.findFirst({
+        where: { email: data.email, schoolId },
+      });
+
+      if (existingUser) {
+        // Vérifier qu'il n'est pas déjà lié à un professor
+        const alreadyLinked = await prisma.professor.findFirst({
+          where: { userId: existingUser.id },
+        });
+        if (alreadyLinked) {
+          throw new ConflictError('This user already has a professor profile');
+        }
+        userId = existingUser.id;
+      } else {
+        // Vérifier qu'un professeur avec cet email n'existe pas déjà (global — email unique)
+        const emailTaken = await prisma.professor.findUnique({ where: { email: data.email } });
+        if (emailTaken) {
+          throw new ConflictError('A professor with this email already exists');
+        }
+
+        const password = data.password || env.DEFAULT_PASSWORD_RESET;
+        const passwordHash = await bcrypt.hash(password, 12);
+        const newUser = await prisma.user.create({
+          data: {
+            email: data.email,
+            passwordHash,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            role: (Role as any).PROFESSOR,
+            schoolId,
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+          },
+        });
+        userId = newUser.id;
+      }
     }
 
     const created = await professorsRepository.create({
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      userId: data.userId,
-      campusId,
+      userId,
+      schoolId,
       matricule: optionalProfileString(data.matricule as string | null | undefined) ?? null,
       numero: optionalProfileString(data.numero as string | null | undefined) ?? null,
       phone: optionalProfileString(data.phone as string | null | undefined) ?? null,
@@ -105,23 +134,13 @@ export const professorsService = {
       lastName?: string;
       email?: string;
       userId?: string;
-      campusId?: string | null;
       matricule?: string | null;
       numero?: string | null;
       phone?: string | null;
     },
   ) {
-    let campusId = data.campusId;
-    if (campusId === '') campusId = null;
-
-    if (campusId) {
-      const campus = await prisma.campus.findFirst({ where: { id: campusId, schoolId } });
-      if (!campus) throw new BadRequestError('Campus does not belong to this school');
-    }
-
     const patch = {
       ...data,
-      campusId,
       ...(data.matricule !== undefined && {
         matricule: optionalProfileString(data.matricule as string | null | undefined) ?? null,
       }),

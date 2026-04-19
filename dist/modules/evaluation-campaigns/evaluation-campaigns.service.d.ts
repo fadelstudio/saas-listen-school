@@ -4,15 +4,15 @@ export declare const evaluationCampaignsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }>;
     getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
         module: {
@@ -23,6 +23,20 @@ export declare const evaluationCampaignsService: {
             updatedAt: Date;
             schoolId: string;
         };
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        };
         _count: {
             evaluations: number;
         };
@@ -31,36 +45,22 @@ export declare const evaluationCampaignsService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         } | null;
-        professor: {
-            email: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            phone: string | null;
-            firstName: string;
-            lastName: string;
-            matricule: string | null;
-            numero: string | null;
-            avatarPath: string | null;
-            campusId: string | null;
-            userId: string | null;
-        };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }>>;
     getById(id: string, schoolId: string): Promise<{
         campus: ({
@@ -86,6 +86,20 @@ export declare const evaluationCampaignsService: {
             updatedAt: Date;
             schoolId: string;
         };
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        };
         class: ({
             users: {
                 id: string;
@@ -95,23 +109,9 @@ export declare const evaluationCampaignsService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         }) | null;
-        professor: {
-            email: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            phone: string | null;
-            firstName: string;
-            lastName: string;
-            matricule: string | null;
-            numero: string | null;
-            avatarPath: string | null;
-            campusId: string | null;
-            userId: string | null;
-        };
         evaluations: {
             id: string;
             createdAt: Date;
@@ -138,29 +138,29 @@ export declare const evaluationCampaignsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }>;
     close(id: string, schoolId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }>;
 };
 //# sourceMappingURL=evaluation-campaigns.service.d.ts.map

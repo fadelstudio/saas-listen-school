@@ -16,6 +16,20 @@ export declare const evaluationCampaignsRepository: {
                 updatedAt: Date;
                 schoolId: string;
             };
+            professor: {
+                email: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string | null;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
+                userId: string | null;
+            };
             _count: {
                 evaluations: number;
             };
@@ -24,36 +38,22 @@ export declare const evaluationCampaignsRepository: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                campusId: string;
                 levelId: string;
+                campusId: string;
             } | null;
-            professor: {
-                email: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                phone: string | null;
-                firstName: string;
-                lastName: string;
-                matricule: string | null;
-                numero: string | null;
-                avatarPath: string | null;
-                campusId: string | null;
-                userId: string | null;
-            };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string | null;
             classId: string | null;
             title: string;
             status: string;
             professorId: string;
             moduleId: string;
+            dueDate: Date;
+            campusId: string | null;
             description: string | null;
             scope: string;
-            dueDate: Date;
         })[];
         total: number;
     }>;
@@ -81,6 +81,20 @@ export declare const evaluationCampaignsRepository: {
             updatedAt: Date;
             schoolId: string;
         };
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        };
         class: ({
             users: {
                 id: string;
@@ -90,23 +104,9 @@ export declare const evaluationCampaignsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         }) | null;
-        professor: {
-            email: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            phone: string | null;
-            firstName: string;
-            lastName: string;
-            matricule: string | null;
-            numero: string | null;
-            avatarPath: string | null;
-            campusId: string | null;
-            userId: string | null;
-        };
         evaluations: {
             id: string;
             createdAt: Date;
@@ -133,15 +133,15 @@ export declare const evaluationCampaignsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }) | null>;
     create(data: {
         title: string;
@@ -156,29 +156,29 @@ export declare const evaluationCampaignsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }>;
     updateStatus(id: string, schoolId: string, status: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     } | null>;
 };
 //# sourceMappingURL=evaluation-campaigns.repository.d.ts.map

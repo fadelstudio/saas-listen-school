@@ -39,9 +39,7 @@ export const campusesRepository = {
 
   async create(data: { name: string; schoolId: string; location?: string }) {
     try {
-      return await prisma.campus.create({
-        data,
-      });
+      return await prisma.campus.create({ data });
     } catch (error) {
       // Legacy single-school DB: campuses table may not have schoolId.
       if (
@@ -49,9 +47,7 @@ export const campusesRepository = {
         error.code === 'P2022'
       ) {
         const { schoolId: _ignored, ...legacyData } = data;
-        return (prisma as any).campus.create({
-          data: legacyData,
-        });
+        return (prisma as any).campus.create({ data: legacyData });
       }
       throw error;
     }
@@ -60,18 +56,13 @@ export const campusesRepository = {
   async update(id: string, data: { name?: string; location?: string }, schoolId: string) {
     const existing = await prisma.campus.findFirst({ where: { id, schoolId }, select: { id: true } });
     if (!existing) return null;
-    return prisma.campus.update({
-      where: { id: existing.id },
-      data,
-    });
+    return prisma.campus.update({ where: { id: existing.id }, data });
   },
 
   async delete(id: string, schoolId: string) {
     const existing = await prisma.campus.findFirst({ where: { id, schoolId }, select: { id: true } });
     if (!existing) return null;
-    return prisma.campus.delete({
-      where: { id: existing.id },
-    });
+    return prisma.campus.delete({ where: { id: existing.id } });
   },
 
   async findClasses(id: string, schoolId: string) {
@@ -87,16 +78,16 @@ export const campusesRepository = {
 
   async findStudents(id: string, schoolId: string) {
     return prisma.user.findMany({
-      where: { campusId: id, role: 'STUDENT', schoolId },
+      where: { campuses: { some: { id } }, role: 'STUDENT', schoolId },
       select: {
-        id: true,
-        email: true,
+        id:        true,
+        email:     true,
         firstName: true,
-        lastName: true,
+        lastName:  true,
         matricule: true,
-        isActive: true,
-        classId: true,
-        class: { select: { name: true } },
+        isActive:  true,
+        classId:   true,
+        class:     { select: { name: true } },
       },
       orderBy: { lastName: 'asc' },
     });
@@ -104,16 +95,37 @@ export const campusesRepository = {
 
   async getStats(id: string, schoolId: string) {
     const [classes, students, professors] = await Promise.all([
-      prisma.class.count({ where: { campusId: id, campus: { schoolId } } }),
-      prisma.user.count({ where: { campusId: id, role: 'STUDENT', schoolId } }),
-      prisma.professor.count({ where: { campusId: id, campus: { schoolId } } }),
+      prisma.class.count({
+        where: { campusId: id, campus: { schoolId } },
+      }),
+      prisma.user.count({
+        where: { campuses: { some: { id } }, role: 'STUDENT', schoolId },
+      }),
+      // Fix #3.1 : on filtre les profs via la chaîne complète incluant le schoolId
+      prisma.professor.count({
+        where: {
+          modules: {
+            some: { class: { campusId: id, campus: { schoolId } } },
+          },
+        },
+      }),
     ]);
     return { classes, students, professors };
   },
 
+  /**
+   * Retourne les professeurs enseignant dans ce campus.
+   * Fix #6 : schoolId est maintenant utilisé (était ignoré avec le préfixe _).
+   * Double filtre : campus + schoolId pour éviter toute fuite si l'id du campus
+   * était réutilisé dans une autre école (cas improbable mais défensif).
+   */
   async findProfessors(id: string, schoolId: string) {
     return prisma.professor.findMany({
-      where: { campusId: id, campus: { schoolId } },
+      where: {
+        modules: {
+          some: { class: { campusId: id, campus: { schoolId } } },
+        },
+      },
       include: {
         _count: { select: { evaluations: true } },
       },

@@ -24,8 +24,8 @@ export declare const campusesService: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         })[];
     } & {
         code: string | null;
@@ -82,8 +82,8 @@ export declare const campusesService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     })[]>;
     getStudents(id: string, schoolId: string): Promise<{
         email: string;
@@ -111,13 +111,13 @@ export declare const campusesService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
         numero: string | null;
         avatarPath: string | null;
-        campusId: string | null;
         userId: string | null;
     })[]>;
 };

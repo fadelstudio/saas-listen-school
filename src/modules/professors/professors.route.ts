@@ -139,7 +139,7 @@ router.get('/:id', authMiddleware, validate({ params: professorParamsSchema }), 
  *               lastName: { type: string, example: "Faye" }
  *               email: { type: string, format: email, example: "moussa.faye@afi.com" }
  *               userId: { type: string, format: uuid, description: "Compte utilisateur existant à lier (optionnel)" }
- *               campusId: { type: string, format: uuid, nullable: true, description: "Absent ou null = accès à tous les campus (réponse campusAccess ALL, campusScopeLabel TOUS)" }
+ *               password: { type: string, description: "Mot de passe pour le compte utilisateur automatique" }
  *               matricule: { type: string }
  *               numero: { type: string, description: "Numéro interne / métier" }
  *               phone: { type: string }
@@ -178,7 +178,6 @@ router.post(
  *               lastName: { type: string }
  *               email: { type: string, format: email }
  *               userId: { type: string, format: uuid }
- *               campusId: { type: string, format: uuid, nullable: true }
  *               matricule: { type: string, nullable: true }
  *               numero: { type: string, nullable: true }
  *               phone: { type: string, nullable: true }

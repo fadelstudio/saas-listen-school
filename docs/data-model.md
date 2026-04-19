@@ -7,8 +7,7 @@ AFI-LISTEN utilise Prisma comme ORM avec une base de données PostgreSQL. Le mod
 ```mermaid
 erDiagram
     Campus ||--o{ Class : contains
-    Campus ||--o{ User : has
-    Campus ||--o{ Professor : has
+    Campus }o--o{ User : "assigned to"
     AcademicLevel ||--o{ Class : defines
     Class ||--o{ User : enrolls
     Class ||--o{ Report : receives
@@ -33,7 +32,8 @@ erDiagram
 #### User
 Gère les comptes, les rôles et l'appartenance institutionnelle.
 - **Rôles** : `SUPERADMIN`, `ADMIN`, `MANAGER`, `AGENT`, `STUDENT`, `VIEWER`
-- **Champs clés** : `email`, `matricule`, `numero`, `phone`, `fcmToken`, `isActive`, `campusId`, `classId`
+- **Champs clés** : `email`, `matricule`, `numero`, `phone`, `fcmToken`, `isActive`, `classId`
+- **Relations** : `campuses` (Multi-campus N:M)
 - **Avatar** : `avatarPath` (chemin dans le bucket Supabase `attachments`) — l’API renvoie une URL signée côté client (`avatarUrl`), avec expiration (`SIGNED_URL_EXPIRES_IN`).
 
 #### RefreshToken / PasswordResetToken / LoginOtpChallenge
@@ -59,7 +59,8 @@ Gèrent la sécurité et la persistance des sessions.
 Relie un Module à une Classe spécifique. C'est ici que les professeurs sont affectés.
 
 #### Professor
-- **Champs** : `firstName`, `lastName`, `email`, `matricule`, `numero`, `phone`, `campusId` (null = tous les campus de l’école), `userId` (optionnel), `avatarPath` (photo si pas de compte lié ; sinon photo portée par le **User** lié)
+- **Champs** : `firstName`, `lastName`, `email`, `matricule`, `numero`, `phone`, `userId` (optionnel), `schoolId`, `avatarPath` (photo si pas de compte lié ; sinon photo portée par le **User** lié)
+- **Note** : Les professeurs sont rattachés directement à une école (`schoolId`). S'ils ont un compte, celui-ci doit avoir le même `schoolId`. Leur accès aux étudiants est déterminé par leurs assignations de cours (`ClassModule`).
 
 ---
 
@@ -82,6 +83,7 @@ Une évaluation pédagogique d'un module/professeur.
 Action prise suite à une évaluation ou un signalement.
 - **Statuts** : `PENDING`, `APPROVED`, `REJECTED`, `DEFERRED`, `DONE`
 - **IA** : `aiSuggestion` (Texte généré par l'IA).
+- **Isolation** : Sécurisé par `schoolId` direct en base.
 
 ---
 
@@ -118,8 +120,8 @@ type Feedback = {
 type User = {
   id: string
   email: string
-  role: "SUPERADMIN" | "ADMIN" | "MANAGER" | "AGENT" | "STUDENT" | "VIEWER"
-  campusId?: string
+  role: "SUPERADMIN" | "ADMIN" | "MANAGER" | "AGENT" | "STUDENT" | "VIEWER" | "PROFESSOR"
+  campusIds: string[]
   classId?: string
 }
 ```

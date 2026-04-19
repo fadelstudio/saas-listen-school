@@ -11,20 +11,20 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             schoolId: string;
         };
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        };
         professors: {
             email: string;
             id: string;
             firstName: string;
             lastName: string;
         }[];
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -41,28 +41,28 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             schoolId: string;
         };
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        };
         professors: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
         }[];
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -76,13 +76,13 @@ export declare const classModulesRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
         }[];
     } & {
@@ -105,28 +105,28 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             schoolId: string;
         };
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        };
         professors: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
         }[];
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -145,28 +145,28 @@ export declare const classModulesRepository: {
             updatedAt: Date;
             schoolId: string;
         };
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        };
         professors: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
         }[];
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        };
     } & {
         id: string;
         createdAt: Date;

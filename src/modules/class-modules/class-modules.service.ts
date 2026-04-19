@@ -3,10 +3,19 @@ import { NotFoundError, ConflictError, BadRequestError } from '../../core/errors
 import { prisma } from '../../core/database/prisma';
 import { Prisma } from '@prisma/client';
 
-/** Prof rattaché à l’école : sans campus (= tous) ou campus de l’école. */
+/**
+ * Vérifie que les professeurs appartiennent à l'école.
+ * Utilise la même logique que professors.repository.ts :
+ *   - Via user.schoolId, OU
+ *   - Via assignation ClassModule → class → campus → schoolId.
+ * N'accepte plus { user: null } comme "appartient à l'école" (trop permissif).
+ */
 function professorInSchoolWhere(schoolId: string): Prisma.ProfessorWhereInput {
   return {
-    OR: [{ campusId: null }, { campus: { schoolId } }],
+    OR: [
+      { user: { schoolId } },
+      { modules: { some: { class: { campus: { schoolId } } } } },
+    ],
   };
 }
 

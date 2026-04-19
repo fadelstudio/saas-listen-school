@@ -20,6 +20,7 @@ enum Role {
   AGENT
   STUDENT
   VIEWER
+  PROFESSOR
 }
 
 enum ReportStatus {
@@ -94,6 +95,9 @@ model School {
   // Data separation
   reports     Report[]
   evaluations Evaluation[]
+  decisions   Decision[]
+  professors  Professor[]
+  notifications Notification[]
 
   @@map("schools")
 }
@@ -118,7 +122,6 @@ model Campus {
 
   classes     Class[]
   users       User[]
-  professors  Professor[] @relation("CampusProfessors")
   evaluationCampaigns EvaluationCampaign[]
 
   @@map("campuses")
@@ -199,18 +202,17 @@ model Professor {
   lastName  String
   email     String   @unique
   userId    String?  @unique // Link to User if they have login access
-  /// Si null : accès à tous les campus de l’école (scope multi-campus)
-  campusId  String?
   matricule String?
   /// Numéro interne / identifiant métier (optionnel)
   numero    String?
   phone     String?
   /// Photo de la fiche enseignant (si pas de compte lié, ou en secours du compte User)
   avatarPath String?
+  schoolId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campus      Campus?      @relation("CampusProfessors", fields: [campusId], references: [id])
+  school      School?      @relation(fields: [schoolId], references: [id])
   user        User?        @relation(fields: [userId], references: [id])
   modules     ClassModule[] // Linked to specific class assignments
   reports     Report[]
@@ -244,14 +246,13 @@ model User {
 
   // Relations
   schoolId     String?
-  campusId     String?
   classId      String?
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   school    School?    @relation(fields: [schoolId], references: [id])
-  campus    Campus?    @relation(fields: [campusId], references: [id])
+  campuses  Campus[]
   class     Class?     @relation(fields: [classId],  references: [id])
   professor Professor?
 
@@ -416,10 +417,13 @@ model Decision {
   
   aiSuggestion String?        // AI-generated decision suggestion
   
+  schoolId     String?
+
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
   // Relations
+  school       School?         @relation(fields: [schoolId], references: [id])
   evaluation   Evaluation?     @relation(fields: [evaluationId], references: [id])
   report       Report?         @relation(fields: [reportId],     references: [id])
   decider      User           @relation(fields: [deciderId],    references: [id])
@@ -485,17 +489,21 @@ model Notification {
   title       String
   message     String
   type        String   // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "EVALUATION_CAMPAIGN_REMINDER" | "SYSTEM"
-  userId      String?  // Null means global
+  userId      String?  // Null means global (tous les users de l'école)
   campaignId  String?  // Optional linkage (reminders, campaign created)
+  /// Isolation multi-tenant : schoolId null = broadcast SuperAdmin (toutes écoles)
+  schoolId    String?
   isRead      Boolean  @default(false)
   
   createdAt   DateTime @default(now())
   
   user        User?    @relation(fields: [userId], references: [id])
+  school      School?  @relation(fields: [schoolId], references: [id])
   campaign    EvaluationCampaign? @relation(fields: [campaignId], references: [id])
 
   @@map("notifications")
   @@index([userId, isRead, createdAt])
+  @@index([schoolId, isRead, createdAt])
   @@index([campaignId, createdAt])
   @@unique([userId, campaignId, type])
 }

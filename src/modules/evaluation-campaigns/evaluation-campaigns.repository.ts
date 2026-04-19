@@ -21,7 +21,7 @@ export function campaignInSchool(schoolId: string): Prisma.EvaluationCampaignWhe
       {
         AND: [
           { scope: 'SCHOOL' },
-          { professor: { campus: { schoolId } } },
+          { module: { schoolId } },
         ],
       },
     ],

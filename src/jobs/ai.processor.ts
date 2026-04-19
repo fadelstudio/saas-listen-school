@@ -51,14 +51,21 @@ const aiResultSchema = z.object({
 });
 
 function parseAiJsonStrict(raw: string): Omit<AiAnalysisResult, 'processedAt'> {
-  // We accept ONLY a JSON object. If model returns extra text, parsing fails.
-  const parsed = JSON.parse(raw) as unknown;
-  const validated = aiResultSchema.safeParse(parsed);
-  if (!validated.success) {
-    const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
-    throw new Error(`AI JSON validation failed: ${issues}`);
+  // 1. Try to extract the JSON block using regex (most robust method)
+  const match = raw.match(/\{[\s\S]*\}/);
+  const cleanRaw = match ? match[0] : raw.trim();
+
+  try {
+    const parsed = JSON.parse(cleanRaw) as unknown;
+    const validated = aiResultSchema.safeParse(parsed);
+    if (!validated.success) {
+      const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
+      throw new Error(`AI JSON validation failed: ${issues}`);
+    }
+    return validated.data;
+  } catch (e) {
+    throw new Error(`Invalid JSON response from AI: ${e instanceof Error ? e.message : String(e)} (Raw: ${raw.slice(0, 100)}...)`);
   }
-  return validated.data;
 }
 
 function analysisPrompt(content: string): string {

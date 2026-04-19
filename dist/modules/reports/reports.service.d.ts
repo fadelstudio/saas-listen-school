@@ -10,27 +10,27 @@ export declare const reportsService: {
             updatedAt: Date;
             schoolId: string;
         } | null;
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        } | null;
         professor: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
         } | null;
         author: {
             email: string;
@@ -67,27 +67,33 @@ export declare const reportsService: {
             updatedAt: Date;
             schoolId: string;
         } | null;
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        } | null;
         professor: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        } | null;
+        author: {
+            email: string;
+            id: string;
+            firstName: string;
+            lastName: string;
         } | null;
         aiJobs: {
             result: import("@prisma/client/runtime/client").JsonValue | null;
@@ -102,12 +108,6 @@ export declare const reportsService: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
-        author: {
-            email: string;
-            id: string;
-            firstName: string;
-            lastName: string;
-        } | null;
     } & {
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
@@ -137,27 +137,27 @@ export declare const reportsService: {
             updatedAt: Date;
             schoolId: string;
         } | null;
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        } | null;
         professor: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
         } | null;
         author: {
             email: string;

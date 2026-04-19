@@ -14,7 +14,7 @@ exports.createSchoolUserSchema = zod_1.z.object({
         .regex(/[0-9]/, 'Password must contain at least one number'),
     firstName: zod_1.z.string().min(1).max(50),
     lastName: zod_1.z.string().min(1).max(50),
-    role: zod_1.z.enum(['MANAGER', 'AGENT', 'VIEWER', 'STUDENT']),
+    role: zod_1.z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT', 'PROFESSOR']),
     matricule: zod_1.z.string().min(1).max(50).optional(),
     numero: zod_1.z.string().max(120).optional(),
     phone: zod_1.z.string().max(40).optional(),
@@ -23,13 +23,14 @@ exports.createSchoolUserSchema = zod_1.z.object({
      * (périmètre toute l’école, comme un admin école sans campus).
      * Pour STUDENT : utiliser `classId` (le campus est déduit de la classe).
      */
-    campusId: optionalId,
+    campusIds: zod_1.z.array(idSchema_1.idStringSchema).optional(),
     classId: optionalId,
 });
 exports.updateSchoolUserSchema = zod_1.z.object({
-    role: zod_1.z.enum(['MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
+    role: zod_1.z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT', 'PROFESSOR']).optional(),
     isActive: zod_1.z.boolean().optional(),
     classId: zod_1.z.union([idSchema_1.idStringSchema, zod_1.z.null()]).optional(),
+    campusIds: zod_1.z.array(idSchema_1.idStringSchema).optional(),
 });
 exports.schoolUserParamsSchema = zod_1.z.object({
     id: idSchema_1.idStringSchema,
@@ -37,7 +38,7 @@ exports.schoolUserParamsSchema = zod_1.z.object({
 exports.schoolUserQuerySchema = zod_1.z.object({
     page: zod_1.z.coerce.number().min(1).optional(),
     limit: zod_1.z.coerce.number().min(1).max(100).optional(),
-    role: zod_1.z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
+    role: zod_1.z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT', 'PROFESSOR']).optional(),
     campusId: optionalId,
     classId: optionalId,
     search: zod_1.z.string().optional(),

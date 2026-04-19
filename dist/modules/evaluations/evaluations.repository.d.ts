@@ -4,8 +4,8 @@ import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const evaluationsRepository: {
     getUserContext(userId: string): Promise<{
-        campusId: string | null;
         classId: string | null;
+        campusId: never;
     } | null>;
     create(data: CreateEvaluationInput, evaluatorId?: string, schoolId?: string | null): Promise<{
         module: {
@@ -16,27 +16,27 @@ export declare const evaluationsRepository: {
             updatedAt: Date;
             schoolId: string;
         };
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        };
         professor: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
+        };
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
         };
         evaluator: {
             id: string;
@@ -75,22 +75,17 @@ export declare const evaluationsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             title: string;
             priority: import("@prisma/client").$Enums.Priority;
             status: import("@prisma/client").$Enums.DecisionStatus;
             reportId: string | null;
-            dueDate: Date | null;
             evaluationId: string | null;
             deciderId: string;
             rationale: string | null;
             responsible: string | null;
+            dueDate: Date | null;
             aiSuggestion: string | null;
-        } | null;
-        evaluator: {
-            email: string;
-            id: string;
-            firstName: string;
-            lastName: string;
         } | null;
         aiJobs: {
             result: Prisma.JsonValue | null;
@@ -105,6 +100,12 @@ export declare const evaluationsRepository: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
+        evaluator: {
+            email: string;
+            id: string;
+            firstName: string;
+            lastName: string;
+        } | null;
     } & {
         id: string;
         createdAt: Date;

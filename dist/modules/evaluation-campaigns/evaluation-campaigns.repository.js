@@ -22,7 +22,7 @@ function campaignInSchool(schoolId) {
             {
                 AND: [
                     { scope: 'SCHOOL' },
-                    { professor: { campus: { schoolId } } },
+                    { module: { schoolId } },
                 ],
             },
         ],

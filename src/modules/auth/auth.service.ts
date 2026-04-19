@@ -60,7 +60,7 @@ function generateNumericOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function toSafeUser(user: User): SafeUser {
+function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
   return {
     id: user.id,
     email: user.email,
@@ -72,7 +72,7 @@ function toSafeUser(user: User): SafeUser {
     matricule: user.matricule,
     numero: user.numero,
     phone: user.phone,
-    campusId: user.campusId,
+    campusIds: user.campuses?.map((c: any) => c.id) || [],
     classId: user.classId,
     schoolId: user.schoolId,
     createdAt: user.createdAt,
@@ -80,7 +80,7 @@ function toSafeUser(user: User): SafeUser {
   };
 }
 
-async function toSafeUserWithAvatar(user: User): Promise<SafeUser> {
+async function toSafeUserWithAvatar(user: User & { campuses?: { id: string }[] }): Promise<SafeUser> {
   const base = toSafeUser(user);
   const avatarUrl = await uploadsService.getSignedUrlForPath(user.avatarPath);
   return { ...base, avatarUrl };
@@ -90,15 +90,15 @@ type TokenUser = {
   id: string;
   role: string;
   schoolId: string | null;
-  campusId: string | null;
+  campusIds: string[];
   classId: string | null;
 };
 
 async function generateTokens(user: TokenUser) {
   let resolvedSchoolId = user.schoolId;
-  if (user.role !== Role.SUPERADMIN && !resolvedSchoolId && user.campusId) {
+  if (user.role !== Role.SUPERADMIN && !resolvedSchoolId && user.campusIds.length > 0) {
     const campus = await prisma.campus.findUnique({
-      where: { id: user.campusId },
+      where: { id: user.campusIds[0] },
       select: { schoolId: true },
     });
     resolvedSchoolId = campus?.schoolId || null;
@@ -115,7 +115,7 @@ async function generateTokens(user: TokenUser) {
     role: user.role,
   };
   if (resolvedSchoolId != null) payload.schoolId = resolvedSchoolId;
-  if (user.campusId != null) payload.campusId = user.campusId;
+  if (user.campusIds.length > 0) payload.campusIds = user.campusIds;
   if (user.classId != null) payload.classId = user.classId;
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
@@ -151,7 +151,7 @@ export const authService = {
         id: user.id,
         role: user.role,
         schoolId: user.schoolId,
-        campusId: user.campusId,
+        campusIds: user.campuses?.map((c: any) => c.id) || [],
         classId: user.classId,
       });
       return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
@@ -201,7 +201,7 @@ export const authService = {
       id: user.id,
       role: user.role,
       schoolId: user.schoolId,
-      campusId: user.campusId,
+      campusIds: user.campuses?.map((c: any) => c.id) || [],
       classId: user.classId,
     });
     return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
@@ -282,13 +282,14 @@ export const authService = {
     const verifiedUser = await prisma.user.update({
       where: { id: user.id },
       data: { emailVerified: true, emailVerifiedAt: new Date() },
+      include: { campuses: { select: { id: true } } },
     });
 
     const { accessToken, refreshToken } = await generateTokens({
       id: verifiedUser.id,
       role: verifiedUser.role,
       schoolId: verifiedUser.schoolId,
-      campusId: verifiedUser.campusId,
+      campusIds: (verifiedUser as any).campuses?.map((c: any) => c.id) || [],
       classId: verifiedUser.classId,
     });
 
@@ -366,7 +367,7 @@ export const authService = {
       id: user.id,
       role: user.role,
       schoolId: user.schoolId,
-      campusId: user.campusId,
+      campusIds: user.campuses?.map((c: any) => c.id) || [],
       classId: user.classId,
     });
 
@@ -423,7 +424,7 @@ export const authService = {
       }
     }
 
-    const payload = {
+    const payload: any = {
       ...(input.firstName !== undefined && { firstName: input.firstName }),
       ...(input.lastName !== undefined && { lastName: input.lastName }),
       ...(input.matricule !== undefined && { matricule }),

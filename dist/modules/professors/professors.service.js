@@ -1,7 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.professorsService = void 0;
 const client_1 = require("@prisma/client");
+const bcrypt_1 = __importDefault(require("bcrypt"));
+const env_1 = require("../../core/config/env");
 const professors_repository_1 = require("./professors.repository");
 const pagination_1 = require("../../utils/pagination");
 const AppError_1 = require("../../core/errors/AppError");
@@ -16,12 +21,10 @@ function optionalProfileString(v) {
     return t === '' ? null : t;
 }
 function enrichProfessor(row) {
-    const campusAccess = row.campusId == null ? 'ALL' : 'RESTRICTED';
     return {
         ...row,
-        campusAccess,
-        /** Libellé UI : tous les campus de l’école si aucun campus assigné */
-        campusScopeLabel: row.campusId == null ? 'TOUS' : null,
+        campusAccess: 'ALL',
+        campusScopeLabel: 'TOUS',
     };
 }
 async function enrichProfessorWithAvatar(p) {
@@ -38,7 +41,6 @@ exports.professorsService = {
     async getAll(schoolId, query) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
-            campusId: query.campusId,
             search: query.search,
         };
         const { items, total } = await professors_repository_1.professorsRepository.findAll(schoolId, filters, pagination);
@@ -52,21 +54,51 @@ exports.professorsService = {
         return enrichProfessorWithAvatar(professor);
     },
     async create(schoolId, data) {
-        const raw = data.campusId;
-        const campusId = raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')
-            ? null
-            : raw;
-        if (campusId) {
-            const campus = await prisma_1.prisma.campus.findFirst({ where: { id: campusId, schoolId } });
-            if (!campus)
-                throw new AppError_1.BadRequestError('Campus does not belong to this school');
+        let userId = data.userId;
+        if (!userId) {
+            // Chercher un User existant avec cet email dans la même école uniquement
+            const existingUser = await prisma_1.prisma.user.findFirst({
+                where: { email: data.email, schoolId },
+            });
+            if (existingUser) {
+                // Vérifier qu'il n'est pas déjà lié à un professor
+                const alreadyLinked = await prisma_1.prisma.professor.findFirst({
+                    where: { userId: existingUser.id },
+                });
+                if (alreadyLinked) {
+                    throw new AppError_1.ConflictError('This user already has a professor profile');
+                }
+                userId = existingUser.id;
+            }
+            else {
+                // Vérifier qu'un professeur avec cet email n'existe pas déjà (global — email unique)
+                const emailTaken = await prisma_1.prisma.professor.findUnique({ where: { email: data.email } });
+                if (emailTaken) {
+                    throw new AppError_1.ConflictError('A professor with this email already exists');
+                }
+                const password = data.password || env_1.env.DEFAULT_PASSWORD_RESET;
+                const passwordHash = await bcrypt_1.default.hash(password, 12);
+                const newUser = await prisma_1.prisma.user.create({
+                    data: {
+                        email: data.email,
+                        passwordHash,
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                        role: client_1.Role.PROFESSOR,
+                        schoolId,
+                        emailVerified: true,
+                        emailVerifiedAt: new Date(),
+                    },
+                });
+                userId = newUser.id;
+            }
         }
         const created = await professors_repository_1.professorsRepository.create({
             firstName: data.firstName,
             lastName: data.lastName,
             email: data.email,
-            userId: data.userId,
-            campusId,
+            userId,
+            schoolId,
             matricule: optionalProfileString(data.matricule) ?? null,
             numero: optionalProfileString(data.numero) ?? null,
             phone: optionalProfileString(data.phone) ?? null,
@@ -74,17 +106,8 @@ exports.professorsService = {
         return enrichProfessorWithAvatar(created);
     },
     async update(id, schoolId, data) {
-        let campusId = data.campusId;
-        if (campusId === '')
-            campusId = null;
-        if (campusId) {
-            const campus = await prisma_1.prisma.campus.findFirst({ where: { id: campusId, schoolId } });
-            if (!campus)
-                throw new AppError_1.BadRequestError('Campus does not belong to this school');
-        }
         const patch = {
             ...data,
-            campusId,
             ...(data.matricule !== undefined && {
                 matricule: optionalProfileString(data.matricule) ?? null,
             }),

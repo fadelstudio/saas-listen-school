@@ -7,11 +7,21 @@ const pagination_1 = require("../../utils/pagination");
 const AppError_1 = require("../../core/errors/AppError");
 const logger_1 = require("../../utils/logger");
 const prisma_1 = require("../../core/database/prisma");
+/**
+ * Vérifie qu'un professeur appartient à l'école.
+ * Un professeur appartient à l'école si :
+ *   1. Son compte User lié a schoolId correspondant, OU
+ *   2. Il a au moins une assignation ClassModule dans un campus de cette école.
+ * Les profs sans userId et sans assignation sont rejetés (pas d'école connue).
+ */
 async function assertProfessorInSchool(professorId, schoolId) {
     const p = await prisma_1.prisma.professor.findFirst({
         where: {
             id: professorId,
-            OR: [{ campusId: null }, { campus: { schoolId } }],
+            OR: [
+                { user: { schoolId } },
+                { modules: { some: { class: { campus: { schoolId } } } } },
+            ],
         },
     });
     if (!p)
@@ -49,6 +59,7 @@ exports.evaluationCampaignsService = {
             message: `Une nouvelle campagne d'évaluation a été créée.`,
             type: 'EVALUATION_CAMPAIGN',
             campaignId: campaign.id,
+            schoolId,
         })
             .catch((e) => logger_1.logger.error('Failed to create global campaign notification', { error: e }));
         const detailedCampaignRaw = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findById(campaign.id, schoolId);
@@ -76,6 +87,7 @@ exports.evaluationCampaignsService = {
                 type: 'EVALUATION_CAMPAIGN',
                 userId,
                 campaignId: campaign.id,
+                schoolId,
             }))).catch((e) => logger_1.logger.error('Failed to send campaign notifications', { error: e }));
         }
         return campaign;

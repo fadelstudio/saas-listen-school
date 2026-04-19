@@ -3,20 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.professorsRepository = void 0;
 exports.professorInSchool = professorInSchool;
 const prisma_1 = require("../../core/database/prisma");
-/** Prof rattaché à l’école : campus dans l’école OU aucun campus (= tous les campus). */
+/**
+ * Filtre les professeurs appartenant à une école donnée.
+ * Un professeur appartient à l'école si son schoolId correspond.
+ */
 function professorInSchool(schoolId) {
-    return {
-        OR: [{ campusId: null }, { campus: { schoolId } }],
-    };
+    return { schoolId };
 }
 exports.professorsRepository = {
     async findAll(schoolId, filters, pagination) {
         const andParts = [professorInSchool(schoolId)];
-        if (filters.campusId) {
-            andParts.push({
-                OR: [{ campusId: null }, { campusId: filters.campusId }],
-            });
-        }
         if (filters.search) {
             andParts.push({
                 OR: [
@@ -36,7 +32,6 @@ exports.professorsRepository = {
                 take: pagination.limit,
                 orderBy: { [pagination.sortBy]: pagination.sortOrder },
                 include: {
-                    campus: { select: { id: true, name: true, code: true } },
                     user: { select: { id: true, avatarPath: true } },
                     _count: { select: { evaluations: true } },
                 },
@@ -49,7 +44,6 @@ exports.professorsRepository = {
         return prisma_1.prisma.professor.findFirst({
             where: { id, ...professorInSchool(schoolId) },
             include: {
-                campus: { select: { id: true, name: true, code: true } },
                 user: { select: { id: true, avatarPath: true } },
                 evaluations: {
                     take: 10,
@@ -66,13 +60,12 @@ exports.professorsRepository = {
                 lastName: data.lastName,
                 email: data.email,
                 userId: data.userId,
-                campusId: data.campusId,
+                schoolId: data.schoolId,
                 matricule: data.matricule ?? null,
                 numero: data.numero ?? null,
                 phone: data.phone ?? null,
             },
             include: {
-                campus: { select: { id: true, name: true, code: true } },
                 user: { select: { id: true, avatarPath: true } },
                 _count: { select: { evaluations: true } },
             },
@@ -86,7 +79,6 @@ exports.professorsRepository = {
             where: { id },
             data,
             include: {
-                campus: { select: { id: true, name: true, code: true } },
                 user: { select: { id: true, avatarPath: true } },
                 _count: { select: { evaluations: true } },
             },

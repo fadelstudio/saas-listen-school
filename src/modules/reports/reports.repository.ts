@@ -9,7 +9,7 @@ export const reportsRepository = {
   async getUserContext(userId: string) {
     return prisma.user.findUnique({
       where: { id: userId },
-      select: { classId: true, campusId: true },
+      select: { classId: true, campuses: { select: { id: true }, take: 1 } },
     });
   },
 

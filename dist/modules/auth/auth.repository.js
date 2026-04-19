@@ -4,7 +4,10 @@ exports.authRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 exports.authRepository = {
     async findByEmail(email, schoolId) {
-        return prisma_1.prisma.user.findFirst({ where: { email, schoolId } });
+        return prisma_1.prisma.user.findFirst({
+            where: { email, schoolId },
+            include: { campuses: { select: { id: true } } },
+        });
     },
     async findByIdentifier(identifier, schoolId) {
         return prisma_1.prisma.user.findFirst({
@@ -14,7 +17,8 @@ exports.authRepository = {
                     { email: identifier },
                     { matricule: identifier }
                 ]
-            }
+            },
+            include: { campuses: { select: { id: true } } },
         });
     },
     /** Pour message d’erreur login : compte connu mais mauvais tenant (x-school-slug). */
@@ -27,7 +31,10 @@ exports.authRepository = {
         });
     },
     async findById(id) {
-        return prisma_1.prisma.user.findUnique({ where: { id } });
+        return prisma_1.prisma.user.findUnique({
+            where: { id },
+            include: { campuses: { select: { id: true } } },
+        });
     },
     async create(data) {
         const verified = data.emailVerified ?? false;
@@ -37,12 +44,13 @@ exports.authRepository = {
                 passwordHash: data.passwordHash,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                campusId: data.campusId,
+                campuses: data.campusId ? { connect: [{ id: data.campusId }] } : undefined,
                 classId: data.classId,
                 schoolId: data.schoolId,
                 emailVerified: verified,
                 emailVerifiedAt: verified ? new Date() : null,
             },
+            include: { campuses: { select: { id: true } } },
         });
     },
     async updatePassword(userId, passwordHash) {
@@ -76,7 +84,11 @@ exports.authRepository = {
     async findRefreshToken(token) {
         return prisma_1.prisma.refreshToken.findUnique({
             where: { token },
-            include: { user: true },
+            include: {
+                user: {
+                    include: { campuses: { select: { id: true } } }
+                }
+            },
         });
     },
     async deleteRefreshToken(token) {
@@ -106,7 +118,11 @@ exports.authRepository = {
     async findLoginOtpChallengeById(id) {
         return prisma_1.prisma.loginOtpChallenge.findUnique({
             where: { id },
-            include: { user: true },
+            include: {
+                user: {
+                    include: { campuses: { select: { id: true } } }
+                }
+            },
         });
     },
     async incrementLoginOtpAttempts(id) {
@@ -129,7 +145,11 @@ exports.authRepository = {
     async findPasswordResetByTokenHash(tokenHash) {
         return prisma_1.prisma.passwordResetToken.findUnique({
             where: { tokenHash },
-            include: { user: true },
+            include: {
+                user: {
+                    include: { campuses: { select: { id: true } } }
+                }
+            },
         });
     },
     async markPasswordResetUsed(id) {

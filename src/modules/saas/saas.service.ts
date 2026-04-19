@@ -91,7 +91,6 @@ export const saasService = {
           lastName: input.adminLastName,
           role: Role.ADMIN,
           schoolId: school.id,
-          campusId: null,
           matricule: input.matricule,
           isActive: true,
           emailVerified: true,
@@ -131,8 +130,7 @@ export const saasService = {
             _count: {
               select: {
                 users: true,
-                classes: true,
-                professors: true
+                classes: true
               }
             }
           }

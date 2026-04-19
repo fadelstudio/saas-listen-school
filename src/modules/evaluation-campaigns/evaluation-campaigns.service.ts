@@ -7,11 +7,21 @@ import { prisma } from '../../core/database/prisma';
 import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
 import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
 
+/**
+ * Vérifie qu'un professeur appartient à l'école.
+ * Un professeur appartient à l'école si :
+ *   1. Son compte User lié a schoolId correspondant, OU
+ *   2. Il a au moins une assignation ClassModule dans un campus de cette école.
+ * Les profs sans userId et sans assignation sont rejetés (pas d'école connue).
+ */
 async function assertProfessorInSchool(professorId: string, schoolId: string) {
   const p = await prisma.professor.findFirst({
     where: {
       id: professorId,
-      OR: [{ campusId: null }, { campus: { schoolId } }],
+      OR: [
+        { user: { schoolId } },
+        { modules: { some: { class: { campus: { schoolId } } } } },
+      ],
     },
   });
   if (!p) throw new BadRequestError('Professor not found in this school');
@@ -51,6 +61,7 @@ export const evaluationCampaignsService = {
         message: `Une nouvelle campagne d'évaluation a été créée.`,
         type: 'EVALUATION_CAMPAIGN',
         campaignId: campaign.id,
+        schoolId,
       })
       .catch((e) => logger.error('Failed to create global campaign notification', { error: e }));
 
@@ -87,6 +98,7 @@ export const evaluationCampaignsService = {
             type: 'EVALUATION_CAMPAIGN',
             userId,
             campaignId: campaign.id,
+            schoolId,
           }),
         ),
       ).catch((e) => logger.error('Failed to send campaign notifications', { error: e }));
@@ -98,10 +110,10 @@ export const evaluationCampaignsService = {
   async getAll(schoolId: string, query: Record<string, unknown>) {
     const pagination = parsePagination(query);
     const filters: EvaluationCampaignFilters = {
-      classId: typeof query.classId === 'string' ? query.classId : undefined,
+      classId:  typeof query.classId  === 'string' ? query.classId  : undefined,
       campusId: typeof query.campusId === 'string' ? query.campusId : undefined,
-      scope: typeof query.scope === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
-      status: typeof query.status === 'string' ? query.status : undefined,
+      scope:    typeof query.scope    === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
+      status:   typeof query.status   === 'string' ? query.status   : undefined,
     };
 
     const { items, total } = await evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
