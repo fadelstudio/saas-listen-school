@@ -13,6 +13,7 @@ const AppError_1 = require("../../core/errors/AppError");
 const auth_repository_1 = require("./auth.repository");
 const client_1 = require("@prisma/client");
 const mail_service_1 = require("../../core/email/mail.service");
+const uploads_service_1 = require("../uploads/uploads.service");
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -32,17 +33,6 @@ async function isRegisterOtpRequiredForSchool(schoolId) {
     const first = await prisma_1.prisma.systemSettings.findFirst();
     return first?.authOtpRequired ?? false;
 }
-async function resolveSchoolIdForUser(user) {
-    if (user.schoolId)
-        return user.schoolId;
-    if (!user.campusId)
-        return null;
-    const campus = await prisma_1.prisma.campus.findUnique({
-        where: { id: user.campusId },
-        select: { schoolId: true },
-    });
-    return campus?.schoolId ?? null;
-}
 function hashOtp(otp) {
     return crypto_1.default.createHash('sha256').update(`${otp}:${env_1.env.JWT_SECRET}`).digest('hex');
 }
@@ -61,12 +51,20 @@ function toSafeUser(user) {
         role: user.role,
         isActive: user.isActive,
         emailVerified: user.emailVerified,
+        matricule: user.matricule,
+        numero: user.numero,
+        phone: user.phone,
         campusId: user.campusId,
         classId: user.classId,
         schoolId: user.schoolId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
     };
+}
+async function toSafeUserWithAvatar(user) {
+    const base = toSafeUser(user);
+    const avatarUrl = await uploads_service_1.uploadsService.getSignedUrlForPath(user.avatarPath);
+    return { ...base, avatarUrl };
 }
 async function generateTokens(user) {
     let resolvedSchoolId = user.schoolId;
@@ -98,18 +96,20 @@ async function generateTokens(user) {
     return { accessToken, refreshToken: refreshTokenString };
 }
 exports.authService = {
-    async register(input) {
-        const existing = await auth_repository_1.authRepository.findByEmail(input.email);
+    async register(input, schoolId) {
+        const existing = await auth_repository_1.authRepository.findByEmail(input.email, schoolId);
         if (existing) {
             throw new AppError_1.ConflictError('An account with this email already exists');
         }
         const passwordHash = await bcrypt_1.default.hash(input.password, SALT_ROUNDS);
+        const otpRequired = await isRegisterOtpRequiredForSchool(schoolId);
         const user = await auth_repository_1.authRepository.create({
             ...input,
             passwordHash,
+            schoolId,
+            emailVerified: !otpRequired,
         });
-        const schoolId = await resolveSchoolIdForUser({ schoolId: user.schoolId, campusId: user.campusId });
-        if (!(await isRegisterOtpRequiredForSchool(schoolId))) {
+        if (!otpRequired) {
             const { accessToken, refreshToken } = await generateTokens({
                 id: user.id,
                 role: user.role,
@@ -117,21 +117,31 @@ exports.authService = {
                 campusId: user.campusId,
                 classId: user.classId,
             });
-            return { token: accessToken, refreshToken, user: toSafeUser(user) };
+            return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
         }
         return this.sendNewRegisterOtp(user);
     },
-    async login(input) {
+    async login(input, schoolId) {
         const identifier = input.email || input.matricule;
         if (!identifier) {
             throw new AppError_1.UnauthorizedError('Email or matricule must be provided');
         }
-        const user = await auth_repository_1.authRepository.findByIdentifier(identifier);
+        const user = await auth_repository_1.authRepository.findByIdentifier(identifier, schoolId);
         if (!user) {
+            const globalUser = await auth_repository_1.authRepository.findByIdentifierGlobal(identifier);
+            if (globalUser?.schoolId &&
+                globalUser.schoolId !== schoolId &&
+                globalUser.school?.slug) {
+                throw new AppError_1.UnauthorizedError(`Wrong school context: this account is for school "${globalUser.school.slug}". ` +
+                    `Call the API with header x-school-slug: ${globalUser.school.slug} (or open /${globalUser.school.slug}/api/... in non-strict mode).`);
+            }
             throw new AppError_1.UnauthorizedError('Invalid credentials');
         }
         if (!user.isActive) {
             throw new AppError_1.UnauthorizedError('Account is deactivated. Contact an administrator.');
+        }
+        if (!user.emailVerified) {
+            throw new AppError_1.UnauthorizedError('Email not verified. Use the code sent to your inbox or request a new code from the registration flow.');
         }
         const isValidPassword = await bcrypt_1.default.compare(input.password, user.passwordHash);
         if (!isValidPassword) {
@@ -144,7 +154,7 @@ exports.authService = {
             campusId: user.campusId,
             classId: user.classId,
         });
-        return { token: accessToken, refreshToken, user: toSafeUser(user) };
+        return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
     },
     async sendNewRegisterOtp(user) {
         const otp = generateNumericOtp();
@@ -183,7 +193,7 @@ exports.authService = {
             expiresInSeconds: Math.floor(OTP_EXPIRY_MS / 1000),
         };
     },
-    async verifyRegisterOtp(input) {
+    async verifyRegisterOtp(input, schoolId) {
         const challenge = await auth_repository_1.authRepository.findLoginOtpChallengeById(input.challengeId);
         if (!challenge || challenge.expiresAt < new Date()) {
             if (challenge)
@@ -206,22 +216,24 @@ exports.authService = {
         }
         await auth_repository_1.authRepository.deleteLoginOtpChallenge(challenge.id);
         const user = challenge.user;
-        // Mark email verified after registration OTP succeeds
-        await prisma_1.prisma.user.update({
+        if (user.schoolId !== schoolId) {
+            throw new AppError_1.UnauthorizedError('Invalid OTP challenge for this school context');
+        }
+        const verifiedUser = await prisma_1.prisma.user.update({
             where: { id: user.id },
             data: { emailVerified: true, emailVerifiedAt: new Date() },
         });
         const { accessToken, refreshToken } = await generateTokens({
-            id: user.id,
-            role: user.role,
-            schoolId: user.schoolId,
-            campusId: user.campusId,
-            classId: user.classId,
+            id: verifiedUser.id,
+            role: verifiedUser.role,
+            schoolId: verifiedUser.schoolId,
+            campusId: verifiedUser.campusId,
+            classId: verifiedUser.classId,
         });
-        return { token: accessToken, refreshToken, user: toSafeUser(user) };
+        return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(verifiedUser) };
     },
-    async forgotPassword(input) {
-        const user = await auth_repository_1.authRepository.findByEmail(input.email);
+    async forgotPassword(input, schoolId) {
+        const user = await auth_repository_1.authRepository.findByEmail(input.email, schoolId);
         if (!user) {
             return;
         }
@@ -275,6 +287,9 @@ exports.authService = {
         }
         await auth_repository_1.authRepository.deleteRefreshToken(token);
         const user = stored.user;
+        if (!user.emailVerified) {
+            throw new AppError_1.UnauthorizedError('Session ended: email verification required.');
+        }
         const { accessToken, refreshToken } = await generateTokens({
             id: user.id,
             role: user.role,
@@ -292,7 +307,7 @@ exports.authService = {
         if (!user) {
             throw new AppError_1.NotFoundError('User');
         }
-        return toSafeUser(user);
+        return toSafeUserWithAvatar(user);
     },
     async changePassword(userId, input) {
         const user = await auth_repository_1.authRepository.findById(userId);
@@ -311,12 +326,64 @@ exports.authService = {
         if (!user) {
             throw new AppError_1.NotFoundError('User');
         }
-        const updated = await auth_repository_1.authRepository.updateProfile(userId, input);
-        return toSafeUser(updated);
+        const trimOrNull = (v) => {
+            if (v === undefined)
+                return undefined;
+            if (v === null)
+                return null;
+            const t = v.trim();
+            return t === '' ? null : t;
+        };
+        const matricule = input.matricule !== undefined ? trimOrNull(input.matricule) : undefined;
+        if (matricule !== undefined && matricule !== user.matricule) {
+            if (matricule) {
+                const taken = await prisma_1.prisma.user.findFirst({
+                    where: { matricule, NOT: { id: userId } },
+                });
+                if (taken)
+                    throw new AppError_1.ConflictError('Matricule already in use');
+            }
+        }
+        const payload = {
+            ...(input.firstName !== undefined && { firstName: input.firstName }),
+            ...(input.lastName !== undefined && { lastName: input.lastName }),
+            ...(input.matricule !== undefined && { matricule }),
+            ...(input.numero !== undefined && { numero: trimOrNull(input.numero) ?? null }),
+            ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
+        };
+        if (Object.keys(payload).length === 0) {
+            return toSafeUserWithAvatar(user);
+        }
+        const updated = await auth_repository_1.authRepository.updateProfile(userId, payload);
+        return toSafeUserWithAvatar(updated);
     },
-    async resendOtp(challengeId) {
+    async uploadAvatar(userId, file) {
+        const user = await auth_repository_1.authRepository.findById(userId);
+        if (!user)
+            throw new AppError_1.NotFoundError('User');
+        const { path } = await uploads_service_1.uploadsService.uploadProfileImage(file, `avatars/users/${userId}`);
+        if (user.avatarPath && user.avatarPath !== path) {
+            await uploads_service_1.uploadsService.removeObjectAtPath(user.avatarPath).catch(() => { });
+        }
+        const updated = await auth_repository_1.authRepository.updateAvatarPath(userId, path);
+        return toSafeUserWithAvatar(updated);
+    },
+    async clearAvatar(userId) {
+        const user = await auth_repository_1.authRepository.findById(userId);
+        if (!user)
+            throw new AppError_1.NotFoundError('User');
+        if (user.avatarPath) {
+            await uploads_service_1.uploadsService.removeObjectAtPath(user.avatarPath).catch(() => { });
+        }
+        const updated = await auth_repository_1.authRepository.updateAvatarPath(userId, null);
+        return toSafeUserWithAvatar(updated);
+    },
+    async resendOtp(challengeId, schoolId) {
         const oldChallenge = await auth_repository_1.authRepository.findLoginOtpChallengeById(challengeId);
         if (!oldChallenge) {
+            throw new AppError_1.BadRequestError('Invalid or expired challenge session');
+        }
+        if (oldChallenge.user.schoolId !== schoolId) {
             throw new AppError_1.BadRequestError('Invalid or expired challenge session');
         }
         // Delete all existing challenges to avoid stale ones

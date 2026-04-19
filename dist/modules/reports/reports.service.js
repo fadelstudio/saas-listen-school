@@ -10,20 +10,7 @@ const prisma_1 = require("../../core/database/prisma");
 exports.reportsService = {
     async create(input, userId, schoolId) {
         let finalInput = { ...input };
-        // 1. Cross-validation using the Triple-Link structure
-        if (finalInput.moduleId && finalInput.classId) {
-            const assignment = await class_modules_repository_1.classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId);
-            if (!assignment) {
-                throw new AppError_1.BadRequestError('This module is not assigned to the selected class');
-            }
-            if (finalInput.professorId) {
-                const isAssigned = assignment.professors.some((p) => p.id === finalInput.professorId);
-                if (!isAssigned) {
-                    throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
-                }
-            }
-        }
-        // 2. User Context auto-fill
+        // 1. User Context auto-fill
         if (userId && !finalInput.classId) {
             const user = await reports_repository_1.reportsRepository.getUserContext(userId);
             if (user) {
@@ -37,6 +24,22 @@ exports.reportsService = {
                 select: { campus: { select: { schoolId: true } } },
             });
             resolvedSchoolId = cls?.campus?.schoolId ?? null;
+        }
+        // 2. Cross-validation using the Triple-Link structure (tenant-scoped)
+        if (finalInput.moduleId && finalInput.classId) {
+            if (!resolvedSchoolId) {
+                throw new AppError_1.BadRequestError('School context is required');
+            }
+            const assignment = await class_modules_repository_1.classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId, resolvedSchoolId);
+            if (!assignment) {
+                throw new AppError_1.BadRequestError('This module is not assigned to the selected class');
+            }
+            if (finalInput.professorId) {
+                const isAssigned = assignment.professors.some((p) => p.id === finalInput.professorId);
+                if (!isAssigned) {
+                    throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
+                }
+            }
         }
         const report = await reports_repository_1.reportsRepository.create(finalInput, userId, resolvedSchoolId);
         // 3. Automatic AI Trigger

@@ -1,5 +1,5 @@
 export declare const levelsService: {
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
         _count: {
             classes: number;
         };
@@ -8,9 +8,10 @@ export declare const levelsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
         order: number;
     }>>;
-    getById(id: string): Promise<{
+    getById(id: string, schoolId: string): Promise<{
         classes: {
             name: string;
             id: string;
@@ -24,9 +25,10 @@ export declare const levelsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
         order: number;
     }>;
-    create(data: {
+    create(schoolId: string, data: {
         name: string;
         order?: number;
     }): Promise<{
@@ -34,9 +36,10 @@ export declare const levelsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
         order: number;
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         name?: string;
         order?: number;
     }): Promise<{
@@ -44,14 +47,9 @@ export declare const levelsService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string;
         order: number;
     }>;
-    delete(id: string): Promise<{
-        name: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        order: number;
-    }>;
+    delete(id: string, schoolId: string): Promise<void>;
 };
 //# sourceMappingURL=levels.service.d.ts.map

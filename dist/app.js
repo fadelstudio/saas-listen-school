@@ -11,6 +11,7 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_1 = require("./core/config/swagger");
 const error_middleware_1 = require("./core/middleware/error.middleware");
+const env_1 = require("./core/config/env");
 const app = (0, express_1.default)();
 // ── Documentation ────────────────────────────────────────────────────────────
 // Note: Swagger mounted before security if you want it accessible without rate limit, 
@@ -22,7 +23,7 @@ app.use((0, compression_1.default)());
 app.use((0, cors_1.default)({
     origin: true, // Allow all origins but echo them back (better for some browsers)
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "x-school-slug"],
     credentials: true,
 }));
 app.use(express_1.default.json());
@@ -47,12 +48,15 @@ app.get("/health", (_req, res) => {
 });
 // ── API Routes (v1) ──────────────────────────────────────────────────────────
 const v1_1 = __importDefault(require("./core/routes/v1"));
-const system_controller_1 = require("./modules/system/system.controller");
-// Public system toggles (bootstrapping) — keep available even if router changes
-app.get(["/api/v1/system/public", "/api/system/public"], system_controller_1.systemController.getPublicSettings);
-// Mount v1 at /api/v1 AND /api for backward compatibility as requested
+// Toujours : API canonique (prod = sous-domaine ou header `x-school-slug` uniquement en strict)
 app.use("/api/v1", v1_1.default);
 app.use("/api", v1_1.default);
+// Préfixe `/<slug>/api/v1` : uniquement si mode non strict (dev / repli path + DEFAULT).
+// En strict, ces URLs ne sont pas montées → plus de confusion « path qui ressemble à l’API ».
+if (!env_1.env.tenantResolutionStrict) {
+    app.use("/:tenantSlug/api/v1", v1_1.default);
+    app.use("/:tenantSlug/api", v1_1.default);
+}
 // ── 404 handler (must come after all routes) ──────────────────────────────────
 app.use((_req, res) => {
     res.status(404).json({ success: false, message: "Route not found", data: null, error: "NOT_FOUND" });

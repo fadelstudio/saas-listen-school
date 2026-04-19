@@ -5,15 +5,32 @@ import { parsePagination } from '../../utils/pagination';
 
 type PaginationArgs = ReturnType<typeof parsePagination>;
 
+const schoolScope = (schoolId: string): Prisma.ClassWhereInput => ({
+  campus: { schoolId },
+});
+
 export const classesRepository = {
-  async findAll(filters: ClassFilters, pagination: PaginationArgs) {
-    const where: Prisma.ClassWhereInput = {
-      ...(filters.campusId && { campusId: filters.campusId }),
-      ...(filters.levelId && { levelId: filters.levelId }),
-      ...(filters.search && {
-        name: { contains: filters.search, mode: 'insensitive' },
-      }),
-    };
+  async findAll(schoolId: string, filters: ClassFilters, pagination: PaginationArgs) {
+    const andParts: Prisma.ClassWhereInput[] = [schoolScope(schoolId)];
+    if (filters.campusId) andParts.push({ campusId: filters.campusId });
+    if (filters.levelId) {
+      const levelBelongsToSchool = Prisma.validator<Prisma.AcademicLevelWhereInput>()({
+        schoolId,
+      });
+      andParts.push({
+        levelId: filters.levelId,
+        academicLevel: { is: levelBelongsToSchool },
+      });
+    }
+    if (filters.search) {
+      andParts.push({
+        name: {
+          contains: filters.search,
+          mode: 'insensitive',
+        },
+      });
+    }
+    const where: Prisma.ClassWhereInput = { AND: andParts };
 
     const [items, total] = await Promise.all([
       prisma.class.findMany({
@@ -21,11 +38,11 @@ export const classesRepository = {
         skip: pagination.skip,
         take: pagination.limit,
         orderBy: { [pagination.sortBy]: pagination.sortOrder },
-        include: { 
-          campus: true, 
+        include: {
+          campus: true,
           academicLevel: true,
           classModules: { include: { module: true } },
-          _count: { select: { users: true, reports: true } } 
+          _count: { select: { users: true, reports: true } },
         },
       }),
       prisma.class.count({ where }),
@@ -34,9 +51,9 @@ export const classesRepository = {
     return { items, total };
   },
 
-  async findById(id: string) {
-    return prisma.class.findUnique({
-      where: { id },
+  async findById(id: string, schoolId: string) {
+    return prisma.class.findFirst({
+      where: { id, ...schoolScope(schoolId) },
       include: {
         campus: true,
         academicLevel: true,
@@ -54,7 +71,9 @@ export const classesRepository = {
     });
   },
 
-  async update(id: string, data: { name?: string; campusId?: string; levelId?: string }) {
+  async update(id: string, schoolId: string, data: { name?: string; campusId?: string; levelId?: string }) {
+    const row = await prisma.class.findFirst({ where: { id, ...schoolScope(schoolId) } });
+    if (!row) return null;
     return prisma.class.update({
       where: { id },
       data,
@@ -62,15 +81,20 @@ export const classesRepository = {
     });
   },
 
-  async delete(id: string) {
-    return prisma.class.delete({
-      where: { id },
-    });
+  async delete(id: string, schoolId: string): Promise<boolean> {
+    const row = await prisma.class.findFirst({ where: { id, ...schoolScope(schoolId) } });
+    if (!row) return false;
+    await prisma.class.delete({ where: { id } });
+    return true;
   },
 
-  async findStudents(id: string) {
+  async findStudents(classId: string, schoolId: string) {
     return prisma.user.findMany({
-      where: { classId: id, role: 'STUDENT' },
+      where: {
+        classId,
+        role: 'STUDENT',
+        schoolId,
+      },
       select: {
         id: true,
         email: true,

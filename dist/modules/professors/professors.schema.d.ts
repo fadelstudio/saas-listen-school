@@ -1,15 +1,23 @@
 import { z } from 'zod';
 export declare const createProfessorSchema: z.ZodObject<{
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    numero: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     firstName: z.ZodString;
     lastName: z.ZodString;
     email: z.ZodString;
     userId: z.ZodOptional<z.ZodString>;
+    campusId: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>>;
 }, z.core.$strip>;
 export declare const updateProfessorSchema: z.ZodObject<{
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    numero: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     firstName: z.ZodOptional<z.ZodString>;
     lastName: z.ZodOptional<z.ZodString>;
     email: z.ZodOptional<z.ZodString>;
     userId: z.ZodOptional<z.ZodString>;
+    campusId: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>>;
 }, z.core.$strip>;
 export declare const professorParamsSchema: z.ZodObject<{
     id: z.ZodString;

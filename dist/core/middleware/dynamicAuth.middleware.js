@@ -15,19 +15,9 @@ const AppError_1 = require("../errors/AppError");
 function dynamicAuthMiddleware(type) {
     return async (req, _res, next) => {
         try {
-            let schoolId = req.query.schoolId;
-            if (!schoolId && req.body.campusId) {
-                const campus = await system_service_1.systemService.getSchoolSettingsByCampus(req.body.campusId);
-                schoolId = campus?.schoolId || '';
-            }
-            if (!schoolId && req.body.classId) {
-                const cls = await system_service_1.systemService.getSchoolSettingsByClass(req.body.classId);
-                schoolId = cls?.schoolId || '';
-            }
-            if (!schoolId) {
-                // Fallback for types that don't have school context yet in request
-                return next();
-            }
+            const schoolId = req.schoolId;
+            if (!schoolId)
+                throw new AppError_1.UnauthorizedError("School context missing");
             const settings = await system_service_1.systemService.getSettings(schoolId);
             const isRequired = (type === 'reports' && settings.authReportsRequired) ||
                 (type === 'evaluations' && settings.authEvaluationsRequired);

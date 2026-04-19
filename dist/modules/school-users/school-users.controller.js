@@ -81,5 +81,14 @@ exports.schoolUsersController = {
             next(e);
         }
     },
+    async resetPasswordToDefault(req, res, next) {
+        try {
+            const result = await school_users_service_1.schoolUsersService.resetPasswordToDefault(req.user.userId, req.params.id);
+            res.sendSuccess('Password reset', result);
+        }
+        catch (e) {
+            next(e);
+        }
+    },
 };
 //# sourceMappingURL=school-users.controller.js.map

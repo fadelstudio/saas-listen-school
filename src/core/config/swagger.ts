@@ -7,7 +7,8 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'AFI-LISTEN API',
       version: '1.0.0',
-      description: 'API de signalement, évaluation et analyse académique AFI-LISTEN.',
+      description:
+        "API AFI-LISTEN. Multi-tenant: TENANT_STRICT_MODE=true → sous-domaine + x-school-slug uniquement; false → + path /slug/api/... puis DEFAULT_SCHOOL_SLUG (un seul booléen côté API).",
       contact: {
         name: 'AFI Development Team',
       },
@@ -39,6 +40,16 @@ const options: swaggerJsdoc.Options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
+        },
+      },
+      parameters: {
+        SchoolSlugHeader: {
+          name: 'x-school-slug',
+          in: 'header',
+          required: false,
+          schema: { type: 'string', example: 'afi' },
+          description:
+            "Fallback tenant en dev/tests quand le sous-domaine n'est pas disponible. En mode strict, si aucun contexte école n'est résolu: 404.",
         },
       },
       schemas: {

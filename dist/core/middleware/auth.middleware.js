@@ -31,6 +31,12 @@ async function authMiddleware(req, _res, next) {
             }
             payload.schoolId = resolvedSchoolId;
         }
+        if (payload.role !== "SUPERADMIN" &&
+            req.schoolId &&
+            payload.schoolId &&
+            payload.schoolId !== req.schoolId) {
+            throw new AppError_1.ForbiddenError("Token school does not match request school context");
+        }
         req.user = payload;
         next();
     }

@@ -21,6 +21,7 @@ import saasRouter from "../../modules/saas/saas.route";
 import { schoolUsersRouter } from "../../modules/school-users/school-users.route";
 import { analyticsRouter } from "../../modules/analytics/analytics.route";
 import { bulkImportRouter } from "../../modules/bulk-import/bulk-import.route";
+import { resolveSchoolMiddleware } from "../middleware/resolveSchool.middleware";
 
 const router = Router();
 
@@ -48,6 +49,12 @@ router.get("/", (_req, res) => {
   });
 });
 
+// Global/tenant-management endpoints that are not scoped to a resolved school.
+router.use("/saas", saasRouter);
+
+// Tenant resolution is mandatory for all school-scoped business routes.
+router.use(resolveSchoolMiddleware);
+
 router.use("/auth",             authRouter);
 router.use("/reports",          reportsRouter);
 router.use("/evaluations",      evaluationsRouter);
@@ -68,7 +75,6 @@ router.use("/uploads",          uploadsRouter);
 router.use("/assignments",      classModulesRouter);
 router.use("/evaluation-campaigns", evaluationCampaignsRouter);
 router.use("/notifications",        notificationsRouter);
-router.use("/saas",             saasRouter);
 router.use("/school-users",     schoolUsersRouter);
 router.use("/analytics",        analyticsRouter);
 router.use("/bulk-import",     bulkImportRouter);

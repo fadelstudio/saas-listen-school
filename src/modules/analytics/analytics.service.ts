@@ -1,8 +1,48 @@
 import { prisma } from '../../core/database/prisma';
+import { Prisma } from '@prisma/client';
+import { BadRequestError } from '../../core/errors/AppError';
+
+function reportsInSchool(schoolId: string): Prisma.ReportWhereInput {
+  return {
+    OR: [{ schoolId }, { class: { campus: { schoolId } } }],
+  };
+}
+
+function evaluationsInSchool(schoolId: string): Prisma.EvaluationWhereInput {
+  return {
+    OR: [{ schoolId }, { class: { campus: { schoolId } } }],
+  };
+}
 
 export const analyticsService = {
-  async getDashboardStats(campusId?: string) {
-    const where: any = campusId ? { campusId } : {};
+  async getDashboardStats(schoolId: string, campusId?: string) {
+    if (campusId) {
+      const campus = await prisma.campus.findFirst({
+        where: { id: campusId, schoolId },
+      });
+      if (!campus) throw new BadRequestError('Campus not found in this school');
+    }
+
+    const userWhere: Prisma.UserWhereInput = campusId ? { schoolId, campusId } : { schoolId };
+
+    const reportWhere: Prisma.ReportWhereInput = campusId
+      ? { AND: [reportsInSchool(schoolId), { class: { campusId } }] }
+      : reportsInSchool(schoolId);
+
+    const evaluationWhere: Prisma.EvaluationWhereInput = campusId
+      ? { AND: [evaluationsInSchool(schoolId), { class: { campusId } }] }
+      : evaluationsInSchool(schoolId);
+
+    const decisionWhere: Prisma.DecisionWhereInput = campusId
+      ? {
+          OR: [
+            { evaluation: { AND: [evaluationsInSchool(schoolId), { class: { campusId } }] } },
+            { report: { AND: [reportsInSchool(schoolId), { class: { campusId } }] } },
+          ],
+        }
+      : {
+          OR: [{ evaluation: evaluationsInSchool(schoolId) }, { report: reportsInSchool(schoolId) }],
+        };
 
     const [
       totalUsers,
@@ -11,26 +51,26 @@ export const analyticsService = {
       totalEvaluations,
       avgScore,
       reportsByType,
-      decisionsByStatus
+      decisionsByStatus,
     ] = await Promise.all([
-      prisma.user.count({ where }),
-      prisma.user.count({ where: { ...where, role: 'STUDENT' } }),
-      prisma.report.count({ where: campusId ? { class: { campusId } } : {} }),
-      prisma.evaluation.count({ where: campusId ? { class: { campusId } } : {} }),
+      prisma.user.count({ where: userWhere }),
+      prisma.user.count({ where: { ...userWhere, role: 'STUDENT' } }),
+      prisma.report.count({ where: reportWhere }),
+      prisma.evaluation.count({ where: evaluationWhere }),
       prisma.evaluation.aggregate({
-        where: campusId ? { class: { campusId } } : {},
-        _avg: { score: true }
+        where: evaluationWhere,
+        _avg: { score: true },
       }),
       prisma.report.groupBy({
         by: ['type'],
-        where: campusId ? { class: { campusId } } : {},
-        _count: { id: true }
+        where: reportWhere,
+        _count: { id: true },
       }),
       prisma.decision.groupBy({
         by: ['status'],
-        where: campusId ? { evaluation: { class: { campusId } } } : {},
-        _count: { id: true }
-      })
+        where: decisionWhere,
+        _count: { id: true },
+      }),
     ]);
 
     return {
@@ -39,12 +79,12 @@ export const analyticsService = {
         students: totalStudents,
         reports: totalReports,
         evaluations: totalEvaluations,
-        averageSatisfaction: avgScore._avg.score || 0
+        averageSatisfaction: avgScore._avg.score || 0,
       },
       distributions: {
-        reportsByType: reportsByType.map(r => ({ type: r.type, count: r._count.id })),
-        decisionsByStatus: decisionsByStatus.map(d => ({ status: d.status, count: d._count.id }))
-      }
+        reportsByType: reportsByType.map((r) => ({ type: r.type, count: r._count.id })),
+        decisionsByStatus: decisionsByStatus.map((d) => ({ status: d.status, count: d._count.id })),
+      },
     };
-  }
+  },
 };

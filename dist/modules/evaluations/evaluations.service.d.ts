@@ -1,6 +1,14 @@
 import type { CreateEvaluationInput, UpdateEvaluationInput } from './evaluations.types';
 export declare const evaluationsService: {
     create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null): Promise<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        };
         class: {
             name: string;
             id: string;
@@ -9,20 +17,17 @@ export declare const evaluationsService: {
             campusId: string;
             levelId: string;
         };
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         };
@@ -75,8 +80,8 @@ export declare const evaluationsService: {
             aiSuggestion: string | null;
         } | null;
         evaluator: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;

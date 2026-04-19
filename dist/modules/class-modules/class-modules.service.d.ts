@@ -1,11 +1,19 @@
 export declare const classModulesService: {
-    getAll(filters: {
+    getAll(schoolId: string, filters: {
         classId?: string;
         moduleId?: string;
     }): Promise<({
-        professors: {
+        module: {
+            code: string | null;
+            name: string;
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        };
+        professors: {
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         }[];
@@ -16,13 +24,6 @@ export declare const classModulesService: {
             updatedAt: Date;
             campusId: string;
             levelId: string;
-        };
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
         };
     } & {
         id: string;
@@ -31,14 +32,26 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
     })[]>;
-    getById(id: string): Promise<{
-        professors: {
+    getById(id: string, schoolId: string): Promise<{
+        module: {
+            code: string | null;
+            name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+        };
+        professors: {
             email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         }[];
@@ -50,13 +63,6 @@ export declare const classModulesService: {
             campusId: string;
             levelId: string;
         };
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -64,18 +70,30 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
     }>;
-    create(data: {
+    create(schoolId: string, data: {
         classId: string;
         moduleId: string;
         professorIds?: string[];
     }): Promise<{
-        professors: {
+        module: {
+            code: string | null;
+            name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+        };
+        professors: {
             email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         }[];
@@ -87,13 +105,6 @@ export declare const classModulesService: {
             campusId: string;
             levelId: string;
         };
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -101,16 +112,28 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         professorIds?: string[];
     }): Promise<{
-        professors: {
+        module: {
+            code: string | null;
+            name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
+        };
+        professors: {
             email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         }[];
@@ -122,13 +145,6 @@ export declare const classModulesService: {
             campusId: string;
             levelId: string;
         };
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
     } & {
         id: string;
         createdAt: Date;
@@ -136,12 +152,6 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
     }>;
-    delete(id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        classId: string;
-        moduleId: string;
-    }>;
+    delete(id: string, schoolId: string): Promise<void>;
 };
 //# sourceMappingURL=class-modules.service.d.ts.map

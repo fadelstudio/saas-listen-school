@@ -9,8 +9,47 @@ const client_1 = require("@prisma/client");
 const prisma_1 = require("../../core/database/prisma");
 const AppError_1 = require("../../core/errors/AppError");
 const pagination_1 = require("../../utils/pagination");
+const env_1 = require("../../core/config/env");
+const uploads_service_1 = require("../uploads/uploads.service");
 const SALT_ROUNDS = 12;
 const ASSIGNABLE = [client_1.Role.MANAGER, client_1.Role.AGENT, client_1.Role.VIEWER, client_1.Role.STUDENT];
+function enrichSchoolUser(row) {
+    return {
+        ...row,
+        campusAccess: row.campusId == null ? 'ALL' : 'RESTRICTED',
+        campusScopeLabel: row.campusId == null ? 'TOUS' : null,
+    };
+}
+async function enrichSchoolUserWithAvatar(row) {
+    const base = enrichSchoolUser(row);
+    const avatarUrl = await uploads_service_1.uploadsService.getSignedUrlForPath(row.avatarPath ?? null);
+    return { ...base, avatarUrl };
+}
+/** Affectation campus : classe > campus explicite > null (= tous les campus de l’école). */
+async function resolveCampusForNewUser(admin, input) {
+    const schoolId = admin.schoolId;
+    if (input.classId) {
+        const cls = await prisma_1.prisma.class.findFirst({
+            where: {
+                id: input.classId,
+                campus: { schoolId },
+                ...(admin.campusId ? { campusId: admin.campusId } : {}),
+            },
+        });
+        if (!cls)
+            throw new AppError_1.BadRequestError('Class does not belong to your scope');
+        return cls.campusId;
+    }
+    if (input.campusId) {
+        const c = await prisma_1.prisma.campus.findFirst({
+            where: { id: input.campusId, schoolId },
+        });
+        if (!c)
+            throw new AppError_1.BadRequestError('Campus does not belong to this school');
+        return c.id;
+    }
+    return null;
+}
 async function assertCampusAdmin(adminUserId) {
     const admin = await prisma_1.prisma.user.findUnique({ where: { id: adminUserId } });
     if (!admin || ![client_1.Role.ADMIN, client_1.Role.SUPERADMIN].includes(admin.role)) {
@@ -25,6 +64,9 @@ exports.schoolUsersService = {
         if (!ASSIGNABLE.includes(role)) {
             throw new AppError_1.ForbiddenError('Cannot assign this role');
         }
+        if (role === client_1.Role.STUDENT && !input.classId) {
+            throw new AppError_1.BadRequestError('Students must be assigned to a class');
+        }
         const existing = await prisma_1.prisma.user.findFirst({
             where: {
                 OR: [{ email: input.email }, ...(input.matricule ? [{ matricule: input.matricule }] : [])],
@@ -33,16 +75,10 @@ exports.schoolUsersService = {
         if (existing) {
             throw new AppError_1.ConflictError('Email or matricule already in use');
         }
-        if (input.classId) {
-            const cls = await prisma_1.prisma.class.findFirst({
-                where: {
-                    id: input.classId,
-                    ...(admin.campusId && { campusId: admin.campusId })
-                },
-            });
-            if (!cls)
-                throw new AppError_1.BadRequestError('Class does not belong to your scope');
-        }
+        const resolvedCampusId = await resolveCampusForNewUser(admin, {
+            campusId: input.campusId,
+            classId: input.classId,
+        });
         const passwordHash = await bcrypt_1.default.hash(input.password, SALT_ROUNDS);
         const user = await prisma_1.prisma.user.create({
             data: {
@@ -52,14 +88,16 @@ exports.schoolUsersService = {
                 lastName: input.lastName,
                 role,
                 schoolId: admin.schoolId,
-                campusId: admin.role === client_1.Role.SUPERADMIN ? (admin.campusId || null) : admin.campusId,
+                campusId: resolvedCampusId,
                 classId: input.classId ?? null,
                 matricule: input.matricule ?? null,
+                numero: input.numero?.trim() || null,
+                phone: input.phone?.trim() || null,
                 emailVerified: true,
                 emailVerifiedAt: new Date(),
             },
         });
-        return {
+        return enrichSchoolUserWithAvatar({
             id: user.id,
             email: user.email,
             firstName: user.firstName,
@@ -68,8 +106,11 @@ exports.schoolUsersService = {
             campusId: user.campusId,
             classId: user.classId,
             matricule: user.matricule,
+            numero: user.numero,
+            phone: user.phone,
+            avatarPath: user.avatarPath,
             isActive: user.isActive,
-        };
+        });
     },
     async list(adminUserId, query) {
         const admin = await assertCampusAdmin(adminUserId);
@@ -79,9 +120,11 @@ exports.schoolUsersService = {
             // Data isolation by school
             schoolId: admin.schoolId,
         };
-        // Campus filtering
+        // Campus filtering : ADMIN sans campus = toute l’école ; sinon scope campus
         if (admin.role === client_1.Role.ADMIN) {
-            where.campusId = admin.campusId;
+            if (admin.campusId) {
+                where.campusId = admin.campusId;
+            }
         }
         else if (campusId) {
             where.campusId = campusId;
@@ -110,6 +153,7 @@ exports.schoolUsersService = {
                 { firstName: { contains: s, mode: 'insensitive' } },
                 { lastName: { contains: s, mode: 'insensitive' } },
                 { matricule: { contains: s, mode: 'insensitive' } },
+                { numero: { contains: s, mode: 'insensitive' } },
             ];
         }
         const [items, total] = await Promise.all([
@@ -126,14 +170,18 @@ exports.schoolUsersService = {
                     role: true,
                     isActive: true,
                     matricule: true,
+                    numero: true,
+                    phone: true,
                     classId: true,
                     campusId: true,
+                    avatarPath: true,
                     createdAt: true,
                 },
             }),
             prisma_1.prisma.user.count({ where }),
         ]);
-        return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
+        const enriched = await Promise.all(items.map((u) => enrichSchoolUserWithAvatar(u)));
+        return (0, pagination_1.buildPaginated)(enriched, total, pagination.page, pagination.limit);
     },
     async listStaff(adminUserId, query) {
         const admin = await assertCampusAdmin(adminUserId);
@@ -164,7 +212,7 @@ exports.schoolUsersService = {
         if (admin.role !== client_1.Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
             throw new AppError_1.ForbiddenError('Access denied: different school');
         }
-        if (admin.role === client_1.Role.ADMIN && target.campusId !== admin.campusId) {
+        if (admin.role === client_1.Role.ADMIN && admin.campusId && target.campusId !== admin.campusId) {
             throw new AppError_1.ForbiddenError('Access denied: different campus');
         }
         if (target.role === client_1.Role.SUPERADMIN) {
@@ -180,7 +228,8 @@ exports.schoolUsersService = {
             const cls = await prisma_1.prisma.class.findFirst({
                 where: {
                     id: input.classId,
-                    ...(admin.campusId && { campusId: admin.campusId })
+                    campus: { schoolId: admin.schoolId },
+                    ...(admin.campusId ? { campusId: admin.campusId } : {}),
                 },
             });
             if (!cls)
@@ -207,13 +256,64 @@ exports.schoolUsersService = {
     },
     async getById(adminUserId, targetId) {
         const admin = await assertCampusAdmin(adminUserId);
-        const target = await prisma_1.prisma.user.findUnique({ where: { id: targetId } });
+        const target = await prisma_1.prisma.user.findUnique({
+            where: { id: targetId },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                isActive: true,
+                matricule: true,
+                numero: true,
+                phone: true,
+                classId: true,
+                campusId: true,
+                schoolId: true,
+                avatarPath: true,
+                createdAt: true,
+                updatedAt: true,
+                emailVerified: true,
+            },
+        });
         if (!target)
             throw new AppError_1.NotFoundError('User');
         if (admin.role !== client_1.Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
             throw new AppError_1.ForbiddenError('Access denied');
         }
-        return target;
+        return enrichSchoolUserWithAvatar(target);
+    },
+    async resetPasswordToDefault(adminUserId, targetId) {
+        const admin = await assertCampusAdmin(adminUserId);
+        if (targetId === adminUserId) {
+            throw new AppError_1.ForbiddenError('Use change-password to update your own password');
+        }
+        const target = await prisma_1.prisma.user.findUnique({ where: { id: targetId } });
+        if (!target)
+            throw new AppError_1.NotFoundError('User');
+        if (admin.role !== client_1.Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
+            throw new AppError_1.ForbiddenError('Access denied: different school');
+        }
+        if (admin.role === client_1.Role.ADMIN && admin.campusId && target.campusId !== admin.campusId) {
+            throw new AppError_1.ForbiddenError('Access denied: different campus');
+        }
+        if (target.role === client_1.Role.SUPERADMIN) {
+            throw new AppError_1.ForbiddenError('Cannot reset super administrator password');
+        }
+        const passwordHash = await bcrypt_1.default.hash(env_1.env.DEFAULT_PASSWORD_RESET, SALT_ROUNDS);
+        await prisma_1.prisma.$transaction([
+            prisma_1.prisma.user.update({
+                where: { id: targetId },
+                data: { passwordHash },
+            }),
+            prisma_1.prisma.refreshToken.deleteMany({ where: { userId: targetId } }),
+            prisma_1.prisma.passwordResetToken.deleteMany({ where: { userId: targetId } }),
+            prisma_1.prisma.loginOtpChallenge.deleteMany({ where: { userId: targetId } }),
+        ]);
+        return {
+            message: 'Password reset. The user must sign in with the default password configured for the server (DEFAULT_PASSWORD_RESET).',
+        };
     },
     async delete(adminUserId, targetId) {
         const admin = await assertCampusAdmin(adminUserId);
@@ -226,7 +326,7 @@ exports.schoolUsersService = {
         if (admin.role !== client_1.Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
             throw new AppError_1.ForbiddenError('Access denied: different school');
         }
-        if (admin.role === client_1.Role.ADMIN && target.campusId !== admin.campusId) {
+        if (admin.role === client_1.Role.ADMIN && admin.campusId && target.campusId !== admin.campusId) {
             throw new AppError_1.ForbiddenError('Access denied: different campus');
         }
         // Deactivate instead of hard delete to preserve history?

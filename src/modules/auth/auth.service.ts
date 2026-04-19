@@ -23,8 +23,9 @@ import {
   ResetPasswordInput,
   VerifyRegisterOtpInput,
 } from './auth.types';
-import { Role } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 import { sendTransactionalEmail } from '../../core/email/mail.service';
+import { uploadsService } from '../uploads/uploads.service';
 
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
@@ -47,16 +48,6 @@ async function isRegisterOtpRequiredForSchool(schoolId: string | null): Promise<
   return first?.authOtpRequired ?? false;
 }
 
-async function resolveSchoolIdForUser(user: { schoolId: string | null; campusId: string | null }): Promise<string | null> {
-  if (user.schoolId) return user.schoolId;
-  if (!user.campusId) return null;
-  const campus = await prisma.campus.findUnique({
-    where: { id: user.campusId },
-    select: { schoolId: true },
-  });
-  return campus?.schoolId ?? null;
-}
-
 function hashOtp(otp: string): string {
   return crypto.createHash('sha256').update(`${otp}:${env.JWT_SECRET}`).digest('hex');
 }
@@ -69,20 +60,7 @@ function generateNumericOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function toSafeUser(user: {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: Role;
-  isActive: boolean;
-  emailVerified: boolean;
-  campusId: string | null;
-  classId: string | null;
-  schoolId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}): SafeUser {
+function toSafeUser(user: User): SafeUser {
   return {
     id: user.id,
     email: user.email,
@@ -91,12 +69,21 @@ function toSafeUser(user: {
     role: user.role,
     isActive: user.isActive,
     emailVerified: user.emailVerified,
+    matricule: user.matricule,
+    numero: user.numero,
+    phone: user.phone,
     campusId: user.campusId,
     classId: user.classId,
     schoolId: user.schoolId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
+}
+
+async function toSafeUserWithAvatar(user: User): Promise<SafeUser> {
+  const base = toSafeUser(user);
+  const avatarUrl = await uploadsService.getSignedUrlForPath(user.avatarPath);
+  return { ...base, avatarUrl };
 }
 
 type TokenUser = {
@@ -143,20 +130,23 @@ async function generateTokens(user: TokenUser) {
 }
 
 export const authService = {
-  async register(input: RegisterInput): Promise<RegisterResult> {
-    const existing = await authRepository.findByEmail(input.email);
+  async register(input: RegisterInput, schoolId: string): Promise<RegisterResult> {
+    const existing = await authRepository.findByEmail(input.email, schoolId);
     if (existing) {
       throw new ConflictError('An account with this email already exists');
     }
 
     const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
+    const otpRequired = await isRegisterOtpRequiredForSchool(schoolId);
+
     const user = await authRepository.create({
       ...input,
       passwordHash,
+      schoolId,
+      emailVerified: !otpRequired,
     });
 
-    const schoolId = await resolveSchoolIdForUser({ schoolId: user.schoolId, campusId: user.campusId });
-    if (!(await isRegisterOtpRequiredForSchool(schoolId))) {
+    if (!otpRequired) {
       const { accessToken, refreshToken } = await generateTokens({
         id: user.id,
         role: user.role,
@@ -164,25 +154,42 @@ export const authService = {
         campusId: user.campusId,
         classId: user.classId,
       });
-      return { token: accessToken, refreshToken, user: toSafeUser(user) };
+      return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
     }
 
     return this.sendNewRegisterOtp(user);
   },
 
-  async login(input: LoginInput): Promise<LoginResult> {
+  async login(input: LoginInput, schoolId: string): Promise<LoginResult> {
     const identifier = input.email || input.matricule;
     if (!identifier) {
       throw new UnauthorizedError('Email or matricule must be provided');
     }
 
-    const user = await authRepository.findByIdentifier(identifier);
+    const user = await authRepository.findByIdentifier(identifier, schoolId);
     if (!user) {
+      const globalUser = await authRepository.findByIdentifierGlobal(identifier);
+      if (
+        globalUser?.schoolId &&
+        globalUser.schoolId !== schoolId &&
+        globalUser.school?.slug
+      ) {
+        throw new UnauthorizedError(
+          `Wrong school context: this account is for school "${globalUser.school.slug}". ` +
+            `Call the API with header x-school-slug: ${globalUser.school.slug} (or open /${globalUser.school.slug}/api/... in non-strict mode).`,
+        );
+      }
       throw new UnauthorizedError('Invalid credentials');
     }
 
     if (!user.isActive) {
       throw new UnauthorizedError('Account is deactivated. Contact an administrator.');
+    }
+
+    if (!user.emailVerified) {
+      throw new UnauthorizedError(
+        'Email not verified. Use the code sent to your inbox or request a new code from the registration flow.',
+      );
     }
 
     const isValidPassword = await bcrypt.compare(input.password, user.passwordHash);
@@ -197,7 +204,7 @@ export const authService = {
       campusId: user.campusId,
       classId: user.classId,
     });
-    return { token: accessToken, refreshToken, user: toSafeUser(user) };
+    return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
   },
 
   async sendNewRegisterOtp(user: { id: string; email: string }) {
@@ -241,7 +248,7 @@ export const authService = {
     };
   },
 
-  async verifyRegisterOtp(input: VerifyRegisterOtpInput): Promise<AuthResponse> {
+  async verifyRegisterOtp(input: VerifyRegisterOtpInput, schoolId: string): Promise<AuthResponse> {
     const challenge = await authRepository.findLoginOtpChallengeById(input.challengeId);
     if (!challenge || challenge.expiresAt < new Date()) {
       if (challenge) await authRepository.deleteLoginOtpChallenge(challenge.id);
@@ -268,26 +275,28 @@ export const authService = {
 
     await authRepository.deleteLoginOtpChallenge(challenge.id);
     const user = challenge.user;
+    if (user.schoolId !== schoolId) {
+      throw new UnauthorizedError('Invalid OTP challenge for this school context');
+    }
 
-    // Mark email verified after registration OTP succeeds
-    await prisma.user.update({
+    const verifiedUser = await prisma.user.update({
       where: { id: user.id },
       data: { emailVerified: true, emailVerifiedAt: new Date() },
     });
 
     const { accessToken, refreshToken } = await generateTokens({
-      id: user.id,
-      role: user.role,
-      schoolId: user.schoolId,
-      campusId: user.campusId,
-      classId: user.classId,
+      id: verifiedUser.id,
+      role: verifiedUser.role,
+      schoolId: verifiedUser.schoolId,
+      campusId: verifiedUser.campusId,
+      classId: verifiedUser.classId,
     });
 
-    return { token: accessToken, refreshToken, user: toSafeUser(user) };
+    return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(verifiedUser) };
   },
 
-  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
-    const user = await authRepository.findByEmail(input.email);
+  async forgotPassword(input: ForgotPasswordInput, schoolId: string): Promise<void> {
+    const user = await authRepository.findByEmail(input.email, schoolId);
     if (!user) {
       return;
     }
@@ -350,6 +359,9 @@ export const authService = {
 
     await authRepository.deleteRefreshToken(token);
     const user = stored.user;
+    if (!user.emailVerified) {
+      throw new UnauthorizedError('Session ended: email verification required.');
+    }
     const { accessToken, refreshToken } = await generateTokens({
       id: user.id,
       role: user.role,
@@ -370,7 +382,7 @@ export const authService = {
     if (!user) {
       throw new NotFoundError('User');
     }
-    return toSafeUser(user);
+    return toSafeUserWithAvatar(user);
   },
 
   async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
@@ -394,13 +406,66 @@ export const authService = {
       throw new NotFoundError('User');
     }
 
-    const updated = await authRepository.updateProfile(userId, input);
-    return toSafeUser(updated);
+    const trimOrNull = (v: string | null | undefined) => {
+      if (v === undefined) return undefined;
+      if (v === null) return null;
+      const t = v.trim();
+      return t === '' ? null : t;
+    };
+
+    const matricule = input.matricule !== undefined ? trimOrNull(input.matricule) : undefined;
+    if (matricule !== undefined && matricule !== user.matricule) {
+      if (matricule) {
+        const taken = await prisma.user.findFirst({
+          where: { matricule, NOT: { id: userId } },
+        });
+        if (taken) throw new ConflictError('Matricule already in use');
+      }
+    }
+
+    const payload = {
+      ...(input.firstName !== undefined && { firstName: input.firstName }),
+      ...(input.lastName !== undefined && { lastName: input.lastName }),
+      ...(input.matricule !== undefined && { matricule }),
+      ...(input.numero !== undefined && { numero: trimOrNull(input.numero) ?? null }),
+      ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
+    };
+
+    if (Object.keys(payload).length === 0) {
+      return toSafeUserWithAvatar(user);
+    }
+
+    const updated = await authRepository.updateProfile(userId, payload);
+    return toSafeUserWithAvatar(updated);
   },
 
-  async resendOtp(challengeId: string) {
+  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<SafeUser> {
+    const user = await authRepository.findById(userId);
+    if (!user) throw new NotFoundError('User');
+    const { path } = await uploadsService.uploadProfileImage(file, `avatars/users/${userId}`);
+    if (user.avatarPath && user.avatarPath !== path) {
+      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => {});
+    }
+    const updated = await authRepository.updateAvatarPath(userId, path);
+    return toSafeUserWithAvatar(updated);
+  },
+
+  async clearAvatar(userId: string): Promise<SafeUser> {
+    const user = await authRepository.findById(userId);
+    if (!user) throw new NotFoundError('User');
+    if (user.avatarPath) {
+      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => {});
+    }
+    const updated = await authRepository.updateAvatarPath(userId, null);
+    return toSafeUserWithAvatar(updated);
+  },
+
+  async resendOtp(challengeId: string, schoolId: string) {
     const oldChallenge = await authRepository.findLoginOtpChallengeById(challengeId);
     if (!oldChallenge) {
+      throw new BadRequestError('Invalid or expired challenge session');
+    }
+    if (oldChallenge.user.schoolId !== schoolId) {
       throw new BadRequestError('Invalid or expired challenge session');
     }
     // Delete all existing challenges to avoid stale ones

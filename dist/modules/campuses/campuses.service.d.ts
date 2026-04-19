@@ -5,12 +5,14 @@ export declare const campusesService: {
             users: number;
         };
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     }>>;
     getById(id: string, schoolId: string): Promise<{
         classes: ({
@@ -26,12 +28,14 @@ export declare const campusesService: {
             levelId: string;
         })[];
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     }>;
     create(data: {
         name: string;
@@ -42,31 +46,36 @@ export declare const campusesService: {
         name?: string;
         location?: string;
     }, schoolId: string): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     } | null>;
     delete(id: string, schoolId: string): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     } | null>;
     getClasses(id: string, schoolId: string): Promise<({
-        _count: {
-            users: number;
-        };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
+        };
+        _count: {
+            users: number;
         };
     } & {
         name: string;
@@ -77,8 +86,8 @@ export declare const campusesService: {
         levelId: string;
     })[]>;
     getStudents(id: string, schoolId: string): Promise<{
-        id: string;
         email: string;
+        id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -98,12 +107,16 @@ export declare const campusesService: {
             evaluations: number;
         };
     } & {
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        email: string;
+        phone: string | null;
         firstName: string;
         lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         campusId: string | null;
         userId: string | null;
     })[]>;

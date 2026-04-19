@@ -2,10 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluationCampaignsController = void 0;
 const evaluation_campaigns_service_1 = require("./evaluation-campaigns.service");
+const AppError_1 = require("../../core/errors/AppError");
 exports.evaluationCampaignsController = {
     async create(req, res, next) {
         try {
-            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.create(req.body);
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.create(req.body, req.schoolId);
             res.sendSuccess('Evaluation campaign created and students notified', campaign, 201);
         }
         catch (error) {
@@ -14,12 +17,14 @@ exports.evaluationCampaignsController = {
     },
     async getAll(req, res, next) {
         try {
-            const result = await evaluation_campaigns_service_1.evaluationCampaignsService.getAll(req.query);
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const result = await evaluation_campaigns_service_1.evaluationCampaignsService.getAll(req.schoolId, req.query);
             res.sendSuccess('Campaigns retrieved', result.items, 200, {
                 total: result.total,
                 page: result.page,
                 limit: result.limit,
-                totalPages: result.totalPages
+                totalPages: result.totalPages,
             });
         }
         catch (error) {
@@ -28,7 +33,9 @@ exports.evaluationCampaignsController = {
     },
     async getById(req, res, next) {
         try {
-            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.getById(req.params.id);
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.getById(req.params.id, req.schoolId);
             res.sendSuccess('Campaign details', campaign);
         }
         catch (error) {
@@ -37,12 +44,14 @@ exports.evaluationCampaignsController = {
     },
     async close(req, res, next) {
         try {
-            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.close(req.params.id);
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.close(req.params.id, req.schoolId);
             res.sendSuccess('Campaign closed', campaign);
         }
         catch (error) {
             next(error);
         }
-    }
+    },
 };
 //# sourceMappingURL=evaluation-campaigns.controller.js.map

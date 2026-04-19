@@ -1,31 +1,36 @@
+import { Prisma } from '@prisma/client';
 export declare const classesService: {
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
-        };
-        _count: {
-            users: number;
-            reports: number;
+            phone: string | null;
         };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
+        };
+        _count: {
+            users: number;
+            reports: number;
         };
         classModules: ({
             module: {
+                code: string | null;
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                code: string | null;
+                schoolId: string;
             };
         } & {
             id: string;
@@ -42,28 +47,31 @@ export declare const classesService: {
         campusId: string;
         levelId: string;
     }>>;
-    getById(id: string): Promise<{
+    getById(id: string, schoolId: string): Promise<{
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         };
-        users: {
-            id: string;
-            email: string;
-            firstName: string;
-            lastName: string;
-        }[];
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
         };
+        users: {
+            email: string;
+            id: string;
+            firstName: string;
+            lastName: string;
+        }[];
         reports: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -80,28 +88,33 @@ export declare const classesService: {
             authorId: string | null;
             professorId: string | null;
             moduleId: string | null;
-            attachments: import("@prisma/client/runtime/client").JsonValue | null;
-            deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
-            aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
+            attachments: Prisma.JsonValue | null;
+            deviceMetadata: Prisma.JsonValue | null;
+            aiAnalysis: Prisma.JsonValue | null;
         }[];
         classModules: ({
-            professors: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                email: string;
-                firstName: string;
-                lastName: string;
-                campusId: string | null;
-                userId: string | null;
-            }[];
             module: {
+                code: string | null;
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                code: string | null;
+                schoolId: string;
             };
+            professors: {
+                email: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
+                campusId: string | null;
+                userId: string | null;
+            }[];
         } & {
             id: string;
             createdAt: Date;
@@ -117,24 +130,27 @@ export declare const classesService: {
         campusId: string;
         levelId: string;
     }>;
-    create(data: {
+    create(schoolId: string, data: {
         name: string;
         campusId: string;
         levelId: string;
     }): Promise<{
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
         };
     } & {
@@ -145,24 +161,27 @@ export declare const classesService: {
         campusId: string;
         levelId: string;
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         name?: string;
         campusId?: string;
         levelId?: string;
     }): Promise<{
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
         };
     } & {
@@ -173,17 +192,10 @@ export declare const classesService: {
         campusId: string;
         levelId: string;
     }>;
-    delete(id: string): Promise<{
-        name: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        campusId: string;
-        levelId: string;
-    }>;
-    getStudents(id: string): Promise<{
-        id: string;
+    delete(id: string, schoolId: string): Promise<void>;
+    getStudents(id: string, schoolId: string): Promise<{
         email: string;
+        id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;

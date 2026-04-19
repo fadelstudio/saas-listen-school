@@ -6,6 +6,9 @@ export declare const schoolUsersService: {
         lastName: string;
         role: "MANAGER" | "AGENT" | "VIEWER" | "STUDENT";
         matricule?: string;
+        numero?: string;
+        phone?: string;
+        campusId?: string;
         classId?: string;
     }): Promise<{
         id: string;
@@ -16,51 +19,79 @@ export declare const schoolUsersService: {
         campusId: string | null;
         classId: string | null;
         matricule: string | null;
+        numero: string | null;
+        phone: string | null;
+        avatarPath: string | null;
         isActive: boolean;
+    } & {
+        avatarUrl: string | null;
+        campusAccess: "ALL" | "RESTRICTED";
+        campusScopeLabel: string | null;
     }>;
     list(adminUserId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+        email: string;
         id: string;
         createdAt: Date;
-        email: string;
+        phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         campusId: string | null;
         classId: string | null;
+    } & {
+        avatarUrl: string | null;
+        campusAccess: "ALL" | "RESTRICTED";
+        campusScopeLabel: string | null;
     }>>;
     listStaff(adminUserId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+        email: string;
         id: string;
         createdAt: Date;
-        email: string;
+        phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         campusId: string | null;
         classId: string | null;
+    } & {
+        avatarUrl: string | null;
+        campusAccess: "ALL" | "RESTRICTED";
+        campusScopeLabel: string | null;
     }>>;
     listStudents(adminUserId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+        email: string;
         id: string;
         createdAt: Date;
-        email: string;
+        phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         campusId: string | null;
         classId: string | null;
+    } & {
+        avatarUrl: string | null;
+        campusAccess: "ALL" | "RESTRICTED";
+        campusScopeLabel: string | null;
     }>>;
     update(adminUserId: string, targetId: string, input: {
         role?: "MANAGER" | "AGENT" | "VIEWER" | "STUDENT";
         isActive?: boolean;
         classId?: string | null;
     }): Promise<{
-        id: string;
         email: string;
+        id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -69,33 +100,43 @@ export declare const schoolUsersService: {
         classId: string | null;
     }>;
     getById(adminUserId: string, targetId: string): Promise<{
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string | null;
-        email: string;
-        passwordHash: string;
+        phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
-        fcmToken: string | null;
         emailVerified: boolean;
-        emailVerifiedAt: Date | null;
         campusId: string | null;
         classId: string | null;
+    } & {
+        avatarUrl: string | null;
+        campusAccess: "ALL" | "RESTRICTED";
+        campusScopeLabel: string | null;
+    }>;
+    resetPasswordToDefault(adminUserId: string, targetId: string): Promise<{
+        message: string;
     }>;
     delete(adminUserId: string, targetId: string): Promise<{
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string | null;
-        email: string;
+        phone: string | null;
         passwordHash: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;

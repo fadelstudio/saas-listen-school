@@ -33,7 +33,8 @@ erDiagram
 #### User
 Gère les comptes, les rôles et l'appartenance institutionnelle.
 - **Rôles** : `SUPERADMIN`, `ADMIN`, `MANAGER`, `AGENT`, `STUDENT`, `VIEWER`
-- **Champs clés** : `email`, `matricule`, `fcmToken`, `isActive`, `campusId`, `classId`
+- **Champs clés** : `email`, `matricule`, `numero`, `phone`, `fcmToken`, `isActive`, `campusId`, `classId`
+- **Avatar** : `avatarPath` (chemin dans le bucket Supabase `attachments`) — l’API renvoie une URL signée côté client (`avatarUrl`), avec expiration (`SIGNED_URL_EXPIRES_IN`).
 
 #### RefreshToken / PasswordResetToken / LoginOtpChallenge
 Gèrent la sécurité et la persistance des sessions.
@@ -58,7 +59,7 @@ Gèrent la sécurité et la persistance des sessions.
 Relie un Module à une Classe spécifique. C'est ici que les professeurs sont affectés.
 
 #### Professor
-- **Champs** : `firstName`, `lastName`, `email`, `userId` (optionnel)
+- **Champs** : `firstName`, `lastName`, `email`, `matricule`, `numero`, `phone`, `campusId` (null = tous les campus de l’école), `userId` (optionnel), `avatarPath` (photo si pas de compte lié ; sinon photo portée par le **User** lié)
 
 ---
 

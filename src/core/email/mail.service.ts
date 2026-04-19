@@ -3,7 +3,9 @@ import { env } from "../config/env";
 import { logger } from "../../utils/logger";
 
 /**
- * Sends transactional email. With MAIL_PROVIDER=console, logs body (dev / no API key).
+ * Sends transactional email.
+ * - `MAIL_PROVIDER=console`: log only (dev).
+ * - `MAIL_PROVIDER=resend`: HTTPS API Resend (`RESEND_API_KEY`, `EMAIL_FROM` vérifié côté Resend).
  */
 export async function sendTransactionalEmail(params: {
   to: string;
@@ -11,7 +13,7 @@ export async function sendTransactionalEmail(params: {
   text: string;
   html?: string;
 }): Promise<void> {
-  if (env.MAIL_PROVIDER === "console" || !env.RESEND_API_KEY) {
+  if (env.MAIL_PROVIDER === "console") {
     logger.info("[mail:console]", {
       to: params.to,
       subject: params.subject,

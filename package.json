@@ -12,6 +12,7 @@
     "dev:stop": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ErrorActionPreference='Continue'; $dockerCmd = (Get-Command docker -ErrorAction SilentlyContinue); $docker = if ($dockerCmd) { $dockerCmd.Source } else { $candidates=@(\\\"${env:ProgramFiles}\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\\\",\\\"${env:ProgramFiles(x86)}\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\\\",\\\"C:\\\\Program Files\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\\\",\\\"C:\\\\Program Files (x86)\\\\Docker\\\\Docker\\\\resources\\\\bin\\\\docker.exe\\\"); ($candidates | Where-Object { Test-Path $_ } | Select-Object -First 1) }; if ($docker) { & $docker compose down } else { Write-Host 'Docker not found; nothing to stop.' }\"",
     "dev:all": "concurrently -k -n \"redis,api,worker\" -c \"yellow,cyan,magenta\" \"npm run dev:redis\" \"npm run dev:api\" \"npm run dev:worker\"",
     "build": "tsc",
+    "typecheck:prisma": "tsc -p prisma/tsconfig.json",
     "start": "node dist/server.js",
     "start:api": "node dist/server.js",
     "start:worker": "node dist/jobs/ai.worker.js",

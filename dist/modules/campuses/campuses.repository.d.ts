@@ -9,12 +9,14 @@ export declare const campusesRepository: {
                 users: number;
             };
         } & {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         })[];
         total: number;
     }>;
@@ -32,12 +34,14 @@ export declare const campusesRepository: {
             levelId: string;
         })[];
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     }) | null>;
     create(data: {
         name: string;
@@ -48,31 +52,36 @@ export declare const campusesRepository: {
         name?: string;
         location?: string;
     }, schoolId: string): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     } | null>;
     delete(id: string, schoolId: string): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     } | null>;
     findClasses(id: string, schoolId: string): Promise<({
-        _count: {
-            users: number;
-        };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
+        };
+        _count: {
+            users: number;
         };
     } & {
         name: string;
@@ -83,8 +92,8 @@ export declare const campusesRepository: {
         levelId: string;
     })[]>;
     findStudents(id: string, schoolId: string): Promise<{
-        id: string;
         email: string;
+        id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -104,12 +113,16 @@ export declare const campusesRepository: {
             evaluations: number;
         };
     } & {
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        email: string;
+        phone: string | null;
         firstName: string;
         lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         campusId: string | null;
         userId: string | null;
     })[]>;

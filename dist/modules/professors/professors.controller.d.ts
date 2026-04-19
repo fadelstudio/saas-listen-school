@@ -5,5 +5,7 @@ export declare const professorsController: {
     create(req: Request, res: Response, next: NextFunction): Promise<void>;
     update(req: Request, res: Response, next: NextFunction): Promise<void>;
     remove(req: Request, res: Response, next: NextFunction): Promise<void>;
+    uploadAvatar(req: Request, res: Response, next: NextFunction): Promise<void>;
+    clearAvatar(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=professors.controller.d.ts.map

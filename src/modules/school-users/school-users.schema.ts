@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { idStringSchema } from '../../utils/idSchema';
 
+/** Chaîne vide / null → ignoré (ex. campus vide = tous les campus pour le staff). */
+const optionalId = z.preprocess(
+  (v) => (v === '' || v === null ? undefined : v),
+  idStringSchema.optional(),
+);
+
 export const createSchoolUserSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z
@@ -12,7 +18,15 @@ export const createSchoolUserSchema = z.object({
   lastName: z.string().min(1).max(50),
   role: z.enum(['MANAGER', 'AGENT', 'VIEWER', 'STUDENT']),
   matricule: z.string().min(1).max(50).optional(),
-  classId: idStringSchema.optional(),
+  numero: z.string().max(120).optional(),
+  phone: z.string().max(40).optional(),
+  /**
+   * Optionnel. Pour MANAGER / AGENT / VIEWER : si omis ou vide → `campusId` null
+   * (périmètre toute l’école, comme un admin école sans campus).
+   * Pour STUDENT : utiliser `classId` (le campus est déduit de la classe).
+   */
+  campusId: optionalId,
+  classId: optionalId,
 });
 
 export const updateSchoolUserSchema = z.object({
@@ -29,8 +43,8 @@ export const schoolUserQuerySchema = z.object({
   page: z.coerce.number().min(1).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
   role: z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
-  campusId: idStringSchema.optional(),
-  classId: idStringSchema.optional(),
+  campusId: optionalId,
+  classId: optionalId,
   search: z.string().optional(),
   isActive: z.coerce.boolean().optional(),
 });

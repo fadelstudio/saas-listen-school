@@ -1,25 +1,47 @@
-export declare const env: {
-    NODE_ENV: "development" | "production" | "test";
-    PORT: number;
-    DATABASE_URL: string;
-    JWT_SECRET: string;
-    LOGIN_OTP_ENABLED: boolean;
-    SUPABASE_URL: string;
-    SUPABASE_KEY: string;
-    REDIS_HOST: string;
-    REDIS_PORT: number;
-    GEMINI_API_KEY: string;
-    GROQ_API_KEY: string;
-    MAX_FILE_SIZE_MB: number;
-    SIGNED_URL_EXPIRES_IN: number;
-    PUBLIC_APP_URL: string;
-    MAIL_PROVIDER: "console" | "resend";
-    EMAIL_FROM: string;
-    REDIS_URL?: string | undefined;
-    RESEND_API_KEY?: string | undefined;
-    OTP_SITE_NAME?: string | undefined;
-    OTP_EMAIL_SUBJECT?: string | undefined;
-    OTP_HELP_URL?: string | undefined;
+import { z } from "zod";
+declare const envSchema: z.ZodObject<{
+    NODE_ENV: z.ZodDefault<z.ZodEnum<{
+        development: "development";
+        production: "production";
+        test: "test";
+    }>>;
+    PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    DATABASE_URL: z.ZodString;
+    JWT_SECRET: z.ZodString;
+    DEFAULT_PASSWORD_RESET: z.ZodDefault<z.ZodString>;
+    LOGIN_OTP_ENABLED: z.ZodDefault<z.ZodCoercedBoolean<unknown>>;
+    PENDING_REGISTRATION_TTL_MINUTES: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    SUPABASE_URL: z.ZodString;
+    SUPABASE_KEY: z.ZodString;
+    REDIS_URL: z.ZodOptional<z.ZodString>;
+    REDIS_HOST: z.ZodDefault<z.ZodString>;
+    REDIS_PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    GEMINI_API_KEY: z.ZodString;
+    GROQ_API_KEY: z.ZodString;
+    MAX_FILE_SIZE_MB: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    SIGNED_URL_EXPIRES_IN: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    PUBLIC_APP_URL: z.ZodDefault<z.ZodString>;
+    MAIL_PROVIDER: z.ZodDefault<z.ZodEnum<{
+        console: "console";
+        resend: "resend";
+    }>>;
+    RESEND_API_KEY: z.ZodOptional<z.ZodString>;
+    EMAIL_FROM: z.ZodDefault<z.ZodString>;
+    OTP_SITE_NAME: z.ZodOptional<z.ZodString>;
+    OTP_EMAIL_SUBJECT: z.ZodOptional<z.ZodString>;
+    OTP_HELP_URL: z.ZodOptional<z.ZodString>;
+    DEFAULT_SCHOOL_SLUG: z.ZodOptional<z.ZodString>;
+    TENANT_RESOLUTION_MODE: z.ZodDefault<z.ZodEnum<{
+        strict: "strict";
+        fallback: "fallback";
+    }>>;
+    TENANT_STRICT_MODE: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type Env = z.infer<typeof envSchema> & {
+    tenantResolutionStrict: boolean;
+    /** Seule clé env pour le slug de repli (mode non strict). Aucun alias. */
+    tenantDefaultSlug: string | undefined;
 };
-export type Env = typeof env;
+export declare const env: Env;
+export {};
 //# sourceMappingURL=env.d.ts.map

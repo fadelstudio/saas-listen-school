@@ -20,6 +20,9 @@ export declare const changePasswordSchema: z.ZodObject<{
 export declare const updateProfileSchema: z.ZodObject<{
     firstName: z.ZodOptional<z.ZodString>;
     lastName: z.ZodOptional<z.ZodString>;
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    numero: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
 }, z.core.$strip>;
 export declare const verifyLoginOtpSchema: z.ZodObject<{
     challengeId: z.ZodString;

@@ -10,16 +10,7 @@ const prisma_1 = require("../../core/database/prisma");
 exports.evaluationsService = {
     async create(input, userId, schoolId) {
         let finalInput = { ...input };
-        // 1. Cross-validation: Triple-Link consistency
-        const assignment = await class_modules_repository_1.classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId);
-        if (!assignment) {
-            throw new AppError_1.BadRequestError('This module is not assigned to the selected class');
-        }
-        const isAssigned = assignment.professors.some((p) => p.id === finalInput.professorId);
-        if (!isAssigned) {
-            throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
-        }
-        // 2. User context auto-fill
+        // 1. User context auto-fill (needed before school / class-module resolution)
         if (userId && !finalInput.classId) {
             const user = await evaluations_repository_1.evaluationsRepository.getUserContext(userId);
             if (user) {
@@ -33,6 +24,18 @@ exports.evaluationsService = {
                 select: { campus: { select: { schoolId: true } } },
             });
             resolvedSchoolId = cls?.campus?.schoolId ?? null;
+        }
+        if (!resolvedSchoolId) {
+            throw new AppError_1.BadRequestError('School context is required');
+        }
+        // 2. Cross-validation: Triple-Link consistency (tenant-scoped)
+        const assignment = await class_modules_repository_1.classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId, resolvedSchoolId);
+        if (!assignment) {
+            throw new AppError_1.BadRequestError('This module is not assigned to the selected class');
+        }
+        const isAssigned = assignment.professors.some((p) => p.id === finalInput.professorId);
+        if (!isAssigned) {
+            throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
         }
         const evaluation = await evaluations_repository_1.evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
         // 3. Automatic AI Trigger

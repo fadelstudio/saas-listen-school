@@ -2,7 +2,7 @@ import { AcademicModuleFilters } from './academic-modules.types';
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const academicModulesRepository: {
-    findAll(filters: AcademicModuleFilters, pagination: PaginationArgs): Promise<{
+    findAll(schoolId: string, filters: AcademicModuleFilters, pagination: PaginationArgs): Promise<{
         items: ({
             _count: {
                 reports: number;
@@ -10,26 +10,30 @@ export declare const academicModulesRepository: {
                 classModules: number;
             };
         } & {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            code: string | null;
+            schoolId: string;
         })[];
         total: number;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId: string): Promise<({
         evaluations: ({
             evaluator: {
+                email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 schoolId: string | null;
-                email: string;
+                phone: string | null;
                 passwordHash: string;
                 firstName: string;
                 lastName: string;
                 matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
                 role: import("@prisma/client").$Enums.Role;
                 isActive: boolean;
                 fcmToken: string | null;
@@ -62,12 +66,16 @@ export declare const academicModulesRepository: {
         })[];
         classModules: ({
             professors: {
+                email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                email: string;
+                phone: string | null;
                 firstName: string;
                 lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
                 campusId: string | null;
                 userId: string | null;
             }[];
@@ -87,13 +95,14 @@ export declare const academicModulesRepository: {
             moduleId: string;
         })[];
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
+        schoolId: string;
     }) | null>;
-    create(data: {
+    create(schoolId: string, data: {
         name: string;
         code?: string;
     }): Promise<{
@@ -101,29 +110,25 @@ export declare const academicModulesRepository: {
             classModules: number;
         };
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
+        schoolId: string;
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         name?: string;
         code?: string;
     }): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
-    }>;
-    delete(id: string): Promise<{
-        name: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        code: string | null;
-    }>;
+        schoolId: string;
+    } | null>;
+    delete(id: string, schoolId: string): Promise<boolean>;
 };
 export {};
 //# sourceMappingURL=academic-modules.repository.d.ts.map

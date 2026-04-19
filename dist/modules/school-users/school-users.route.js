@@ -28,6 +28,11 @@ exports.schoolUsersRouter.use(auth_middleware_1.authMiddleware);
  *         role: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER, STUDENT] }
  *         isActive: { type: boolean }
  *         matricule: { type: string, nullable: true }
+ *         numero: { type: string, nullable: true }
+ *         phone: { type: string, nullable: true }
+ *         campusAccess: { type: string, enum: [ALL, RESTRICTED], description: "ALL si campusId null (toute l'école)" }
+ *         campusScopeLabel: { type: string, nullable: true, example: "TOUS" }
+ *         avatarUrl: { type: string, nullable: true, description: "URL signée photo de profil" }
  *         classId: { type: string, format: uuid, nullable: true }
  *         createdAt: { type: string, format: date-time }
  */
@@ -121,6 +126,27 @@ exports.schoolUsersRouter.get('/staff', (0, validate_middleware_1.validate)({ qu
 exports.schoolUsersRouter.get('/students', (0, validate_middleware_1.validate)({ query: school_users_schema_1.schoolUserQuerySchema }), school_users_controller_1.schoolUsersController.listStudents);
 /**
  * @swagger
+ * /api/school-users/{id}/reset-password-default:
+ *   post:
+ *     summary: "[ADMIN+] Réinitialiser le mot de passe au défaut serveur"
+ *     description: |
+ *       Applique le mot de passe défini par `DEFAULT_PASSWORD_RESET` (fichier d’environnement),
+ *       révoque les refresh tokens et les jetons OTP / reset email en cours.
+ *     tags: [School Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Mot de passe réinitialisé
+ */
+exports.schoolUsersRouter.post('/:id/reset-password-default', (0, validate_middleware_1.validate)({ params: school_users_schema_1.schoolUserParamsSchema }), school_users_controller_1.schoolUsersController.resetPasswordToDefault);
+/**
+ * @swagger
  * /api/school-users/{id}:
  *   get:
  *     summary: Récupérer le détail d'un utilisateur
@@ -163,6 +189,9 @@ exports.schoolUsersRouter.get('/:id', (0, validate_middleware_1.validate)({ para
  *               lastName: { type: string }
  *               role: { type: string, enum: [MANAGER, AGENT, VIEWER, STUDENT] }
  *               matricule: { type: string }
+ *               numero: { type: string }
+ *               phone: { type: string }
+ *               campusId: { type: string, format: uuid, description: "Optionnel ; sans campus ni classe → accès toute l'école (campusId null)" }
  *               classId: { type: string, format: uuid, description: "Obligatoire si STUDENT" }
  *     responses:
  *       201:

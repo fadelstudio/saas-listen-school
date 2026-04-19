@@ -1,10 +1,21 @@
+import { Prisma } from '@prisma/client';
 import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
+/** Campagne rattachée au tenant : par classe, campus, ou portée école avec prof du campus. */
+export declare function campaignInSchool(schoolId: string): Prisma.EvaluationCampaignWhereInput;
 export declare const evaluationCampaignsRepository: {
-    findAll(filters: EvaluationCampaignFilters, pagination: {
+    findAll(schoolId: string, filters: EvaluationCampaignFilters, pagination: {
         skip: number;
         limit: number;
     }): Promise<{
         items: ({
+            module: {
+                code: string | null;
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string;
+            };
             _count: {
                 evaluations: number;
             };
@@ -16,20 +27,17 @@ export declare const evaluationCampaignsRepository: {
                 campusId: string;
                 levelId: string;
             } | null;
-            module: {
-                name: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                code: string | null;
-            };
             professor: {
+                email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                email: string;
+                phone: string | null;
                 firstName: string;
                 lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
                 campusId: string | null;
                 userId: string | null;
             };
@@ -49,20 +57,30 @@ export declare const evaluationCampaignsRepository: {
         })[];
         total: number;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId: string): Promise<({
         campus: ({
             users: {
                 id: string;
                 role: import("@prisma/client").$Enums.Role;
             }[];
         } & {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         }) | null;
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        };
         class: ({
             users: {
                 id: string;
@@ -75,20 +93,17 @@ export declare const evaluationCampaignsRepository: {
             campusId: string;
             levelId: string;
         }) | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         };
@@ -151,7 +166,7 @@ export declare const evaluationCampaignsRepository: {
         scope: string;
         dueDate: Date;
     }>;
-    updateStatus(id: string, status: string): Promise<{
+    updateStatus(id: string, schoolId: string, status: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -164,6 +179,6 @@ export declare const evaluationCampaignsRepository: {
         description: string | null;
         scope: string;
         dueDate: Date;
-    }>;
+    } | null>;
 };
 //# sourceMappingURL=evaluation-campaigns.repository.d.ts.map

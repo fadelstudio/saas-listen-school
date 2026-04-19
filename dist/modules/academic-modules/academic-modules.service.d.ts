@@ -1,29 +1,33 @@
 export declare const academicModulesService: {
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
         _count: {
             reports: number;
             evaluations: number;
             classModules: number;
         };
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
+        schoolId: string;
     }>>;
-    getById(id: string): Promise<{
+    getById(id: string, schoolId: string): Promise<{
         evaluations: ({
             evaluator: {
+                email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 schoolId: string | null;
-                email: string;
+                phone: string | null;
                 passwordHash: string;
                 firstName: string;
                 lastName: string;
                 matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
                 role: import("@prisma/client").$Enums.Role;
                 isActive: boolean;
                 fcmToken: string | null;
@@ -56,12 +60,16 @@ export declare const academicModulesService: {
         })[];
         classModules: ({
             professors: {
+                email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                email: string;
+                phone: string | null;
                 firstName: string;
                 lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
                 campusId: string | null;
                 userId: string | null;
             }[];
@@ -81,13 +89,14 @@ export declare const academicModulesService: {
             moduleId: string;
         })[];
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
+        schoolId: string;
     }>;
-    create(data: {
+    create(schoolId: string, data: {
         name: string;
         code?: string;
     }): Promise<{
@@ -95,28 +104,24 @@ export declare const academicModulesService: {
             classModules: number;
         };
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
+        schoolId: string;
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         name?: string;
         code?: string;
     }): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        code: string | null;
+        schoolId: string;
     }>;
-    delete(id: string): Promise<{
-        name: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        code: string | null;
-    }>;
+    delete(id: string, schoolId: string): Promise<void>;
 };
 //# sourceMappingURL=academic-modules.service.d.ts.map

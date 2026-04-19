@@ -49,6 +49,9 @@ export const changePasswordSchema = z
 export const updateProfileSchema = z.object({
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
+  matricule: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
+  numero: z.union([z.string().max(120), z.literal(''), z.null()]).optional(),
+  phone: z.union([z.string().max(40), z.literal(''), z.null()]).optional(),
 });
 
 export const verifyLoginOtpSchema = z.object({

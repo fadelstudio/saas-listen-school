@@ -2,14 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.classModulesController = void 0;
 const class_modules_service_1 = require("./class-modules.service");
+const AppError_1 = require("../../core/errors/AppError");
 exports.classModulesController = {
     async getAll(req, res, next) {
         try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
             const filters = {
                 classId: req.query.classId,
                 moduleId: req.query.moduleId,
             };
-            const assignments = await class_modules_service_1.classModulesService.getAll(filters);
+            const assignments = await class_modules_service_1.classModulesService.getAll(req.schoolId, filters);
             res.sendSuccess('Affectations récupérées', assignments);
         }
         catch (err) {
@@ -18,8 +21,10 @@ exports.classModulesController = {
     },
     async getById(req, res, next) {
         try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
             const { id } = req.params;
-            const assignment = await class_modules_service_1.classModulesService.getById(id);
+            const assignment = await class_modules_service_1.classModulesService.getById(id, req.schoolId);
             res.sendSuccess('Affectation récupérée', assignment);
         }
         catch (err) {
@@ -28,7 +33,9 @@ exports.classModulesController = {
     },
     async create(req, res, next) {
         try {
-            const assignment = await class_modules_service_1.classModulesService.create(req.body);
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const assignment = await class_modules_service_1.classModulesService.create(req.schoolId, req.body);
             res.sendSuccess('Affectation créée', assignment, 201);
         }
         catch (err) {
@@ -37,8 +44,10 @@ exports.classModulesController = {
     },
     async update(req, res, next) {
         try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
             const { id } = req.params;
-            const assignment = await class_modules_service_1.classModulesService.update(id, req.body);
+            const assignment = await class_modules_service_1.classModulesService.update(id, req.schoolId, req.body);
             res.sendSuccess('Affectation mise à jour', assignment);
         }
         catch (err) {
@@ -47,8 +56,10 @@ exports.classModulesController = {
     },
     async remove(req, res, next) {
         try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
             const { id } = req.params;
-            await class_modules_service_1.classModulesService.delete(id);
+            await class_modules_service_1.classModulesService.delete(id, req.schoolId);
             res.sendSuccess('Affectation supprimée', null);
         }
         catch (err) {

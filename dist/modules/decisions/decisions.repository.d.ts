@@ -91,8 +91,8 @@ export declare const decisionsRepository: {
             decisionId: string | null;
         }[];
         decider: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         };

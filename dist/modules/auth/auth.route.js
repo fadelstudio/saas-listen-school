@@ -4,6 +4,7 @@ exports.authRouter = void 0;
 const express_1 = require("express");
 const auth_controller_1 = require("./auth.controller");
 const auth_middleware_1 = require("../../core/middleware/auth.middleware");
+const profilePhotoUpload_middleware_1 = require("../../core/middleware/profilePhotoUpload.middleware");
 const validate_middleware_1 = require("../../core/middleware/validate.middleware");
 const auth_schema_1 = require("./auth.schema");
 const authRouter = (0, express_1.Router)();
@@ -20,8 +21,10 @@ exports.authRouter = authRouter;
  * /api/auth/register:
  *   post:
  *     summary: "Inscription d'un nouvel Étudiant"
- *     description: Permet l'auto-inscription. Si le SaaS le requiert, un OTP sera envoyé par email.
+ *     description: Permet l'auto-inscription dans l'école résolue par sous-domaine (ou header x-school-slug en fallback). Si le SaaS le requiert, un OTP sera envoyé par email.
  *     tags: [Auth]
+ *     parameters:
+ *       - $ref: '#/components/parameters/SchoolSlugHeader'
  *     requestBody:
  *       required: true
  *       content:
@@ -88,8 +91,10 @@ authRouter.post('/register/resend-otp', (0, validate_middleware_1.validate)({ bo
  * /api/auth/login:
  *   post:
  *     summary: "Connexion (Email ou Matricule)"
- *     description: Identifie l'utilisateur via son email ou son matricule unique.
+ *     description: Identifie l'utilisateur via son email ou son matricule dans l'école résolue (sous-domaine principal, x-school-slug fallback). Retourne directement les tokens (OTP non requis au login).
  *     tags: [Auth]
+ *     parameters:
+ *       - $ref: '#/components/parameters/SchoolSlugHeader'
  *     requestBody:
  *       required: true
  *       content:
@@ -121,8 +126,8 @@ authRouter.post('/login', (0, validate_middleware_1.validate)({ body: auth_schem
  * @swagger
  * /api/auth/login/verify-otp:
  *   post:
- *     summary: "Valider un OTP de connexion"
- *     description: Finalise la connexion quand le backend retourne `EMAIL_OTP_REQUIRED`.
+ *     summary: "[DEPRECATED] Valider un OTP"
+ *     description: Compatibilité legacy. Utiliser `/api/auth/register/verify-otp` pour le flux OTP d'inscription.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -144,7 +149,8 @@ authRouter.post('/login/verify-otp', (0, validate_middleware_1.validate)({ body:
  * @swagger
  * /api/auth/login/resend-otp:
  *   post:
- *     summary: "Renvoyer un code de validation"
+ *     summary: "[DEPRECATED] Renvoyer un OTP"
+ *     description: Compatibilité legacy. Utiliser `/api/auth/register/resend-otp`.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -210,7 +216,7 @@ authRouter.post('/reset-password', (0, validate_middleware_1.validate)({ body: a
  * /api/auth/me:
  *   get:
  *     summary: "Profil de l'utilisateur connecté"
- *     description: Récupère les infos, le rôle et le campus de l'utilisateur porteur du token.
+ *     description: "Infos, rôle, campus ; `avatarUrl` est une URL signée Supabase (durée limitée, voir SIGNED_URL_EXPIRES_IN)."
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -235,11 +241,58 @@ authRouter.get('/me', auth_middleware_1.authMiddleware, auth_controller_1.authCo
  *             properties:
  *               firstName: { type: string }
  *               lastName: { type: string }
+ *               matricule: { type: string, nullable: true, description: "Doit rester unique dans la base" }
+ *               numero: { type: string, nullable: true }
+ *               phone: { type: string, nullable: true }
  *     responses:
  *       200:
  *         description: Profil mis à jour.
  */
 authRouter.patch('/me', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ body: auth_schema_1.updateProfileSchema }), auth_controller_1.authController.updateProfile);
+/**
+ * @swagger
+ * /api/auth/me/avatar:
+ *   post:
+ *     summary: "Télécharger sa photo de profil"
+ *     description: "JPEG, PNG ou WebP. Stockage Supabase ; la réponse inclut `avatarUrl` (URL signée)."
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profil mis à jour avec avatarUrl
+ */
+authRouter.post('/me/avatar', auth_middleware_1.authMiddleware, (req, res, next) => {
+    profilePhotoUpload_middleware_1.profilePhotoUpload.single('file')(req, res, (err) => {
+        if (err)
+            return next(err);
+        next();
+    });
+}, auth_controller_1.authController.uploadAvatar);
+/**
+ * @swagger
+ * /api/auth/me/avatar:
+ *   delete:
+ *     summary: "Supprimer sa photo de profil"
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Photo retirée
+ */
+authRouter.delete('/me/avatar', auth_middleware_1.authMiddleware, auth_controller_1.authController.clearAvatar);
 /**
  * @swagger
  * /api/auth/change-password:

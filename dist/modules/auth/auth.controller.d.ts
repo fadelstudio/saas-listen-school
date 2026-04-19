@@ -8,6 +8,8 @@ export declare const authController: {
     me(req: Request, res: Response, next: NextFunction): Promise<void>;
     changePassword(req: Request, res: Response, next: NextFunction): Promise<void>;
     updateProfile(req: Request, res: Response, next: NextFunction): Promise<void>;
+    uploadAvatar(req: Request, res: Response, next: NextFunction): Promise<void>;
+    clearAvatar(req: Request, res: Response, next: NextFunction): Promise<void>;
     refresh(req: Request, res: Response, next: NextFunction): Promise<void>;
     logout(req: Request, res: Response, next: NextFunction): Promise<void>;
     resendOtp(req: Request, res: Response, next: NextFunction): Promise<void>;

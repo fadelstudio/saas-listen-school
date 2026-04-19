@@ -1,5 +1,5 @@
 export declare const analyticsService: {
-    getDashboardStats(campusId?: string): Promise<{
+    getDashboardStats(schoolId: string, campusId?: string): Promise<{
         counters: {
             users: number;
             students: number;

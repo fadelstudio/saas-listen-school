@@ -2,6 +2,14 @@ import { ReportStatus } from '@prisma/client';
 import type { CreateReportInput, UpdateReportInput } from './reports.types';
 export declare const reportsService: {
     create(input: CreateReportInput, userId?: string, schoolId?: string | null): Promise<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -10,26 +18,23 @@ export declare const reportsService: {
             campusId: string;
             levelId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         } | null;
         author: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;
@@ -54,6 +59,14 @@ export declare const reportsService: {
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
     getById(id: string, userRole?: string, schoolId?: string | null): Promise<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -62,20 +75,17 @@ export declare const reportsService: {
             campusId: string;
             levelId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         } | null;
@@ -93,8 +103,8 @@ export declare const reportsService: {
             decisionId: string | null;
         }[];
         author: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;
@@ -119,6 +129,14 @@ export declare const reportsService: {
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
     getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -127,26 +145,23 @@ export declare const reportsService: {
             campusId: string;
             levelId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         } | null;
         author: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;

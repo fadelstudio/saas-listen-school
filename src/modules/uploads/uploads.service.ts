@@ -41,5 +41,31 @@ export const uploadsService = {
       mimetype: file.mimetype,
       size: file.size,
     };
-  }
+  },
+
+  /** URL signée pour affichage (durée `SIGNED_URL_EXPIRES_IN`). */
+  async getSignedUrlForPath(path: string | null | undefined): Promise<string | null> {
+    if (!path?.trim()) return null;
+    const { data, error } = await supabase.storage
+      .from('attachments')
+      .createSignedUrl(path, env.SIGNED_URL_EXPIRES_IN);
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  },
+
+  async removeObjectAtPath(path: string): Promise<void> {
+    const { error } = await supabase.storage.from('attachments').remove([path]);
+    if (error) {
+      console.error('Supabase storage remove:', error.message);
+    }
+  },
+
+  /** Upload image profil (types restreints) — même bucket que `uploadFile`. */
+  async uploadProfileImage(file: Express.Multer.File, folder: string) {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG or WebP images are allowed');
+    }
+    return this.uploadFile(file, folder);
+  },
 };

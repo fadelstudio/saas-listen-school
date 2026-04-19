@@ -11,7 +11,10 @@ export declare const createSchoolUserSchema: z.ZodObject<{
         VIEWER: "VIEWER";
     }>;
     matricule: z.ZodOptional<z.ZodString>;
-    classId: z.ZodOptional<z.ZodString>;
+    numero: z.ZodOptional<z.ZodString>;
+    phone: z.ZodOptional<z.ZodString>;
+    campusId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
+    classId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 export declare const updateSchoolUserSchema: z.ZodObject<{
     role: z.ZodOptional<z.ZodEnum<{
@@ -36,8 +39,8 @@ export declare const schoolUserQuerySchema: z.ZodObject<{
         STUDENT: "STUDENT";
         VIEWER: "VIEWER";
     }>>;
-    campusId: z.ZodOptional<z.ZodString>;
-    classId: z.ZodOptional<z.ZodString>;
+    campusId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
+    classId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
     search: z.ZodOptional<z.ZodString>;
     isActive: z.ZodOptional<z.ZodCoercedBoolean<unknown>>;
 }, z.core.$strip>;

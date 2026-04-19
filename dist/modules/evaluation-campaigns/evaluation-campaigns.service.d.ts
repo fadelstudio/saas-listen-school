@@ -1,6 +1,6 @@
 import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
 export declare const evaluationCampaignsService: {
-    create(data: CreateEvaluationCampaignInput): Promise<{
+    create(data: CreateEvaluationCampaignInput, schoolId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -14,7 +14,15 @@ export declare const evaluationCampaignsService: {
         scope: string;
         dueDate: Date;
     }>;
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        };
         _count: {
             evaluations: number;
         };
@@ -26,20 +34,17 @@ export declare const evaluationCampaignsService: {
             campusId: string;
             levelId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         };
@@ -57,20 +62,30 @@ export declare const evaluationCampaignsService: {
         scope: string;
         dueDate: Date;
     }>>;
-    getById(id: string): Promise<{
+    getById(id: string, schoolId: string): Promise<{
         campus: ({
             users: {
                 id: string;
                 role: import("@prisma/client").$Enums.Role;
             }[];
         } & {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         }) | null;
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        };
         class: ({
             users: {
                 id: string;
@@ -83,20 +98,17 @@ export declare const evaluationCampaignsService: {
             campusId: string;
             levelId: string;
         }) | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         };
@@ -136,7 +148,7 @@ export declare const evaluationCampaignsService: {
         scope: string;
         dueDate: Date;
     }>;
-    close(id: string): Promise<{
+    close(id: string, schoolId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

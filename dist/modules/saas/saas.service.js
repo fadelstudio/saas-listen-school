@@ -10,6 +10,14 @@ const AppError_1 = require("../../core/errors/AppError");
 const AppError_2 = require("../../core/errors/AppError");
 const client_1 = require("@prisma/client");
 const SALT_ROUNDS = 12;
+function slugifySchoolName(name) {
+    const base = name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    return base || 'school';
+}
 exports.saasService = {
     async createSchool(input) {
         // 1. Check if email or matricule exists
@@ -29,9 +37,17 @@ exports.saasService = {
         const passwordHash = await bcrypt_1.default.hash(input.adminPassword, SALT_ROUNDS);
         // 3. Transaction to create School + Campus + Admin + Settings
         return prisma_1.prisma.$transaction(async (tx) => {
+            const baseSlug = slugifySchoolName(input.name);
+            let slug = baseSlug;
+            let suffix = 2;
+            while (await tx.school.findUnique({ where: { slug } })) {
+                slug = `${baseSlug}-${suffix}`;
+                suffix += 1;
+            }
             const school = await tx.school.create({
                 data: {
                     name: input.name,
+                    slug,
                 }
             });
             const campus = await tx.campus.create({
@@ -41,6 +57,16 @@ exports.saasService = {
                     location: input.location,
                 }
             });
+            const starterLevels = ['L1', 'L2', 'L3'];
+            for (let i = 0; i < starterLevels.length; i += 1) {
+                await tx.academicLevel.create({
+                    data: {
+                        schoolId: school.id,
+                        name: starterLevels[i],
+                        order: i + 1,
+                    },
+                });
+            }
             await tx.systemSettings.create({
                 data: {
                     schoolId: school.id,
@@ -57,12 +83,19 @@ exports.saasService = {
                     lastName: input.adminLastName,
                     role: client_1.Role.ADMIN,
                     schoolId: school.id,
-                    campusId: campus.id,
+                    campusId: null,
                     matricule: input.matricule,
-                    isActive: true
-                }
+                    isActive: true,
+                    emailVerified: true,
+                    emailVerifiedAt: new Date(),
+                },
             });
-            return { school, campus, user: { id: user.id, email: user.email, role: user.role } };
+            return {
+                school,
+                campus,
+                user: { id: user.id, email: user.email, role: user.role },
+                loginHint: `Use header x-school-slug: ${school.slug} on POST /api/auth/login (and all API calls).`,
+            };
         });
     },
     async listSchools() {

@@ -14,11 +14,17 @@ export interface JwtPayload {
   exp: number;
 }
 
-// Extend Express Request to carry authenticated user
 declare global {
   namespace Express {
     interface Request {
       user?: JwtPayload;
+      schoolId?: string;
+      school?: {
+        id: string;
+        slug: string;
+        name: string;
+        domain: string | null;
+      };
     }
   }
 }
@@ -52,6 +58,16 @@ export async function authMiddleware(
       }
       payload.schoolId = resolvedSchoolId;
     }
+
+    if (
+      payload.role !== "SUPERADMIN" &&
+      req.schoolId &&
+      payload.schoolId &&
+      payload.schoolId !== req.schoolId
+    ) {
+      throw new ForbiddenError("Token school does not match request school context");
+    }
+
     req.user = payload;
     next();
   } catch {

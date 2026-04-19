@@ -89,8 +89,8 @@ export declare const decisionsService: {
             decisionId: string | null;
         }[];
         decider: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         };

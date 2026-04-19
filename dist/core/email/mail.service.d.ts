@@ -1,5 +1,7 @@
 /**
- * Sends transactional email. With MAIL_PROVIDER=console, logs body (dev / no API key).
+ * Sends transactional email.
+ * - `MAIL_PROVIDER=console`: log only (dev).
+ * - `MAIL_PROVIDER=resend`: HTTPS API Resend (`RESEND_API_KEY`, `EMAIL_FROM` vérifié côté Resend).
  */
 export declare function sendTransactionalEmail(params: {
     to: string;

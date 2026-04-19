@@ -14,22 +14,8 @@ export type ProtectedType = 'reports' | 'evaluations';
 export function dynamicAuthMiddleware(type: ProtectedType) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      let schoolId = req.query.schoolId as string;
-      
-      if (!schoolId && req.body.campusId) {
-        const campus = await systemService.getSchoolSettingsByCampus(req.body.campusId as string);
-        schoolId = campus?.schoolId || '';
-      }
-
-      if (!schoolId && req.body.classId) {
-        const cls = await systemService.getSchoolSettingsByClass(req.body.classId as string);
-        schoolId = cls?.schoolId || '';
-      }
-
-      if (!schoolId) {
-        // Fallback for types that don't have school context yet in request
-        return next(); 
-      }
+      const schoolId = req.schoolId;
+      if (!schoolId) throw new UnauthorizedError("School context missing");
 
       const settings = await systemService.getSettings(schoolId);
       

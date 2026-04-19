@@ -8,6 +8,14 @@ export declare const reportsRepository: {
         classId: string | null;
     } | null>;
     create(data: CreateReportInput, authorId?: string, schoolId?: string | null): Promise<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -16,26 +24,23 @@ export declare const reportsRepository: {
             campusId: string;
             levelId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         } | null;
         author: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;
@@ -60,6 +65,14 @@ export declare const reportsRepository: {
         aiAnalysis: Prisma.JsonValue | null;
     }>;
     findById(id: string, schoolId?: string | null): Promise<({
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -68,20 +81,17 @@ export declare const reportsRepository: {
             campusId: string;
             levelId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
         professor: {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            phone: string | null;
             firstName: string;
             lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             campusId: string | null;
             userId: string | null;
         } | null;
@@ -99,8 +109,8 @@ export declare const reportsRepository: {
             decisionId: string | null;
         }[];
         author: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;
@@ -126,6 +136,14 @@ export declare const reportsRepository: {
     }) | null>;
     findAll(filters: ReportFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
         items: ({
+            module: {
+                code: string | null;
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string;
+            } | null;
             class: {
                 name: string;
                 id: string;
@@ -134,26 +152,23 @@ export declare const reportsRepository: {
                 campusId: string;
                 levelId: string;
             } | null;
-            module: {
-                name: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                code: string | null;
-            } | null;
             professor: {
+                email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                email: string;
+                phone: string | null;
                 firstName: string;
                 lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
                 campusId: string | null;
                 userId: string | null;
             } | null;
             author: {
-                id: string;
                 email: string;
+                id: string;
                 firstName: string;
                 lastName: string;
             } | null;
