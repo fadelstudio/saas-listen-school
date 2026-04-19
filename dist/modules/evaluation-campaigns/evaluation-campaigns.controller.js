@@ -53,5 +53,27 @@ exports.evaluationCampaignsController = {
             next(error);
         }
     },
+    async getAnalytics(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const data = await evaluation_campaigns_service_1.evaluationCampaignsService.getAnalytics(req.params.id, req.schoolId);
+            res.sendSuccess('Analytics fetched', data);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async analyze(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const data = await evaluation_campaigns_service_1.evaluationCampaignsService.generatePostDeadlineAnalysis(req.params.id, req.user.userId, req.schoolId);
+            res.sendSuccess('Analysis completed and decision created', data);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
 };
 //# sourceMappingURL=evaluation-campaigns.controller.js.map

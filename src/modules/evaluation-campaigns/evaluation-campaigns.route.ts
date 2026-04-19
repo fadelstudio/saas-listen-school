@@ -141,4 +141,17 @@ router.post(
   evaluationCampaignsController.close
 );
 
+router.get(
+  '/:id/analytics',
+  validate({ params: evaluationCampaignIdParamsSchema }),
+  evaluationCampaignsController.getAnalytics
+);
+
+router.post(
+  '/:id/analyze',
+  requireRole(Role.ADMIN),
+  validate({ params: evaluationCampaignIdParamsSchema }),
+  evaluationCampaignsController.analyze
+);
+
 export { router as evaluationCampaignsRouter };

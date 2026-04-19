@@ -26,6 +26,7 @@ export declare const decisionsService: {
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
@@ -104,6 +105,7 @@ export declare const decisionsService: {
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
@@ -126,6 +128,7 @@ export declare const decisionsService: {
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
@@ -142,6 +145,7 @@ export declare const decisionsService: {
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
@@ -158,6 +162,7 @@ export declare const decisionsService: {
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;

@@ -23,14 +23,21 @@ const aiResultSchema = zod_1.z.object({
     score: zod_1.z.coerce.number().min(0).max(20).optional(),
 });
 function parseAiJsonStrict(raw) {
-    // We accept ONLY a JSON object. If model returns extra text, parsing fails.
-    const parsed = JSON.parse(raw);
-    const validated = aiResultSchema.safeParse(parsed);
-    if (!validated.success) {
-        const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
-        throw new Error(`AI JSON validation failed: ${issues}`);
+    // 1. Try to extract the JSON block using regex (most robust method)
+    const match = raw.match(/\{[\s\S]*\}/);
+    const cleanRaw = match ? match[0] : raw.trim();
+    try {
+        const parsed = JSON.parse(cleanRaw);
+        const validated = aiResultSchema.safeParse(parsed);
+        if (!validated.success) {
+            const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
+            throw new Error(`AI JSON validation failed: ${issues}`);
+        }
+        return validated.data;
     }
-    return validated.data;
+    catch (e) {
+        throw new Error(`Invalid JSON response from AI: ${e instanceof Error ? e.message : String(e)} (Raw: ${raw.slice(0, 100)}...)`);
+    }
 }
 function analysisPrompt(content) {
     return `Donne une réponse UNIQUEMENT au format JSON strict. Ne rajoute aucun texte avant ou après.

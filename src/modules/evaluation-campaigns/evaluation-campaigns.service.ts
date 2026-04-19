@@ -131,4 +131,85 @@ export const evaluationCampaignsService = {
     if (!updated) throw new NotFoundError('EvaluationCampaign');
     return updated;
   },
+
+  async getAnalytics(id: string, schoolId: string) {
+    const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
+    if (!analytics) throw new NotFoundError('EvaluationCampaign');
+
+    const now = new Date();
+    if (analytics.campaign.status === 'ACTIVE' && new Date(analytics.campaign.dueDate) < now) {
+      await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
+      analytics.campaign.status = 'COMPLETED';
+      
+      // Auto-trigger analysis if all evaluations are AI-scored
+      const allScored = analytics.campaign.evaluations.every(e => e.aiScore !== null);
+      if (allScored && !analytics.decision) {
+        // Enqueue or run analysis without waiting (fire and forget for this call)
+        this.generatePostDeadlineAnalysis(id, 'SYSTEM', schoolId).catch(err => 
+          logger.error('Auto-analysis failed', { error: err })
+        );
+      }
+    }
+
+    return analytics;
+  },
+
+  async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {
+    const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
+    if (!analytics) throw new NotFoundError('EvaluationCampaign');
+
+    const { stats, campaign } = analytics;
+    
+    // 1. Check if a decision already exists
+    const existing = await prisma.decision.findUnique({ where: { campaignId: id } });
+    if (existing) return existing;
+
+    // 2. Build context for AI
+    const context = `
+      Campagne: ${campaign.title}
+      Module: ${campaign.module.name}
+      Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}
+      Stats: ${stats.totalDone}/${stats.totalExpected} participations (${stats.completionRate}%).
+      Score Moyen Académique: ${stats.avgScore}/20.
+      Score Moyen IA (Sentiment): ${stats.avgAiScore}/20.
+      Commentaires récents: ${campaign.evaluations.slice(0, 10).map((e: any) => e.comment).join(' | ')}
+    `;
+
+    // 3. Call AI for Synthesis & Decision Suggestion
+    // (In a real scenario, we'd use the job queue, but here we'll do it directly for the demo flow)
+    const prompt = `Analyse les résultats de cette campagne d'évaluation et propose une décision administrative.
+    Donne une réponse UNIQUEMENT en JSON strict.
+    Format: {"summary":"Synthèse des points clés","recommendation":"Action suggérée (ex: Entretien de cadrage, Félicitations, Formation pédagogique)","priority":"HIGH|MEDIUM|LOW"}
+    
+    Données: ${context}`;
+
+    const { aiBalancer } = await import('../../core/ai/AiBalancer');
+    const aiRes = await aiBalancer.callAI(prompt, schoolId);
+    
+    let aiParsed;
+    try {
+      // Robust extraction as done in the processor
+      const match = aiRes.content.match(/\{[\s\S]*\}/);
+      aiParsed = JSON.parse(match ? match[0] : aiRes.content);
+    } catch (e) {
+      aiParsed = { summary: aiRes.content, recommendation: 'Analyse manuelle requise', priority: 'MEDIUM' };
+    }
+
+    // 4. Create the Decision
+    const decision = await prisma.decision.create({
+      data: {
+        campaignId: id,
+        deciderId: userId,
+        schoolId,
+        title: `Suivi suite à la campagne : ${campaign.title}`,
+        rationale: aiParsed.summary,
+        aiSuggestion: aiParsed.recommendation,
+        status: 'PENDING',
+        priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
+      },
+      include: { decider: { select: { firstName: true, lastName: true } } }
+    });
+
+    return decision;
+  }
 };

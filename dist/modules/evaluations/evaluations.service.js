@@ -67,6 +67,10 @@ exports.evaluationsService = {
             status: query.status,
             evaluatorId: query.evaluatorId,
             reportId: query.reportId,
+            professorId: query.professorId,
+            moduleId: query.moduleId,
+            classId: query.classId,
+            campusId: query.campusId,
             startDate: query.startDate,
             endDate: query.endDate,
         };
@@ -102,6 +106,10 @@ exports.evaluationsService = {
     async getStats(query, schoolId) {
         const filters = {
             reportId: query.reportId,
+            professorId: query.professorId,
+            moduleId: query.moduleId,
+            classId: query.classId,
+            campusId: query.campusId,
             startDate: query.startDate,
             endDate: query.endDate,
         };

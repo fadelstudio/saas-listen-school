@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluationCampaignsService = void 0;
 const evaluation_campaigns_repository_1 = require("./evaluation-campaigns.repository");
@@ -115,5 +148,64 @@ exports.evaluationCampaignsService = {
             throw new AppError_1.NotFoundError('EvaluationCampaign');
         return updated;
     },
+    async getAnalytics(id, schoolId) {
+        const analytics = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.getAnalytics(id, schoolId);
+        if (!analytics)
+            throw new AppError_1.NotFoundError('EvaluationCampaign');
+        return analytics;
+    },
+    async generatePostDeadlineAnalysis(id, userId, schoolId) {
+        const analytics = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.getAnalytics(id, schoolId);
+        if (!analytics)
+            throw new AppError_1.NotFoundError('EvaluationCampaign');
+        const { stats, campaign } = analytics;
+        // 1. Check if a decision already exists
+        const existing = await prisma_1.prisma.decision.findUnique({ where: { campaignId: id } });
+        if (existing)
+            return existing;
+        // 2. Build context for AI
+        const context = `
+      Campagne: ${campaign.title}
+      Module: ${campaign.module.name}
+      Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}
+      Stats: ${stats.totalDone}/${stats.totalExpected} participations (${stats.completionRate}%).
+      Score Moyen Académique: ${stats.avgScore}/20.
+      Score Moyen IA (Sentiment): ${stats.avgAiScore}/20.
+      Commentaires récents: ${campaign.evaluations.slice(0, 10).map((e) => e.comment).join(' | ')}
+    `;
+        // 3. Call AI for Synthesis & Decision Suggestion
+        // (In a real scenario, we'd use the job queue, but here we'll do it directly for the demo flow)
+        const prompt = `Analyse les résultats de cette campagne d'évaluation et propose une décision administrative.
+    Donne une réponse UNIQUEMENT en JSON strict.
+    Format: {"summary":"Synthèse des points clés","recommendation":"Action suggérée (ex: Entretien de cadrage, Félicitations, Formation pédagogique)","priority":"HIGH|MEDIUM|LOW"}
+    
+    Données: ${context}`;
+        const { aiBalancer } = await Promise.resolve().then(() => __importStar(require('../../core/ai/AiBalancer')));
+        const aiRes = await aiBalancer.callAI(prompt, schoolId);
+        let aiParsed;
+        try {
+            // Robust extraction as done in the processor
+            const match = aiRes.content.match(/\{[\s\S]*\}/);
+            aiParsed = JSON.parse(match ? match[0] : aiRes.content);
+        }
+        catch (e) {
+            aiParsed = { summary: aiRes.content, recommendation: 'Analyse manuelle requise', priority: 'MEDIUM' };
+        }
+        // 4. Create the Decision
+        const decision = await prisma_1.prisma.decision.create({
+            data: {
+                campaignId: id,
+                deciderId: userId,
+                schoolId,
+                title: `Suivi suite à la campagne : ${campaign.title}`,
+                rationale: aiParsed.summary,
+                aiSuggestion: aiParsed.recommendation,
+                status: 'PENDING',
+                priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
+            },
+            include: { decider: { select: { firstName: true, lastName: true } } }
+        });
+        return decision;
+    }
 };
 //# sourceMappingURL=evaluation-campaigns.service.js.map

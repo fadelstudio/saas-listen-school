@@ -426,6 +426,8 @@ model Decision {
   school       School?         @relation(fields: [schoolId], references: [id])
   evaluation   Evaluation?     @relation(fields: [evaluationId], references: [id])
   report       Report?         @relation(fields: [reportId],     references: [id])
+  campaignId   String?         @unique
+  campaign     EvaluationCampaign? @relation(fields: [campaignId], references: [id])
   decider      User           @relation(fields: [deciderId],    references: [id])
   aiJobs       AiJob[]
 
@@ -529,6 +531,7 @@ model EvaluationCampaign {
   professor   Professor @relation(fields: [professorId], references: [id])
   evaluations Evaluation[]
   notifications Notification[]
+  decision    Decision?
 
   @@map("evaluation_campaigns")
   @@index([scope, status, dueDate])

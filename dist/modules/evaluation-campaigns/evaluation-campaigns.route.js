@@ -123,4 +123,6 @@ router.get('/:id', (0, validate_middleware_1.validate)({ params: evaluation_camp
  *         description: Campagne clôturée avec succès
  */
 router.post('/:id/close', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.close);
+router.get('/:id/analytics', (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.getAnalytics);
+router.post('/:id/analyze', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.analyze);
 //# sourceMappingURL=evaluation-campaigns.route.js.map
