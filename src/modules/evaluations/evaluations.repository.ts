@@ -75,6 +75,7 @@ export const evaluationsRepository = {
         professor: true,
         module: true,
         class: true,
+        campaign: { select: { id: true, title: true } },
         evaluator: { select: { id: true, firstName: true, lastName: true } },
       },
     });
@@ -88,6 +89,7 @@ export const evaluationsRepository = {
         professor: true,
         module: true,
         class: true,
+        campaign: { select: { id: true, title: true } },
         report: { select: { id: true, title: true, status: true } },
         decision: true,
         aiJobs: { orderBy: { createdAt: 'desc' }, take: 3 },
@@ -123,6 +125,7 @@ export const evaluationsRepository = {
           professor: { select: { id: true, firstName: true, lastName: true, matricule: true } },
           module: { select: { id: true, name: true, code: true } },
           class: { select: { id: true, name: true } },
+          campaign: { select: { id: true, title: true } },
           report: { select: { id: true, title: true } },
         },
       }),
