@@ -4,6 +4,7 @@ import { authMiddleware, requireRole } from '../../core/middleware/auth.middlewa
 import { validate } from '../../core/middleware/validate.middleware';
 import { updateSystemSettingsSchema } from './system.schema';
 import { Role } from '@prisma/client';
+import { profilePhotoUpload } from '../../core/middleware/profilePhotoUpload.middleware';
 
 export const systemRouter = Router();
 
@@ -112,22 +113,61 @@ systemRouter.patch(
   systemController.updateSettings
 );
 
-/**
- * @swagger
- * /api/system/ai-status:
- *   get:
- *     summary: "Statut temps réel du Balancer IA"
- *     description: Identifie quel modèle est actuellement utilisé et si le quota est épuisé.
- *     tags: [System]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Healthcheck de la couche IA
- */
 systemRouter.get(
   '/ai-status',
   authMiddleware,
   requireRole(Role.ADMIN),
   systemController.getAiStatus
+);
+
+/**
+ * @swagger
+ * /api/system/ai-models:
+ *   get:
+ *     summary: "Liste des modèles IA disponibles par fournisseur"
+ *     tags: [System]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des modèles découverts ou fallbacks.
+ */
+systemRouter.get(
+  '/ai-models',
+  authMiddleware,
+  requireRole(Role.ADMIN),
+  systemController.getAiModels
+);
+
+/**
+ * @swagger
+ * /api/system/logo:
+ *   post:
+ *     summary: "Mettre à jour le logo de l'école"
+ *     tags: [System]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file: { type: string, format: binary }
+ *     responses:
+ *       200:
+ *         description: URL du logo mis à jour.
+ */
+systemRouter.post(
+  '/logo',
+  authMiddleware,
+  requireRole(Role.ADMIN),
+  (req, res, next) => {
+    profilePhotoUpload.single('file')(req, res, (err: unknown) => {
+      if (err) return next(err);
+      next();
+    });
+  },
+  systemController.updateLogo
 );

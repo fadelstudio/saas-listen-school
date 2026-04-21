@@ -44,5 +44,24 @@ export const systemController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async getAiModels(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const models = await systemService.getAvailableModels();
+      res.sendSuccess('Available AI models fetched successfully', models);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateLogo(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.file) throw new BadRequestError('Logo file is required');
+      const result = await systemService.updateLogo(req.schoolId!, req.file);
+      res.sendSuccess('Logo updated successfully', result);
+    } catch (error) {
+      next(error);
+    }
   }
 };

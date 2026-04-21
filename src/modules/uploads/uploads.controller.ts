@@ -7,10 +7,11 @@ export const uploadsController = {
     try {
       const file = req.file;
       const folder = (req.body?.folder as string) || 'general';
+      const bucket = (req.query?.bucket as string) || 'attachments';
       if (!file) {
         throw new BadRequestError('file is required (multipart/form-data)');
       }
-      const result = await uploadsService.uploadFile(file as Express.Multer.File, folder);
+      const result = await uploadsService.uploadFile(file as Express.Multer.File, folder, bucket);
       res.sendSuccess('File uploaded successfully', result, 201);
     } catch (error) {
       next(error);

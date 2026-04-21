@@ -67,4 +67,30 @@ export const systemService = {
     settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
     return response;
   },
+
+  async getAvailableModels() {
+    const { FALLBACK_TOP5 } = await import('../../core/ai/ModelDiscovery');
+    return Object.entries(FALLBACK_TOP5).map(([provider, models]) => ({
+      provider,
+      models: models.map(m => ({ value: m.id, label: m.name }))
+    }));
+  },
+
+  async updateLogo(schoolId: string, file: Express.Multer.File) {
+    const { uploadsService } = await import('../uploads/uploads.service');
+    // Save to 'schools' bucket if it exists, fallback to 'attachments'
+    let result;
+    try {
+      result = await uploadsService.uploadFile(file, `logos/${schoolId}`, 'schools');
+    } catch (e) {
+      result = await uploadsService.uploadFile(file, `logos/${schoolId}`, 'attachments');
+    }
+    
+    await prisma.school.update({
+      where: { id: schoolId },
+      data: { logoUrl: result.url }
+    });
+
+    return { url: result.url };
+  }
 };
