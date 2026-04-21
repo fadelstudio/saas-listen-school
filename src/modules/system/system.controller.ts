@@ -39,7 +39,7 @@ export const systemController = {
 
   async getAiStatus(_req: Request, res: Response, next: NextFunction) {
     try {
-      const status = aiBalancer.getStatus();
+      const status = await aiBalancer.getStatus();
       res.sendSuccess('AI status fetched successfully', status);
     } catch (error) {
       next(error);
