@@ -261,19 +261,13 @@ const aiWorker = new Worker<AiAnalysisPayload>(
   }
 );
 
-import { notificationService } from '../modules/notifications/notifications.service';
-
 aiWorker.on('completed', (job) => logger.info(`✅ AI job completed: ${job.id} [${job.data.type}]`));
 
 aiWorker.on('failed', async (job, err) => {
-  logger.error(`❌ AI job failed: ${job?.id}`, { message: err.message });
-  
-  // Notify internal profiles about AI failure
-  await notificationService.create({
-    title: `Échec du traitement IA [${job?.data.type}]`,
-    message: `Le traitement automatique a échoué: ${err.message}. ID Job: ${job?.id}`,
-    type: 'AI_FAILURE',
-  }).catch(e => logger.error('Failed to create failure notification:', { error: e.message }));
+  logger.error(`❌ AI job failed: ${job?.id} ${job?.data.type}`, { message: err.message.slice(0, 200) });
+  // NOTE: School-scoped admin notifications are handled directly by AiBalancer
+  // (quota-switch + total-failure events, throttled per 5 min).
+  // We do NOT duplicate them here to avoid notification spam.
 });
 
 aiWorker.on('error', (_err) => { /* Silence Redis errors */ });

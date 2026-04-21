@@ -77,12 +77,12 @@ exports.evaluationCampaignsRepository = {
         return prisma_1.prisma.evaluationCampaign.create({
             data: {
                 title: data.title,
-                description: data.description,
+                description: data.description || undefined,
                 scope: data.scope,
-                classId: data.classId,
-                campusId: data.campusId,
-                moduleId: data.moduleId,
-                professorId: data.professorId,
+                classId: data.classId || undefined,
+                campusId: data.campusId || undefined,
+                moduleId: data.moduleId || undefined,
+                professorId: data.professorId || undefined,
                 dueDate: data.dueDate,
                 status: 'ACTIVE',
             },
@@ -107,7 +107,7 @@ exports.evaluationCampaignsRepository = {
                 campus: { include: { users: { where: { role: 'STUDENT' }, select: { id: true } } } },
                 _count: { select: { evaluations: true } },
                 evaluations: {
-                    select: { score: true, aiScore: true, createdAt: true },
+                    select: { id: true, score: true, aiScore: true, comment: true, createdAt: true },
                     orderBy: { createdAt: 'desc' },
                 },
                 module: true,
@@ -131,7 +131,7 @@ exports.evaluationCampaignsRepository = {
         const avgScore = campaign.evaluations.reduce((acc, curr) => acc + (curr.score || 0), 0) / (totalDone || 1);
         const avgAiScore = campaign.evaluations.reduce((acc, curr) => acc + (curr.aiScore || 0), 0) / (totalDone || 1);
         // Get the decision if it exists
-        const decision = await prisma_1.prisma.decision.findUnique({
+        const decision = await prisma_1.prisma.decision.findFirst({
             where: { campaignId: id },
             include: { decider: { select: { firstName: true, lastName: true } } },
         });

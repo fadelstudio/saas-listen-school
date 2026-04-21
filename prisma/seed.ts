@@ -37,7 +37,7 @@ async function clearData() {
 }
 
 async function main() {
-  console.log('🌱 Seeding Total Professor Coverage Scenario...');
+  console.log('🌱 Seeding Diverse & Comprehensive Data Scenario...');
   await clearData();
 
   const passwordHash = await bcrypt.hash('Changeme@123', 12);
@@ -98,7 +98,7 @@ async function main() {
   for (let i = 0; i < professors.length; i++) {
     const mod = modules[i % modules.length];
     const cls = i < 6 ? classL3 : classM1;
-    const assignment = await prisma.classModule.create({
+    await prisma.classModule.create({
       data: {
         classId: cls.id,
         moduleId: mod.id,
@@ -108,12 +108,12 @@ async function main() {
     assignments.push({ professorId: professors[i].id, moduleId: mod.id, classId: cls.id });
   }
 
-  // 4. Students (20 Students)
-  const studentNames = ['Omar', 'Awa', 'Fatou', 'Moussa', 'Jean', 'Modou', 'Bineta', 'Saliou', 'Penda', 'Babacar', 'Ramata', 'Abdou', 'Khady', 'Talla', 'Astou', 'Malick', 'Dior', 'Bamba', 'Fatimata', 'Alioune'];
+  // 4. Students (25 Students)
+  const studentNames = ['Omar', 'Awa', 'Fatou', 'Moussa', 'Jean', 'Modou', 'Bineta', 'Saliou', 'Penda', 'Babacar', 'Ramata', 'Abdou', 'Khady', 'Talla', 'Astou', 'Malick', 'Dior', 'Bamba', 'Fatimata', 'Alioune', 'Yasmine', 'Cheikh', 'Nafi', 'Demba', 'Binta'];
   const students = [];
   for (let i = 0; i < studentNames.length; i++) {
-    const cls = i < 10 ? classL3 : classM1;
-    const campus = i < 10 ? campusDakar : campusAbidjan;
+    const cls = i < 15 ? classL3 : classM1;
+    const campus = i < 15 ? campusDakar : campusAbidjan;
     students.push(await prisma.user.create({
       data: {
         email: `${studentNames[i].toLowerCase()}.${i}@student.afi.com`, firstName: studentNames[i], lastName: 'Ndiaye', role: Role.STUDENT,
@@ -123,12 +123,8 @@ async function main() {
     }));
   }
 
-  // 5. Campaigns & Evaluations for ALL Professors
-  console.log('📊 Generating evaluations for all 12 professors...');
-  const comments = ['Excellent prof', 'Très pédagogue', 'Cours enrichissant', 'Un peu rapide mais clair', 'Très disponible pour les questions', 'Supports de cours au top'];
-  
+  // 5. Campaigns & Evaluations
   for (const assign of assignments) {
-    // Create a campaign for this specific professor/module/class
     const campaign = await prisma.evaluationCampaign.create({
       data: {
         title: `Évaluation ${professors.find(p => p.id === assign.professorId)?.lastName} - ${modules.find(m => m.id === assign.moduleId)?.name}`,
@@ -137,9 +133,8 @@ async function main() {
       },
     });
 
-    // Generate 4 evaluations from random students of the SAME class
     const classStudents = students.filter(s => s.classId === assign.classId);
-    for (let j = 0; j < 4; j++) {
+    for (let j = 0; j < 3; j++) {
       const student = classStudents[j % classStudents.length];
       await prisma.evaluation.create({
         data: {
@@ -149,25 +144,58 @@ async function main() {
           isAnonymous: j % 2 === 0,
           comprehensionRating: RatingBand.GOOD, explanationRating: RatingBand.EXCELLENT,
           pedagogyRating: RatingBand.GOOD, availabilityRating: RatingBand.FAIR, rhythmRating: RatingBand.GOOD,
-          comment: comments[Math.floor(Math.random() * comments.length)],
+          comment: "Bon cours dans l'ensemble.",
         },
       });
     }
   }
 
-  // 6. Reports (20 generic reports)
-  for (let i = 0; i < 20; i++) {
-    const student = students[i % students.length];
+  // 6. RICH & VARIED REPORTS (40+ Reports)
+  console.log('📝 Generating rich and varied reports...');
+  const reportScenarios = [
+    { type: ReportType.PROBLEM_MATERIAL, title: "Climatisation Salle 102 en panne", content: "Il fait extrêmement chaud en salle 102, la clim ne marche plus depuis lundi.", priority: Priority.HIGH },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Manque de supports de cours", content: "Le professeur ne nous a pas encore transmis les slides du dernier chapitre.", priority: Priority.MEDIUM },
+    { type: ReportType.INCIDENT, title: "Incident dans les escaliers", content: "Une marche semble instable au deuxième étage, attention aux chutes.", priority: Priority.CRITICAL },
+    { type: ReportType.SUGGESTION, title: "Installation de fontaines à eau", content: "Ce serait bien d'avoir des fontaines à eau accessibles dans les couloirs.", priority: Priority.LOW },
+    { type: ReportType.PROBLEM_MATERIAL, title: "Wifi instable au 3ème étage", content: "Impossible de se connecter correctement pour les TP de programmation.", priority: Priority.HIGH },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Rythme de cours trop rapide", content: "Beaucoup d'étudiants ont du mal à suivre le rythme actuel en mathématiques.", priority: Priority.MEDIUM },
+    { type: ReportType.SUGGESTION, title: "Organisation d'un Hackathon", content: "Pourquoi ne pas organiser un hackathon interne pour la filière info ?", priority: Priority.LOW },
+    { type: ReportType.INCIDENT, title: "Vols signalés dans les casiers", content: "Plusieurs étudiants ont rapporté des disparitions d'effets personnels.", priority: Priority.CRITICAL },
+    { type: ReportType.PROBLEM_MATERIAL, title: "Projecteur défectueux Amphi A", content: "L'image saute tout le temps, c'est très difficile de voir le tableau.", priority: Priority.MEDIUM },
+    { type: ReportType.OTHER, title: "Demande de partenariat entreprises", content: "Serait-il possible d'avoir plus de conférences avec des professionnels ?", priority: Priority.LOW },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Méthode d'évaluation peu claire", content: "On ne comprend pas bien comment les projets seront notés.", priority: Priority.MEDIUM },
+    { type: ReportType.PROBLEM_MATERIAL, title: "Manque de prises électriques", content: "Pas assez de prises pour charger les ordinateurs en salle de TP.", priority: Priority.MEDIUM },
+    { type: ReportType.SUGGESTION, title: "Club de sport universitaire", content: "On aimerait créer une équipe de foot officielle pour représenter l'école.", priority: Priority.LOW },
+    { type: ReportType.INCIDENT, title: "Aggression aux abords de l'école", content: "Un étudiant s'est fait voler son sac juste devant le portail hier soir.", priority: Priority.CRITICAL },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Supports de cours obsolètes", content: "Certains exemples utilisés en cours datent de plus de 10 ans.", priority: Priority.MEDIUM },
+    { type: ReportType.SUGGESTION, title: "Ouverture bibliothèque le samedi", content: "Ce serait utile de pouvoir réviser à l'école le week-end.", priority: Priority.MEDIUM },
+  ];
+
+  for (let i = 0; i < 45; i++) {
+    const scenario = reportScenarios[i % reportScenarios.length];
+    const student = students[Math.floor(Math.random() * students.length)];
+    const isAnonymous = i % 3 === 0;
+    
+    // Randomize status
+    const statusValues = [ReportStatus.SUBMITTED, ReportStatus.REVIEWED, ReportStatus.APPROVED, ReportStatus.REJECTED];
+    const status = statusValues[Math.floor(Math.random() * statusValues.length)];
+
     await prisma.report.create({
       data: {
-        title: `Signalement #${i}`, content: `Contenu du signalement numéro ${i}`,
-        type: i % 3 === 0 ? ReportType.PROBLEM_MATERIAL : ReportType.OTHER,
-        isAnonymous: i % 2 === 0, authorId: student.id, schoolId: DEFAULT_SCHOOL_ID, classId: student.classId,
+        title: `${scenario.title} #${i}`,
+        content: scenario.content,
+        type: scenario.type,
+        priority: scenario.priority,
+        isAnonymous: isAnonymous,
+        authorId: student.id,
+        schoolId: DEFAULT_SCHOOL_ID,
+        classId: student.classId,
+        status: status,
       },
     });
   }
 
-  console.log('✨ Seed finished: All 12 professors now have evaluation data!');
+  console.log('✨ Seed finished: 45+ rich reports with different contexts injected!');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

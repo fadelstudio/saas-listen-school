@@ -36,6 +36,10 @@ export declare const evaluationsService: {
             firstName: string;
             lastName: string;
         } | null;
+        campaign: {
+            id: string;
+            title: string;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -130,6 +134,10 @@ export declare const evaluationsService: {
             firstName: string;
             lastName: string;
         } | null;
+        campaign: {
+            id: string;
+            title: string;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -176,6 +184,10 @@ export declare const evaluationsService: {
             id: string;
             firstName: string;
             lastName: string;
+        } | null;
+        campaign: {
+            id: string;
+            title: string;
         } | null;
     } & {
         id: string;

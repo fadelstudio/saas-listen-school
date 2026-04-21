@@ -75,5 +75,16 @@ exports.evaluationCampaignsController = {
             next(error);
         }
     },
+    async remind(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            await evaluation_campaigns_service_1.evaluationCampaignsService.sendReminders(req.params.id, req.schoolId);
+            res.sendSuccess('Reminders sent successfully');
+        }
+        catch (error) {
+            next(error);
+        }
+    },
 };
 //# sourceMappingURL=evaluation-campaigns.controller.js.map

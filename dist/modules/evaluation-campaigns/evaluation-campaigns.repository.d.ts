@@ -149,8 +149,8 @@ export declare const evaluationCampaignsRepository: {
         scope: string;
         classId?: string;
         campusId?: string;
-        moduleId: string;
-        professorId: string;
+        moduleId?: string;
+        professorId?: string;
         dueDate: Date;
     }): Promise<{
         id: string;
@@ -234,8 +234,10 @@ export declare const evaluationCampaignsRepository: {
                 campusId: string;
             }) | null;
             evaluations: {
+                id: string;
                 createdAt: Date;
                 score: number | null;
+                comment: string | null;
                 aiScore: number | null;
             }[];
         } & {

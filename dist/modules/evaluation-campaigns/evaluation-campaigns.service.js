@@ -62,13 +62,13 @@ async function assertProfessorInSchool(professorId, schoolId) {
 }
 exports.evaluationCampaignsService = {
     async create(data, schoolId) {
-        const module = await prisma_1.prisma.module.findFirst({
-            where: { id: data.moduleId, schoolId },
-        });
-        if (!module)
-            throw new AppError_1.BadRequestError('Module not found in this school');
-        await assertProfessorInSchool(data.professorId, schoolId);
         if (data.scope === 'CLASS') {
+            const module = await prisma_1.prisma.module.findFirst({
+                where: { id: data.moduleId, schoolId },
+            });
+            if (!module)
+                throw new AppError_1.BadRequestError('Module not found in this school');
+            await assertProfessorInSchool(data.professorId, schoolId);
             const cls = await prisma_1.prisma.class.findFirst({
                 where: { id: data.classId, campus: { schoolId } },
             });
@@ -116,7 +116,9 @@ exports.evaluationCampaignsService = {
             }
             await Promise.all(studentIds.map((userId) => notifications_service_1.notificationService.create({
                 title: `Nouvelle évaluation demandée: ${campaign.title}`,
-                message: `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`,
+                message: detailedCampaign.module
+                    ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
+                    : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
                 type: 'EVALUATION_CAMPAIGN',
                 userId,
                 campaignId: campaign.id,
@@ -152,7 +154,48 @@ exports.evaluationCampaignsService = {
         const analytics = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.getAnalytics(id, schoolId);
         if (!analytics)
             throw new AppError_1.NotFoundError('EvaluationCampaign');
+        const now = new Date();
+        if (analytics.campaign.status === 'ACTIVE' && new Date(analytics.campaign.dueDate) < now) {
+            await evaluation_campaigns_repository_1.evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
+            analytics.campaign.status = 'COMPLETED';
+            // Trigger global analysis if no decision exists
+            if (!analytics.decision) {
+                this.generatePostDeadlineAnalysis(id, 'SYSTEM', schoolId).catch(err => logger_1.logger.error('Auto-analysis failed', { error: err }));
+            }
+        }
         return analytics;
+    },
+    async sendReminders(id, schoolId) {
+        const campaignRaw = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findById(id, schoolId);
+        if (!campaignRaw)
+            throw new AppError_1.NotFoundError('EvaluationCampaign');
+        const campaign = campaignRaw;
+        let allStudentIds = [];
+        if (campaign.scope === 'CLASS' && campaign.class?.users) {
+            allStudentIds = campaign.class.users.map((u) => u.id);
+        }
+        else if (campaign.scope === 'CAMPUS') {
+            allStudentIds = (campaign.campus?.users ?? []).filter(u => u.role === 'STUDENT').map((u) => u.id);
+        }
+        else if (campaign.scope === 'SCHOOL') {
+            const users = await prisma_1.prisma.user.findMany({ where: { role: 'STUDENT', schoolId }, select: { id: true } });
+            allStudentIds = users.map((u) => u.id);
+        }
+        const doneEvaluations = await prisma_1.prisma.evaluation.findMany({
+            where: { campaignId: id, schoolId }, select: { evaluatorId: true },
+        });
+        const doneIds = new Set(doneEvaluations.map(e => e.evaluatorId).filter(Boolean));
+        const missingIds = allStudentIds.filter(id => !doneIds.has(id));
+        await Promise.all(missingIds.map((userId) => notifications_service_1.notificationService.create({
+            title: `Rappel: Évaluation requise pour ${campaign.title}`,
+            message: campaign.module
+                ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
+                : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
+            type: 'EVALUATION_CAMPAIGN_REMINDER',
+            userId,
+            campaignId: campaign.id,
+            schoolId,
+        }))).catch((e) => logger_1.logger.error('Failed to send campaign reminders', { error: e }));
     },
     async generatePostDeadlineAnalysis(id, userId, schoolId) {
         const analytics = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.getAnalytics(id, schoolId);
@@ -160,18 +203,20 @@ exports.evaluationCampaignsService = {
             throw new AppError_1.NotFoundError('EvaluationCampaign');
         const { stats, campaign } = analytics;
         // 1. Check if a decision already exists
-        const existing = await prisma_1.prisma.decision.findUnique({ where: { campaignId: id } });
+        const existing = await prisma_1.prisma.decision.findFirst({ where: { campaignId: id } });
         if (existing)
             return existing;
         // 2. Build context for AI
         const context = `
       Campagne: ${campaign.title}
-      Module: ${campaign.module.name}
-      Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}
+      Périmètre: ${campaign.scope}
+      ${campaign.module ? `Module: ${campaign.module.name}` : ''}
+      ${campaign.professor ? `Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}` : ''}
       Stats: ${stats.totalDone}/${stats.totalExpected} participations (${stats.completionRate}%).
       Score Moyen Académique: ${stats.avgScore}/20.
-      Score Moyen IA (Sentiment): ${stats.avgAiScore}/20.
-      Commentaires récents: ${campaign.evaluations.slice(0, 10).map((e) => e.comment).join(' | ')}
+      
+      Liste des commentaires étudiants :
+      ${campaign.evaluations.map((e) => `- [Note: ${e.score}/20] ${e.comment || 'Sans commentaire'}`).join('\n')}
     `;
         // 3. Call AI for Synthesis & Decision Suggestion
         // (In a real scenario, we'd use the job queue, but here we'll do it directly for the demo flow)

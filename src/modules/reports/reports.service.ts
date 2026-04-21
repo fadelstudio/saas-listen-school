@@ -83,16 +83,16 @@ export const reportsService = {
     const pagination = parsePagination(query);
 
     const filters: ReportFilters = {
-      status:      query.status as ReportStatus | undefined,
-      authorId:    query.authorId as string | undefined,
-      campusId:    query.campusId as string | undefined,
-      classId:     query.classId as string | undefined,
+      status: query.status as ReportStatus | undefined,
+      authorId: query.authorId as string | undefined,
+      campusId: query.campusId as string | undefined,
+      classId: query.classId as string | undefined,
       professorId: query.professorId as string | undefined,
-      moduleId:    query.moduleId as string | undefined,
-      priority:    query.priority as ReportFilters['priority'],
-      startDate:   query.startDate as string | undefined,
-      endDate:     query.endDate as string | undefined,
-      search:      query.search as string | undefined,
+      moduleId: query.moduleId as string | undefined,
+      priority: query.priority as ReportFilters['priority'],
+      startDate: query.startDate as string | undefined,
+      endDate: query.endDate as string | undefined,
+      search: query.search as string | undefined,
     };
 
     const { items, total } = await reportsRepository.findAll(filters, pagination, schoolId ?? null);
@@ -149,7 +149,7 @@ export const reportsService = {
 
     try {
       await jobQueue.add('ai-analysis', {
-        type:     'report-analysis',
+        type: 'report-analysis',
         reportId: id,
       });
     } catch (error) {

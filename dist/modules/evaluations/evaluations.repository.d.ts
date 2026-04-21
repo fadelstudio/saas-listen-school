@@ -5,7 +5,6 @@ type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const evaluationsRepository: {
     getUserContext(userId: string): Promise<{
         classId: string | null;
-        campusId: never;
     } | null>;
     create(data: CreateEvaluationInput, evaluatorId?: string, schoolId?: string | null): Promise<{
         module: {
@@ -42,6 +41,10 @@ export declare const evaluationsRepository: {
             id: string;
             firstName: string;
             lastName: string;
+        } | null;
+        campaign: {
+            id: string;
+            title: string;
         } | null;
     } & {
         id: string;
@@ -137,6 +140,10 @@ export declare const evaluationsRepository: {
             firstName: string;
             lastName: string;
         } | null;
+        campaign: {
+            id: string;
+            title: string;
+        } | null;
     } & {
         id: string;
         createdAt: Date;
@@ -184,6 +191,10 @@ export declare const evaluationsRepository: {
                 id: string;
                 firstName: string;
                 lastName: string;
+            } | null;
+            campaign: {
+                id: string;
+                title: string;
             } | null;
         } & {
             id: string;

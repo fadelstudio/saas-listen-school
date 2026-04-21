@@ -216,8 +216,10 @@ export declare const evaluationCampaignsService: {
                 campusId: string;
             }) | null;
             evaluations: {
+                id: string;
                 createdAt: Date;
                 score: number | null;
+                comment: string | null;
                 aiScore: number | null;
             }[];
         } & {
@@ -264,6 +266,7 @@ export declare const evaluationCampaignsService: {
             aiSuggestion: string | null;
         }) | null;
     }>;
+    sendReminders(id: string, schoolId: string): Promise<void>;
     generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string): Promise<{
         id: string;
         createdAt: Date;

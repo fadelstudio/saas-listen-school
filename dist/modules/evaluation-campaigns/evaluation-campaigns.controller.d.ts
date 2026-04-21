@@ -6,5 +6,6 @@ export declare const evaluationCampaignsController: {
     close(req: Request, res: Response, next: NextFunction): Promise<void>;
     getAnalytics(req: Request, res: Response, next: NextFunction): Promise<void>;
     analyze(req: Request, res: Response, next: NextFunction): Promise<void>;
+    remind(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=evaluation-campaigns.controller.d.ts.map
