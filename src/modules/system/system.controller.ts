@@ -37,9 +37,9 @@ export const systemController = {
     }
   },
 
-  async getAiStatus(_req: Request, res: Response, next: NextFunction) {
+  async getAiStatus(req: Request, res: Response, next: NextFunction) {
     try {
-      const status = await aiBalancer.getStatus();
+      const status = await aiBalancer.getStatus(req.schoolId!);
       res.sendSuccess('AI status fetched successfully', status);
     } catch (error) {
       next(error);

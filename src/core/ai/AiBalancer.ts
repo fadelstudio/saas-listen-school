@@ -69,10 +69,22 @@ export class AiBalancer {
     return AiBalancer._instance;
   }
 
-  async getStatus() { 
+  async getStatus(schoolId: string) { 
     const { redisConnection } = await import('../../core/config/redis');
     const cached = await redisConnection.get('ai_balancer:current_active_id').catch(() => null);
-    return { currentActiveId: cached || this.currentActiveId }; 
+    const active = cached || this.currentActiveId;
+    if (active) return { currentActiveId: active };
+
+    try {
+      const { systemService } = await import('../../modules/system/system.service');
+      const settings = await systemService.getSettings(schoolId);
+      if (!settings.aiEnabled) return { currentActiveId: null };
+      const adminConfigs = this.loadAdminConfigs(settings);
+      const resolved = await this.buildCascade(adminConfigs);
+      if (resolved.length > 0) return { currentActiveId: resolved[0].id };
+    } catch (e) {}
+    
+    return { currentActiveId: null }; 
   }
 
   // ── Main entry point ──────────────────────────────────────────────────────
