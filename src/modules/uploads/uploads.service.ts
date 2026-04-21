@@ -4,7 +4,7 @@ import { BadRequestException, InternalServerException } from '../../core/errors/
 import { env } from '../../core/config/env';
 
 export const uploadsService = {
-  async uploadFile(file: Express.Multer.File, folder: string = 'general') {
+  async uploadFile(file: Express.Multer.File, folder: string = 'general', bucket: string = 'attachments') {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
@@ -14,7 +14,7 @@ export const uploadsService = {
     const filePath = `${folder}/${fileName}`;
 
     const { error } = await supabase.storage
-      .from('attachments')
+      .from(bucket)
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
         upsert: false,
@@ -26,7 +26,7 @@ export const uploadsService = {
     }
 
     const { data, error: signedErr } = await supabase.storage
-      .from('attachments')
+      .from(bucket)
       .createSignedUrl(filePath, env.SIGNED_URL_EXPIRES_IN);
 
     if (signedErr || !data?.signedUrl) {
