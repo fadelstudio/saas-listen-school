@@ -69,7 +69,11 @@ export class AiBalancer {
     return AiBalancer._instance;
   }
 
-  getStatus() { return { currentActiveId: this.currentActiveId }; }
+  async getStatus() { 
+    const { redisConnection } = await import('../../core/config/redis');
+    const cached = await redisConnection.get('ai_balancer:current_active_id').catch(() => null);
+    return { currentActiveId: cached || this.currentActiveId }; 
+  }
 
   // ── Main entry point ──────────────────────────────────────────────────────
 
@@ -93,6 +97,8 @@ export class AiBalancer {
         try {
           console.log(`⚡ Fast-path: ${fast.name} (${fast.model})`);
           const content = await this.call(fast, prompt);
+          const { redisConnection } = await import('../../core/config/redis');
+          await redisConnection.set('ai_balancer:current_active_id', fast.id, 'EX', 3600).catch(() => {});
           return { content, provider: fast.provider, model: fast.model };
         } catch (err) {
           const quota    = isQuotaErr(err);
@@ -111,6 +117,8 @@ export class AiBalancer {
         try {
           const content = await this.call(ov, prompt);
           this.currentActiveId = ov.id;
+          const { redisConnection } = await import('../../core/config/redis');
+          await redisConnection.set('ai_balancer:current_active_id', ov.id, 'EX', 3600).catch(() => {});
           return { content, provider: ov.provider, model: ov.model };
         } catch (err) { console.error(`❌ Override failed (${ov.name}):`, err); }
       }
@@ -141,6 +149,8 @@ export class AiBalancer {
         const content = await this.call(cfg, prompt);
         allSkipped = false;
         this.currentActiveId = cfg.id;
+        const { redisConnection } = await import('../../core/config/redis');
+        await redisConnection.set('ai_balancer:current_active_id', cfg.id, 'EX', 3600).catch(() => {});
         this.failures.delete(cfg.id);
         return { content, provider: cfg.provider, model: cfg.model };
 

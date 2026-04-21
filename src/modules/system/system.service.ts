@@ -78,12 +78,24 @@ export const systemService = {
 
   async updateLogo(schoolId: string, file: Express.Multer.File) {
     const { uploadsService } = await import('../uploads/uploads.service');
-    // Save to 'schools' bucket if it exists, fallback to 'attachments'
+    
+    // Attempt multiple common bucket names
+    const buckets = ['schools', 'logos', 'attachments', 'public', 'general', 'files'];
     let result;
-    try {
-      result = await uploadsService.uploadFile(file, `logos/${schoolId}`, 'schools');
-    } catch (e) {
-      result = await uploadsService.uploadFile(file, `logos/${schoolId}`, 'attachments');
+    let lastError;
+
+    for (const bucket of buckets) {
+      try {
+        result = await uploadsService.uploadFile(file, `logos/${schoolId}`, bucket);
+        if (result) break;
+      } catch (e) {
+        lastError = e;
+        console.warn(`⚠️ Bucket '${bucket}' not found or error, trying next...`);
+      }
+    }
+
+    if (!result) {
+      throw lastError || new Error('All storage buckets failed. Please check Supabase configuration.');
     }
     
     await prisma.school.update({
