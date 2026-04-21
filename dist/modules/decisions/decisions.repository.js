@@ -4,7 +4,7 @@ exports.decisionsRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const client_1 = require("@prisma/client");
 exports.decisionsRepository = {
-    async create(data, deciderId, _schoolId) {
+    async create(data, deciderId, schoolId) {
         return prisma_1.prisma.decision.create({
             data: {
                 evaluationId: data.evaluationId,
@@ -16,6 +16,8 @@ exports.decisionsRepository = {
                 responsible: data.responsible,
                 dueDate: data.dueDate ? new Date(data.dueDate) : null,
                 status: client_1.DecisionStatus.PENDING,
+                // Utilisation du champ direct ajouté dans la migration Prisma
+                schoolId: schoolId ?? null,
             },
             include: {
                 decider: { select: { id: true, firstName: true, lastName: true } },
@@ -28,11 +30,7 @@ exports.decisionsRepository = {
         return prisma_1.prisma.decision.findFirst({
             where: {
                 id,
-                ...(schoolId
-                    ? {
-                        OR: [{ evaluation: { schoolId } }, { report: { schoolId } }],
-                    }
-                    : {}),
+                ...(schoolId ? { schoolId } : {}),
             },
             include: {
                 decider: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -44,11 +42,7 @@ exports.decisionsRepository = {
     },
     async findAll(filters, pagination, schoolId) {
         const where = {
-            ...(schoolId
-                ? {
-                    OR: [{ evaluation: { schoolId } }, { report: { schoolId } }],
-                }
-                : {}),
+            ...(schoolId ? { schoolId } : {}),
             ...(filters.status && { status: filters.status }),
             ...(filters.deciderId && { deciderId: filters.deciderId }),
             ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
@@ -72,7 +66,7 @@ exports.decisionsRepository = {
         const decision = await prisma_1.prisma.decision.findFirst({
             where: {
                 id,
-                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+                ...(schoolId ? { schoolId } : {}),
             },
             select: { id: true },
         });
@@ -93,7 +87,7 @@ exports.decisionsRepository = {
         const decision = await prisma_1.prisma.decision.findFirst({
             where: {
                 id,
-                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+                ...(schoolId ? { schoolId } : {}),
             },
             select: { id: true },
         });
@@ -105,7 +99,7 @@ exports.decisionsRepository = {
         return prisma_1.prisma.decision.deleteMany({
             where: {
                 id,
-                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+                ...(schoolId ? { schoolId } : {}),
             },
         });
     },
@@ -113,7 +107,7 @@ exports.decisionsRepository = {
         return ((await prisma_1.prisma.decision.count({
             where: {
                 id,
-                ...(schoolId ? { OR: [{ evaluation: { schoolId } }, { report: { schoolId } }] } : {}),
+                ...(schoolId ? { schoolId } : {}),
             },
         })) > 0);
     },

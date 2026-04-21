@@ -11,23 +11,7 @@ export const reportsService = {
   async create(input: CreateReportInput, userId?: string, schoolId?: string | null) {
     let finalInput = { ...input };
 
-    // 1. Cross-validation using the Triple-Link structure
-    if (finalInput.moduleId && finalInput.classId) {
-      const assignment = await classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId);
-      
-      if (!assignment) {
-        throw new BadRequestError('This module is not assigned to the selected class');
-      }
-
-      if (finalInput.professorId) {
-        const isAssigned = assignment.professors.some((p: { id: string }) => p.id === finalInput.professorId);
-        if (!isAssigned) {
-          throw new BadRequestError('This professor is not assigned to this module for this class');
-        }
-      }
-    }
-
-    // 2. User Context auto-fill
+    // 1. User Context auto-fill
     if (userId && !finalInput.classId) {
       const user = await reportsRepository.getUserContext(userId);
       if (user) {
@@ -42,6 +26,29 @@ export const reportsService = {
         select: { campus: { select: { schoolId: true } } },
       });
       resolvedSchoolId = cls?.campus?.schoolId ?? null;
+    }
+
+    // 2. Cross-validation using the Triple-Link structure (tenant-scoped)
+    if (finalInput.moduleId && finalInput.classId) {
+      if (!resolvedSchoolId) {
+        throw new BadRequestError('School context is required');
+      }
+      const assignment = await classModulesRepository.findByClassAndModule(
+        finalInput.classId,
+        finalInput.moduleId,
+        resolvedSchoolId,
+      );
+
+      if (!assignment) {
+        throw new BadRequestError('This module is not assigned to the selected class');
+      }
+
+      if (finalInput.professorId) {
+        const isAssigned = assignment.professors.some((p: { id: string }) => p.id === finalInput.professorId);
+        if (!isAssigned) {
+          throw new BadRequestError('This professor is not assigned to this module for this class');
+        }
+      }
     }
 
     const report = await reportsRepository.create(finalInput, userId, resolvedSchoolId);
@@ -76,16 +83,16 @@ export const reportsService = {
     const pagination = parsePagination(query);
 
     const filters: ReportFilters = {
-      status:      query.status as ReportStatus | undefined,
-      authorId:    query.authorId as string | undefined,
-      campusId:    query.campusId as string | undefined,
-      classId:     query.classId as string | undefined,
+      status: query.status as ReportStatus | undefined,
+      authorId: query.authorId as string | undefined,
+      campusId: query.campusId as string | undefined,
+      classId: query.classId as string | undefined,
       professorId: query.professorId as string | undefined,
-      moduleId:    query.moduleId as string | undefined,
-      priority:    query.priority as ReportFilters['priority'],
-      startDate:   query.startDate as string | undefined,
-      endDate:     query.endDate as string | undefined,
-      search:      query.search as string | undefined,
+      moduleId: query.moduleId as string | undefined,
+      priority: query.priority as ReportFilters['priority'],
+      startDate: query.startDate as string | undefined,
+      endDate: query.endDate as string | undefined,
+      search: query.search as string | undefined,
     };
 
     const { items, total } = await reportsRepository.findAll(filters, pagination, schoolId ?? null);
@@ -142,7 +149,7 @@ export const reportsService = {
 
     try {
       await jobQueue.add('ai-analysis', {
-        type:     'report-analysis',
+        type: 'report-analysis',
         reportId: id,
       });
     } catch (error) {

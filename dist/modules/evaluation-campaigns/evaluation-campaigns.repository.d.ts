@@ -1,10 +1,35 @@
+import { Prisma } from '@prisma/client';
 import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
+/** Campagne rattachée au tenant : par classe, campus, ou portée école avec prof du campus. */
+export declare function campaignInSchool(schoolId: string): Prisma.EvaluationCampaignWhereInput;
 export declare const evaluationCampaignsRepository: {
-    findAll(filters: EvaluationCampaignFilters, pagination: {
+    findAll(schoolId: string, filters: EvaluationCampaignFilters, pagination: {
         skip: number;
         limit: number;
     }): Promise<{
         items: ({
+            module: {
+                code: string | null;
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string;
+            };
+            professor: {
+                email: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string | null;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
+                userId: string | null;
+            };
             _count: {
                 evaluations: number;
             };
@@ -13,56 +38,63 @@ export declare const evaluationCampaignsRepository: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                campusId: string;
                 levelId: string;
+                campusId: string;
             } | null;
-            module: {
-                name: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                code: string | null;
-            };
-            professor: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                email: string;
-                firstName: string;
-                lastName: string;
-                campusId: string | null;
-                userId: string | null;
-            };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string | null;
             classId: string | null;
             title: string;
             status: string;
             professorId: string;
             moduleId: string;
+            dueDate: Date;
+            campusId: string | null;
             description: string | null;
             scope: string;
-            dueDate: Date;
         })[];
         total: number;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId: string): Promise<({
         campus: ({
             users: {
                 id: string;
                 role: import("@prisma/client").$Enums.Role;
             }[];
         } & {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         }) | null;
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        };
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        };
         class: ({
             users: {
                 id: string;
@@ -72,26 +104,9 @@ export declare const evaluationCampaignsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         }) | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        };
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            email: string;
-            firstName: string;
-            lastName: string;
-            campusId: string | null;
-            userId: string | null;
-        };
         evaluations: {
             id: string;
             createdAt: Date;
@@ -118,15 +133,15 @@ export declare const evaluationCampaignsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }) | null>;
     create(data: {
         title: string;
@@ -134,36 +149,140 @@ export declare const evaluationCampaignsRepository: {
         scope: string;
         classId?: string;
         campusId?: string;
-        moduleId: string;
-        professorId: string;
+        moduleId?: string;
+        professorId?: string;
         dueDate: Date;
     }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
     }>;
-    updateStatus(id: string, status: string): Promise<{
+    updateStatus(id: string, schoolId: string, status: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string | null;
         classId: string | null;
         title: string;
         status: string;
         professorId: string;
         moduleId: string;
+        dueDate: Date;
+        campusId: string | null;
         description: string | null;
         scope: string;
-        dueDate: Date;
-    }>;
+    } | null>;
+    getAnalytics(id: string, schoolId: string): Promise<{
+        campaign: {
+            campus: ({
+                users: {
+                    id: string;
+                }[];
+            } & {
+                code: string | null;
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string;
+                location: string | null;
+                phone: string | null;
+            }) | null;
+            module: {
+                code: string | null;
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string;
+            };
+            professor: {
+                email: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string | null;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
+                userId: string | null;
+            };
+            _count: {
+                evaluations: number;
+            };
+            class: ({
+                users: {
+                    id: string;
+                }[];
+            } & {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                levelId: string;
+                campusId: string;
+            }) | null;
+            evaluations: {
+                id: string;
+                createdAt: Date;
+                score: number | null;
+                comment: string | null;
+                aiScore: number | null;
+            }[];
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            classId: string | null;
+            title: string;
+            status: string;
+            professorId: string;
+            moduleId: string;
+            dueDate: Date;
+            campusId: string | null;
+            description: string | null;
+            scope: string;
+        };
+        stats: {
+            totalExpected: number;
+            totalDone: number;
+            completionRate: number;
+            avgScore: number;
+            avgAiScore: number;
+        };
+        decision: ({
+            decider: {
+                firstName: string;
+                lastName: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            title: string;
+            priority: import("@prisma/client").$Enums.Priority;
+            status: import("@prisma/client").$Enums.DecisionStatus;
+            reportId: string | null;
+            campaignId: string | null;
+            evaluationId: string | null;
+            deciderId: string;
+            rationale: string | null;
+            responsible: string | null;
+            dueDate: Date | null;
+            aiSuggestion: string | null;
+        }) | null;
+    } | null>;
 };
 //# sourceMappingURL=evaluation-campaigns.repository.d.ts.map

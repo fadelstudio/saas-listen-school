@@ -1,15 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
+import { Role } from '@prisma/client';
 import { professorsService } from './professors.service';
+import { BadRequestError } from '../../core/errors/AppError';
 
 export const professorsController = {
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await professorsService.getAll(req.query);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await professorsService.getAll(req.schoolId, req.query);
       res.sendSuccess('Professors fetched', result.items, 200, {
         total: result.total,
         page: result.page,
         limit: result.limit,
-        totalPages: result.totalPages
+        totalPages: result.totalPages,
       });
     } catch (error) {
       next(error);
@@ -18,7 +21,8 @@ export const professorsController = {
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const professor = await professorsService.getById(req.params.id as string);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const professor = await professorsService.getById(req.params.id as string, req.schoolId);
       res.sendSuccess('Professor fetched', professor);
     } catch (error) {
       next(error);
@@ -27,7 +31,8 @@ export const professorsController = {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const professor = await professorsService.create(req.body);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const professor = await professorsService.create(req.schoolId, req.body);
       res.sendSuccess('Professor created', professor, 201);
     } catch (error) {
       next(error);
@@ -36,7 +41,8 @@ export const professorsController = {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const professor = await professorsService.update(req.params.id as string, req.body);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const professor = await professorsService.update(req.params.id as string, req.schoolId, req.body);
       res.sendSuccess('Professor updated', professor);
     } catch (error) {
       next(error);
@@ -45,8 +51,40 @@ export const professorsController = {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      await professorsService.delete(req.params.id as string);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      await professorsService.delete(req.params.id as string, req.schoolId);
       res.sendSuccess('Professor deleted', null);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async uploadAvatar(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      if (!req.file) {
+        throw new BadRequestError('file is required (multipart field: file)');
+      }
+      const professor = await professorsService.uploadAvatar(
+        req.schoolId,
+        req.params.id as string,
+        req.file,
+        { userId: req.user!.userId, role: req.user!.role as Role },
+      );
+      res.sendSuccess('Professor photo updated', professor);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async clearAvatar(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const professor = await professorsService.clearAvatar(req.schoolId, req.params.id as string, {
+        userId: req.user!.userId,
+        role: req.user!.role as Role,
+      });
+      res.sendSuccess('Professor photo removed', professor);
     } catch (error) {
       next(error);
     }

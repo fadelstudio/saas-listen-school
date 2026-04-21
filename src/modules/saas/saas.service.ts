@@ -8,6 +8,15 @@ import { Prisma } from '@prisma/client';
 
 const SALT_ROUNDS = 12;
 
+function slugifySchoolName(name: string): string {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return base || 'school';
+}
+
 export const saasService = {
   async createSchool(input: CreateSchoolInput) {
     // 1. Check if email or matricule exists
@@ -31,9 +40,18 @@ export const saasService = {
 
     // 3. Transaction to create School + Campus + Admin + Settings
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const baseSlug = slugifySchoolName(input.name);
+      let slug = baseSlug;
+      let suffix = 2;
+      while (await tx.school.findUnique({ where: { slug } })) {
+        slug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+      }
+
       const school = await tx.school.create({
         data: {
           name: input.name,
+          slug,
         }
       });
 
@@ -44,6 +62,17 @@ export const saasService = {
           location: input.location,
         }
       });
+
+      const starterLevels = ['L1', 'L2', 'L3'];
+      for (let i = 0; i < starterLevels.length; i += 1) {
+        await tx.academicLevel.create({
+          data: {
+            schoolId: school.id,
+            name: starterLevels[i],
+            order: i + 1,
+          },
+        });
+      }
 
       await tx.systemSettings.create({
         data: {
@@ -62,13 +91,19 @@ export const saasService = {
           lastName: input.adminLastName,
           role: Role.ADMIN,
           schoolId: school.id,
-          campusId: campus.id,
           matricule: input.matricule,
-          isActive: true
-        }
+          isActive: true,
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+        },
       });
 
-      return { school, campus, user: { id: user.id, email: user.email, role: user.role } };
+      return {
+        school,
+        campus,
+        user: { id: user.id, email: user.email, role: user.role },
+        loginHint: `Use header x-school-slug: ${school.slug} on POST /api/auth/login (and all API calls).`,
+      };
     });
   },
 
@@ -95,8 +130,7 @@ export const saasService = {
             _count: {
               select: {
                 users: true,
-                classes: true,
-                professors: true
+                classes: true
               }
             }
           }

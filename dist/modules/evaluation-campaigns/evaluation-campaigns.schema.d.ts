@@ -12,8 +12,8 @@ export declare const createEvaluationCampaignSchema: z.ZodObject<{
     }>>;
     classId: z.ZodOptional<z.ZodString>;
     campusId: z.ZodOptional<z.ZodString>;
-    moduleId: z.ZodString;
-    professorId: z.ZodString;
+    moduleId: z.ZodOptional<z.ZodString>;
+    professorId: z.ZodOptional<z.ZodString>;
     dueDate: z.ZodString;
 }, z.core.$strip>;
 export declare const evaluationCampaignQuerySchema: z.ZodObject<{

@@ -3,12 +3,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.systemService = void 0;
 const system_repository_1 = require("./system.repository");
 const prisma_1 = require("../../core/database/prisma");
+const AppError_1 = require("../../core/errors/AppError");
 // In-memory cache per school
 const settingsCache = new Map();
 const CACHE_TTL = 30000; // 30 seconds
 exports.systemService = {
-    async getPublicSettings() {
-        const settings = await prisma_1.prisma.systemSettings.findFirst({
+    /**
+     * Toggles publics pour l’école résolue par le middleware (req.schoolId).
+     * Ne renvoie jamais de valeurs « génériques » d’une autre école : le nom vient de `School` si pas de ligne system_settings.
+     */
+    async getPublicSettings(schoolId) {
+        const school = await prisma_1.prisma.school.findUnique({
+            where: { id: schoolId },
+            select: { name: true, slug: true },
+        });
+        if (!school) {
+            throw new AppError_1.NotFoundError('School');
+        }
+        const settings = await prisma_1.prisma.systemSettings.findUnique({
+            where: { schoolId },
             select: {
                 schoolName: true,
                 aiEnabled: true,
@@ -18,14 +31,16 @@ exports.systemService = {
                 updatedAt: true,
             },
         });
-        return (settings ?? {
-            schoolName: 'AFI',
-            aiEnabled: true,
-            authOtpRequired: false,
-            authReportsRequired: false,
-            authEvaluationsRequired: false,
-            updatedAt: new Date(0),
-        });
+        const base = {
+            schoolSlug: school.slug,
+            schoolName: settings?.schoolName ?? school.name,
+            aiEnabled: settings?.aiEnabled ?? true,
+            authOtpRequired: settings?.authOtpRequired ?? false,
+            authReportsRequired: settings?.authReportsRequired ?? false,
+            authEvaluationsRequired: settings?.authEvaluationsRequired ?? false,
+            updatedAt: settings?.updatedAt ?? new Date(0),
+        };
+        return base;
     },
     async getSettings(schoolId, forceRefresh = false) {
         const cached = settingsCache.get(schoolId);
@@ -46,18 +61,5 @@ exports.systemService = {
         settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
         return response;
     },
-    async getSchoolSettingsByCampus(campusId) {
-        return prisma_1.prisma.campus.findUnique({
-            where: { id: campusId },
-            select: { schoolId: true }
-        });
-    },
-    async getSchoolSettingsByClass(classId) {
-        const cls = await prisma_1.prisma.class.findUnique({
-            where: { id: classId },
-            select: { campus: { select: { schoolId: true } } },
-        });
-        return { schoolId: cls?.campus?.schoolId || null };
-    }
 };
 //# sourceMappingURL=system.service.js.map

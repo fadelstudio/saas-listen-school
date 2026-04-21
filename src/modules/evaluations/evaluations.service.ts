@@ -11,18 +11,7 @@ export const evaluationsService = {
   async create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null) {
     let finalInput = { ...input };
 
-    // 1. Cross-validation: Triple-Link consistency
-    const assignment = await classModulesRepository.findByClassAndModule(finalInput.classId, finalInput.moduleId);
-    if (!assignment) {
-      throw new BadRequestError('This module is not assigned to the selected class');
-    }
-
-    const isAssigned = assignment.professors.some((p: { id: string }) => p.id === finalInput.professorId);
-    if (!isAssigned) {
-      throw new BadRequestError('This professor is not assigned to this module for this class');
-    }
-
-    // 2. User context auto-fill
+    // 1. User context auto-fill (needed before school / class-module resolution)
     if (userId && !finalInput.classId) {
       const user = await evaluationsRepository.getUserContext(userId);
       if (user) {
@@ -39,17 +28,26 @@ export const evaluationsService = {
       resolvedSchoolId = cls?.campus?.schoolId ?? null;
     }
 
-    const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
-
-    // 3. Automatic AI Trigger
-    try {
-      await jobQueue.add('ai-analysis', {
-        type: 'evaluation-scoring',
-        evaluationId: evaluation.id,
-      });
-    } catch (error) {
-      console.warn('⚠️ Could not auto-enqueue AI scoring (Redis down?):', error);
+    if (!resolvedSchoolId) {
+      throw new BadRequestError('School context is required');
     }
+
+    // 2. Cross-validation: Triple-Link consistency (tenant-scoped)
+    const assignment = await classModulesRepository.findByClassAndModule(
+      finalInput.classId,
+      finalInput.moduleId,
+      resolvedSchoolId,
+    );
+    if (!assignment) {
+      throw new BadRequestError('This module is not assigned to the selected class');
+    }
+
+    const isAssigned = assignment.professors.some((p: { id: string }) => p.id === finalInput.professorId);
+    if (!isAssigned) {
+      throw new BadRequestError('This professor is not assigned to this module for this class');
+    }
+
+    const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
 
     return evaluation;
   },
@@ -73,6 +71,10 @@ export const evaluationsService = {
       status:      query.status as EvaluationStatus | undefined,
       evaluatorId: query.evaluatorId as string | undefined,
       reportId:    query.reportId as string | undefined,
+      professorId: query.professorId as string | undefined,
+      moduleId:    query.moduleId as string | undefined,
+      classId:     query.classId as string | undefined,
+      campusId:    query.campusId as string | undefined,
       startDate:   query.startDate as string | undefined,
       endDate:     query.endDate as string | undefined,
     };
@@ -117,9 +119,13 @@ export const evaluationsService = {
 
   async getStats(query: Record<string, unknown>, schoolId?: string | null) {
     const filters: EvaluationFilters = {
-      reportId:  query.reportId as string | undefined,
-      startDate: query.startDate as string | undefined,
-      endDate:   query.endDate as string | undefined,
+      reportId:    query.reportId as string | undefined,
+      professorId: query.professorId as string | undefined,
+      moduleId:    query.moduleId as string | undefined,
+      classId:     query.classId as string | undefined,
+      campusId:    query.campusId as string | undefined,
+      startDate:   query.startDate as string | undefined,
+      endDate:     query.endDate as string | undefined,
     };
     return evaluationsRepository.getAggregatedStats(filters, schoolId ?? null);
   },

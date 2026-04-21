@@ -1,32 +1,51 @@
+import { Prisma } from '@prisma/client';
 import { ProfessorFilters } from './professors.types';
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
+/**
+ * Filtre les professeurs appartenant à une école donnée.
+ * Un professeur appartient à l'école si son schoolId correspond.
+ */
+export declare function professorInSchool(schoolId: string): Prisma.ProfessorWhereInput;
 export declare const professorsRepository: {
-    findAll(filters: ProfessorFilters, pagination: PaginationArgs): Promise<{
+    findAll(schoolId: string, filters: ProfessorFilters, pagination: PaginationArgs): Promise<{
         items: ({
+            user: {
+                id: string;
+                avatarPath: string | null;
+            } | null;
             _count: {
                 evaluations: number;
             };
         } & {
+            email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            email: string;
+            schoolId: string | null;
+            phone: string | null;
             firstName: string;
             lastName: string;
-            campusId: string | null;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
             userId: string | null;
         })[];
         total: number;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId: string): Promise<({
+        user: {
+            id: string;
+            avatarPath: string | null;
+        } | null;
         evaluations: ({
             module: {
+                code: string | null;
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                code: string | null;
+                schoolId: string;
             };
         } & {
             id: string;
@@ -51,13 +70,17 @@ export declare const professorsRepository: {
             campaignId: string | null;
         })[];
     } & {
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        email: string;
+        schoolId: string | null;
+        phone: string | null;
         firstName: string;
         lastName: string;
-        campusId: string | null;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         userId: string | null;
     }) | null>;
     create(data: {
@@ -65,41 +88,61 @@ export declare const professorsRepository: {
         lastName: string;
         email: string;
         userId?: string;
+        schoolId: string;
+        matricule?: string | null;
+        numero?: string | null;
+        phone?: string | null;
     }): Promise<{
+        user: {
+            id: string;
+            avatarPath: string | null;
+        } | null;
+        _count: {
+            evaluations: number;
+        };
+    } & {
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        email: string;
+        schoolId: string | null;
+        phone: string | null;
         firstName: string;
         lastName: string;
-        campusId: string | null;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         userId: string | null;
     }>;
-    update(id: string, data: {
-        firstName?: string;
-        lastName?: string;
+    update(id: string, schoolId: string, data: {
         email?: string;
         userId?: string;
-    }): Promise<{
+        matricule?: string | null;
+        numero?: string | null;
+        phone?: string | null;
+    }): Promise<({
+        user: {
+            id: string;
+            avatarPath: string | null;
+        } | null;
+        _count: {
+            evaluations: number;
+        };
+    } & {
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        email: string;
+        schoolId: string | null;
+        phone: string | null;
         firstName: string;
         lastName: string;
-        campusId: string | null;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         userId: string | null;
-    }>;
-    delete(id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        firstName: string;
-        lastName: string;
-        campusId: string | null;
-        userId: string | null;
-    }>;
+    }) | null>;
+    delete(id: string, schoolId: string): Promise<boolean>;
 };
 export {};
 //# sourceMappingURL=professors.repository.d.ts.map

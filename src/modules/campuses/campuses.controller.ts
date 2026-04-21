@@ -5,7 +5,7 @@ import { BadRequestError } from '../../core/errors/AppError';
 export const campusesController = {
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const result = await campusesService.getAll(schoolId, req.query);
       res.sendSuccess('Campuses fetched', result.items, 200, {
@@ -21,7 +21,7 @@ export const campusesController = {
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const campus = await campusesService.getById(req.params.id as string, schoolId);
       res.sendSuccess('Campus fetched', campus);
@@ -32,7 +32,7 @@ export const campusesController = {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) {
         throw new BadRequestError('schoolId is required to create a campus');
       }
@@ -48,7 +48,7 @@ export const campusesController = {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const campus = await campusesService.update(req.params.id as string, req.body, schoolId);
       res.sendSuccess('Campus updated', campus);
@@ -59,7 +59,7 @@ export const campusesController = {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       await campusesService.delete(req.params.id as string, schoolId);
       res.sendSuccess('Campus deleted', null);
@@ -70,7 +70,7 @@ export const campusesController = {
 
   async getClasses(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const classes = await campusesService.getClasses(req.params.id as string, schoolId);
       res.sendSuccess('Classes for campus fetched', classes);
@@ -81,7 +81,7 @@ export const campusesController = {
 
   async getStudents(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const students = await campusesService.getStudents(req.params.id as string, schoolId);
       res.sendSuccess('Students for campus fetched', students);
@@ -92,7 +92,7 @@ export const campusesController = {
 
   async getStats(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const stats = await campusesService.getStats(req.params.id as string, schoolId);
       res.sendSuccess('Campus stats fetched', stats);
@@ -103,7 +103,7 @@ export const campusesController = {
 
   async getProfessors(req: Request, res: Response, next: NextFunction) {
     try {
-      const schoolId = req.user?.schoolId;
+      const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
       const professors = await campusesService.getProfessors(req.params.id as string, schoolId);
       res.sendSuccess('Professors for campus fetched', professors);

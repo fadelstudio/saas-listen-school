@@ -14,11 +14,17 @@ export interface JwtPayload {
   exp: number;
 }
 
-// Extend Express Request to carry authenticated user
 declare global {
   namespace Express {
     interface Request {
       user?: JwtPayload;
+      schoolId?: string;
+      school?: {
+        id: string;
+        slug: string;
+        name: string;
+        domain: string | null;
+      };
     }
   }
 }
@@ -43,15 +49,25 @@ export async function authMiddleware(
         where: { id: payload.userId },
         select: {
           schoolId: true,
-          campus: { select: { schoolId: true } },
+          campuses: { select: { schoolId: true }, take: 1 },
         },
       });
-      const resolvedSchoolId = user?.schoolId || user?.campus?.schoolId || null;
+      const resolvedSchoolId = user?.schoolId || user?.campuses?.[0]?.schoolId || null;
       if (!resolvedSchoolId) {
         throw new UnauthorizedError("Token missing school context. Please log in again.");
       }
       payload.schoolId = resolvedSchoolId;
     }
+
+    if (
+      payload.role !== "SUPERADMIN" &&
+      req.schoolId &&
+      payload.schoolId &&
+      payload.schoolId !== req.schoolId
+    ) {
+      throw new ForbiddenError("Token school does not match request school context");
+    }
+
     req.user = payload;
     next();
   } catch {

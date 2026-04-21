@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authController } from './auth.controller';
 import { authMiddleware } from '../../core/middleware/auth.middleware';
+import { profilePhotoUpload } from '../../core/middleware/profilePhotoUpload.middleware';
 import { validate } from '../../core/middleware/validate.middleware';
 import {
   registerSchema,
@@ -29,8 +30,10 @@ const authRouter = Router();
  * /api/auth/register:
  *   post:
  *     summary: "Inscription d'un nouvel Étudiant"
- *     description: Permet l'auto-inscription. Si le SaaS le requiert, un OTP sera envoyé par email.
+ *     description: Permet l'auto-inscription dans l'école résolue par sous-domaine (ou header x-school-slug en fallback). Si le SaaS le requiert, un OTP sera envoyé par email.
  *     tags: [Auth]
+ *     parameters:
+ *       - $ref: '#/components/parameters/SchoolSlugHeader'
  *     requestBody:
  *       required: true
  *       content:
@@ -108,8 +111,10 @@ authRouter.post(
  * /api/auth/login:
  *   post:
  *     summary: "Connexion (Email ou Matricule)"
- *     description: Identifie l'utilisateur via son email ou son matricule unique. Retourne directement les tokens (OTP non requis au login).
+ *     description: Identifie l'utilisateur via son email ou son matricule dans l'école résolue (sous-domaine principal, x-school-slug fallback). Retourne directement les tokens (OTP non requis au login).
  *     tags: [Auth]
+ *     parameters:
+ *       - $ref: '#/components/parameters/SchoolSlugHeader'
  *     requestBody:
  *       required: true
  *       content:
@@ -253,7 +258,7 @@ authRouter.post(
  * /api/auth/me:
  *   get:
  *     summary: "Profil de l'utilisateur connecté"
- *     description: Récupère les infos, le rôle et le campus de l'utilisateur porteur du token.
+ *     description: "Infos, rôle, campus ; `avatarUrl` est une URL signée Supabase (durée limitée, voir SIGNED_URL_EXPIRES_IN)."
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -279,11 +284,64 @@ authRouter.get('/me', authMiddleware, authController.me);
  *             properties:
  *               firstName: { type: string }
  *               lastName: { type: string }
+ *               matricule: { type: string, nullable: true, description: "Doit rester unique dans la base" }
+ *               numero: { type: string, nullable: true }
+ *               phone: { type: string, nullable: true }
  *     responses:
  *       200:
  *         description: Profil mis à jour.
  */
 authRouter.patch('/me', authMiddleware, validate({ body: updateProfileSchema }), authController.updateProfile);
+
+/**
+ * @swagger
+ * /api/auth/me/avatar:
+ *   post:
+ *     summary: "Télécharger sa photo de profil"
+ *     description: "JPEG, PNG ou WebP. Stockage Supabase ; la réponse inclut `avatarUrl` (URL signée)."
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profil mis à jour avec avatarUrl
+ */
+authRouter.post(
+  '/me/avatar',
+  authMiddleware,
+  (req, res, next) => {
+    profilePhotoUpload.single('file')(req, res, (err: unknown) => {
+      if (err) return next(err);
+      next();
+    });
+  },
+  authController.uploadAvatar
+);
+
+/**
+ * @swagger
+ * /api/auth/me/avatar:
+ *   delete:
+ *     summary: "Supprimer sa photo de profil"
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Photo retirée
+ */
+authRouter.delete('/me/avatar', authMiddleware, authController.clearAvatar);
 
 /**
  * @swagger

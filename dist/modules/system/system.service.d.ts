@@ -1,21 +1,20 @@
 import { UpdateSystemSettingsInput } from './system.schema';
 import { SystemSettingsResponse } from './system.types';
 export declare const systemService: {
-    getPublicSettings(): Promise<{
-        updatedAt: Date;
+    /**
+     * Toggles publics pour l’école résolue par le middleware (req.schoolId).
+     * Ne renvoie jamais de valeurs « génériques » d’une autre école : le nom vient de `School` si pas de ligne system_settings.
+     */
+    getPublicSettings(schoolId: string): Promise<{
+        schoolSlug: string;
         schoolName: string;
+        aiEnabled: boolean;
+        authOtpRequired: boolean;
         authReportsRequired: boolean;
         authEvaluationsRequired: boolean;
-        authOtpRequired: boolean;
-        aiEnabled: boolean;
+        updatedAt: Date;
     }>;
     getSettings(schoolId: string, forceRefresh?: boolean): Promise<SystemSettingsResponse>;
     updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<SystemSettingsResponse>;
-    getSchoolSettingsByCampus(campusId: string): Promise<{
-        schoolId: string;
-    } | null>;
-    getSchoolSettingsByClass(classId: string): Promise<{
-        schoolId: string | null;
-    }>;
 };
 //# sourceMappingURL=system.service.d.ts.map

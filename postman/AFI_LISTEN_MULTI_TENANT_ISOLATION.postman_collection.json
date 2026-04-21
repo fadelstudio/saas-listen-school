@@ -1,0 +1,314 @@
+{
+  "info": {
+    "_postman_id": "afi-listen-multi-tenant-isolation",
+    "name": "AFI-LISTEN — Isolation multi-tenant (2 écoles)",
+    "description": "Valide le plan d’isolation : deux comptes ADMIN sur deux écoles (`slugA` / `slugB`), listes disjointes et accès par ID refusé (404).\n\n**Prérequis** : créer en base deux écoles avec slugs distincts, chacune un ADMIN (emails/mots de passe dans les variables). Remplir `slugA`, `slugB`, `adminEmailA`/`adminPasswordA`, `adminEmailB`/`adminPasswordB`.\n\n**Ordre** : exécuter le dossier « 1. Login » puis « 2. Listes » puis « 3. Cross-tenant (404) ».",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "slugA", "value": "afi-default-school", "type": "string" },
+    { "key": "slugB", "value": "autre-ecole-slug", "type": "string" },
+    { "key": "adminEmailA", "value": "admin@afi.com", "type": "string" },
+    { "key": "adminPasswordA", "value": "fadeldev", "type": "string" },
+    { "key": "adminEmailB", "value": "admin@ecole-b.com", "type": "string" },
+    { "key": "adminPasswordB", "value": "fadeldev", "type": "string" },
+    { "key": "tokenA", "value": "", "type": "string" },
+    { "key": "tokenB", "value": "", "type": "string" },
+    { "key": "classIdFromSchoolA", "value": "", "type": "string" },
+    { "key": "professorIdFromSchoolA", "value": "", "type": "string" },
+    { "key": "campaignIdFromSchoolA", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Login",
+      "item": [
+        {
+          "name": "Login ADMIN école A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.have.property('token');",
+                  "pm.collectionVariables.set('tokenA', j.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{slugA}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmailA}}\",\"password\":\"{{adminPasswordA}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login ADMIN école B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.have.property('token');",
+                  "pm.collectionVariables.set('tokenB', j.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{slugB}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmailB}}\",\"password\":\"{{adminPasswordB}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Listes (capturer un ID école A)",
+      "item": [
+        {
+          "name": "GET /classes — token A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.be.an('array');",
+                  "if (j.data.length > 0) {",
+                  "  pm.collectionVariables.set('classIdFromSchoolA', j.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenA}}" },
+              { "key": "x-school-slug", "value": "{{slugA}}" }
+            ],
+            "url": "{{baseUrl}}/classes"
+          }
+        },
+        {
+          "name": "GET /professors — token A (capturer id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.be.an('array');",
+                  "if (j.data.length > 0) {",
+                  "  pm.collectionVariables.set('professorIdFromSchoolA', j.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenA}}" },
+              { "key": "x-school-slug", "value": "{{slugA}}" }
+            ],
+            "url": "{{baseUrl}}/professors"
+          }
+        },
+        {
+          "name": "GET /evaluation-campaigns — token A (capturer id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "var items = j.data;",
+                  "if (Array.isArray(items) && items.length > 0) {",
+                  "  pm.collectionVariables.set('campaignIdFromSchoolA', items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenA}}" },
+              { "key": "x-school-slug", "value": "{{slugA}}" }
+            ],
+            "url": "{{baseUrl}}/evaluation-campaigns?page=1&limit=20"
+          }
+        },
+        {
+          "name": "GET /classes — token B (aucun id de A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var idA = pm.collectionVariables.get('classIdFromSchoolA');",
+                  "if (!idA) { return; }",
+                  "var j = pm.response.json();",
+                  "var ids = (j.data || []).map(function (c) { return c.id; });",
+                  "pm.test('Class from school A not listed for B', function () {",
+                  "  pm.expect(ids).to.not.include(idA);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenB}}" },
+              { "key": "x-school-slug", "value": "{{slugB}}" }
+            ],
+            "url": "{{baseUrl}}/classes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Cross-tenant (404)",
+      "item": [
+        {
+          "name": "GET /classes/:id — token B sur classe A → 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var id = pm.collectionVariables.get('classIdFromSchoolA');",
+                  "if (!id) { throw new Error('Run « GET /classes — token A » first and ensure school A has a class.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 (no leak)', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenB}}" },
+              { "key": "x-school-slug", "value": "{{slugB}}" }
+            ],
+            "url": "{{baseUrl}}/classes/{{classIdFromSchoolA}}"
+          }
+        },
+        {
+          "name": "GET /professors/:id — token B sur prof A → 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var id = pm.collectionVariables.get('professorIdFromSchoolA');",
+                  "if (!id) { throw new Error('Run professors list for school A first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenB}}" },
+              { "key": "x-school-slug", "value": "{{slugB}}" }
+            ],
+            "url": "{{baseUrl}}/professors/{{professorIdFromSchoolA}}"
+          }
+        },
+        {
+          "name": "GET /evaluation-campaigns/:id — token B sur campagne A → 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var id = pm.collectionVariables.get('campaignIdFromSchoolA');",
+                  "if (!id) { throw new Error('No campaign id captured; skip or create a campaign on school A.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenB}}" },
+              { "key": "x-school-slug", "value": "{{slugB}}" }
+            ],
+            "url": "{{baseUrl}}/evaluation-campaigns/{{campaignIdFromSchoolA}}"
+          }
+        },
+        {
+          "name": "GET /analytics/dashboard — token B (200, scope école B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.have.property('counters');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenB}}" },
+              { "key": "x-school-slug", "value": "{{slugB}}" }
+            ],
+            "url": "{{baseUrl}}/analytics/dashboard"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -79,4 +79,16 @@ export const schoolUsersController = {
       next(e);
     }
   },
+
+  async resetPasswordToDefault(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await schoolUsersService.resetPasswordToDefault(
+        req.user!.userId,
+        req.params.id as string
+      );
+      res.sendSuccess('Password reset', result);
+    } catch (e) {
+      next(e);
+    }
+  },
 };

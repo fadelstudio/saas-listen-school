@@ -1,34 +1,76 @@
 import { evaluationCampaignsRepository } from './evaluation-campaigns.repository';
 import { notificationService } from '../notifications/notifications.service';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
-import { NotFoundError } from '../../core/errors/AppError';
+import { NotFoundError, BadRequestError } from '../../core/errors/AppError';
 import { logger } from '../../utils/logger';
 import { prisma } from '../../core/database/prisma';
 import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
 import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
 
+/**
+ * Vérifie qu'un professeur appartient à l'école.
+ * Un professeur appartient à l'école si :
+ *   1. Son compte User lié a schoolId correspondant, OU
+ *   2. Il a au moins une assignation ClassModule dans un campus de cette école.
+ * Les profs sans userId et sans assignation sont rejetés (pas d'école connue).
+ */
+async function assertProfessorInSchool(professorId: string, schoolId: string) {
+  const p = await prisma.professor.findFirst({
+    where: {
+      id: professorId,
+      OR: [
+        { user: { schoolId } },
+        { modules: { some: { class: { campus: { schoolId } } } } },
+      ],
+    },
+  });
+  if (!p) throw new BadRequestError('Professor not found in this school');
+}
+
 export const evaluationCampaignsService = {
-  async create(data: CreateEvaluationCampaignInput) {
+  async create(data: CreateEvaluationCampaignInput, schoolId: string) {
+    if (data.scope === 'CLASS') {
+      const module = await prisma.module.findFirst({
+        where: { id: data.moduleId!, schoolId },
+      });
+      if (!module) throw new BadRequestError('Module not found in this school');
+
+      await assertProfessorInSchool(data.professorId!, schoolId);
+
+      const cls = await prisma.class.findFirst({
+        where: { id: data.classId!, campus: { schoolId } },
+      });
+      if (!cls) throw new BadRequestError('Class not found in this school');
+    }
+
+    if (data.scope === 'CAMPUS') {
+      const campus = await prisma.campus.findFirst({
+        where: { id: data.campusId!, schoolId },
+      });
+      if (!campus) throw new BadRequestError('Campus not found in this school');
+    }
+
     const campaign = await evaluationCampaignsRepository.create({
       ...data,
       dueDate: new Date(data.dueDate),
     });
 
-    // Create a global notification so ADMIN can see it too (useful for audit/testing)
-    await notificationService.create({
-      title: `Campagne créée: ${campaign.title}`,
-      message: `Une nouvelle campagne d'évaluation a été créée.`,
-      type: 'EVALUATION_CAMPAIGN',
-      campaignId: campaign.id,
-    }).catch((e) => logger.error('Failed to create global campaign notification', { error: e }));
-    
-    // Now notify targeted students (class / campus / school)
-    const detailedCampaignRaw = await evaluationCampaignsRepository.findById(campaign.id);
+    await notificationService
+      .create({
+        title: `Campagne créée: ${campaign.title}`,
+        message: `Une nouvelle campagne d'évaluation a été créée.`,
+        type: 'EVALUATION_CAMPAIGN',
+        campaignId: campaign.id,
+        schoolId,
+      })
+      .catch((e) => logger.error('Failed to create global campaign notification', { error: e }));
+
+    const detailedCampaignRaw = await evaluationCampaignsRepository.findById(campaign.id, schoolId);
     const detailedCampaign = detailedCampaignRaw as unknown as {
       scope: 'CLASS' | 'CAMPUS' | 'SCHOOL';
       class?: { users: { id: string }[] } | null;
       campus?: { users: { id: string; role: string }[] } | null;
-      module: { name: string };
+      module?: { name: string };
     } | null;
 
     if (detailedCampaign) {
@@ -41,45 +83,175 @@ export const evaluationCampaignsService = {
           .filter((u: { id: string; role: string }) => u.role === 'STUDENT')
           .map((u: { id: string }) => u.id);
       } else if (detailedCampaign.scope === 'SCHOOL') {
-        const users = await prisma.user.findMany({ where: { role: 'STUDENT' }, select: { id: true } });
+        const users = await prisma.user.findMany({
+          where: { role: 'STUDENT', schoolId },
+          select: { id: true },
+        });
         studentIds = users.map((u) => u.id);
       }
-      
-      // Batch send notifications
-      await Promise.all(studentIds.map((userId: string) => 
-        notificationService.create({
-          title: `Nouvelle évaluation demandée: ${campaign.title}`,
-          message: `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`,
-          type: 'EVALUATION_CAMPAIGN',
-          userId,
-          campaignId: campaign.id,
-        })
-      )).catch((e) => logger.error('Failed to send campaign notifications', { error: e }));
+
+      await Promise.all(
+        studentIds.map((userId: string) =>
+          notificationService.create({
+            title: `Nouvelle évaluation demandée: ${campaign.title}`,
+            message: detailedCampaign.module 
+              ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
+              : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
+            type: 'EVALUATION_CAMPAIGN',
+            userId,
+            campaignId: campaign.id,
+            schoolId,
+          }),
+        ),
+      ).catch((e) => logger.error('Failed to send campaign notifications', { error: e }));
     }
 
     return campaign;
   },
 
-  async getAll(query: Record<string, unknown>) {
+  async getAll(schoolId: string, query: Record<string, unknown>) {
     const pagination = parsePagination(query);
     const filters: EvaluationCampaignFilters = {
-      classId: typeof query.classId === 'string' ? query.classId : undefined,
+      classId:  typeof query.classId  === 'string' ? query.classId  : undefined,
       campusId: typeof query.campusId === 'string' ? query.campusId : undefined,
-      scope: typeof query.scope === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
-      status: typeof query.status === 'string' ? query.status : undefined,
+      scope:    typeof query.scope    === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
+      status:   typeof query.status   === 'string' ? query.status   : undefined,
     };
-    
-    const { items, total } = await evaluationCampaignsRepository.findAll(filters, pagination);
+
+    const { items, total } = await evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
-  async getById(id: string) {
-    const campaign = await evaluationCampaignsRepository.findById(id);
+  async getById(id: string, schoolId: string) {
+    const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
     if (!campaign) throw new NotFoundError('EvaluationCampaign');
     return campaign;
   },
 
-  async close(id: string) {
-    return evaluationCampaignsRepository.updateStatus(id, 'COMPLETED');
+  async close(id: string, schoolId: string) {
+    const updated = await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
+    if (!updated) throw new NotFoundError('EvaluationCampaign');
+    return updated;
+  },
+
+  async getAnalytics(id: string, schoolId: string) {
+    const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
+    if (!analytics) throw new NotFoundError('EvaluationCampaign');
+
+    const now = new Date();
+    if (analytics.campaign.status === 'ACTIVE' && new Date(analytics.campaign.dueDate) < now) {
+      await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
+      analytics.campaign.status = 'COMPLETED';
+      
+      // Trigger global analysis if no decision exists
+      if (!analytics.decision) {
+        this.generatePostDeadlineAnalysis(id, 'SYSTEM', schoolId).catch(err => 
+          logger.error('Auto-analysis failed', { error: err })
+        );
+      }
+    }
+
+    return analytics;
+  },
+
+  async sendReminders(id: string, schoolId: string) {
+    const campaignRaw = await evaluationCampaignsRepository.findById(id, schoolId);
+    if (!campaignRaw) throw new NotFoundError('EvaluationCampaign');
+    const campaign = campaignRaw as unknown as {
+      id: string; title: string; scope: string; module?: { name: string };
+      class?: { users: { id: string }[] }; campus?: { users: { id: string; role: string }[] };
+    };
+
+    let allStudentIds: string[] = [];
+    if (campaign.scope === 'CLASS' && campaign.class?.users) {
+      allStudentIds = campaign.class.users.map((u) => u.id);
+    } else if (campaign.scope === 'CAMPUS') {
+      allStudentIds = (campaign.campus?.users ?? []).filter(u => u.role === 'STUDENT').map((u) => u.id);
+    } else if (campaign.scope === 'SCHOOL') {
+      const users = await prisma.user.findMany({ where: { role: 'STUDENT', schoolId }, select: { id: true } });
+      allStudentIds = users.map((u) => u.id);
+    }
+
+    const doneEvaluations = await prisma.evaluation.findMany({
+      where: { campaignId: id, schoolId }, select: { evaluatorId: true },
+    });
+    const doneIds = new Set(doneEvaluations.map(e => e.evaluatorId).filter(Boolean));
+    const missingIds = allStudentIds.filter(id => !doneIds.has(id));
+
+    await Promise.all(
+      missingIds.map((userId: string) =>
+        notificationService.create({
+          title: `Rappel: Évaluation requise pour ${campaign.title}`,
+          message: campaign.module 
+              ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
+              : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
+          type: 'EVALUATION_CAMPAIGN_REMINDER',
+          userId,
+          campaignId: campaign.id,
+          schoolId,
+        })
+      )
+    ).catch((e) => logger.error('Failed to send campaign reminders', { error: e }));
+  },
+
+  async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {
+    const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
+    if (!analytics) throw new NotFoundError('EvaluationCampaign');
+
+    const { stats, campaign } = analytics;
+    
+    // 1. Check if a decision already exists
+    const existing = await prisma.decision.findFirst({ where: { campaignId: id } as any });
+    if (existing) return existing;
+
+    // 2. Build context for AI
+    const context = `
+      Campagne: ${campaign.title}
+      Périmètre: ${campaign.scope}
+      ${campaign.module ? `Module: ${campaign.module.name}` : ''}
+      ${campaign.professor ? `Professeur: ${campaign.professor.firstName} ${campaign.professor.lastName}` : ''}
+      Stats: ${stats.totalDone}/${stats.totalExpected} participations (${stats.completionRate}%).
+      Score Moyen Académique: ${stats.avgScore}/20.
+      
+      Liste des commentaires étudiants :
+      ${campaign.evaluations.map((e: any) => `- [Note: ${e.score}/20] ${e.comment || 'Sans commentaire'}`).join('\n')}
+    `;
+
+    // 3. Call AI for Synthesis & Decision Suggestion
+    // (In a real scenario, we'd use the job queue, but here we'll do it directly for the demo flow)
+    const prompt = `Analyse les résultats de cette campagne d'évaluation et propose une décision administrative.
+    Donne une réponse UNIQUEMENT en JSON strict.
+    Format: {"summary":"Synthèse des points clés","recommendation":"Action suggérée (ex: Entretien de cadrage, Félicitations, Formation pédagogique)","priority":"HIGH|MEDIUM|LOW"}
+    
+    Données: ${context}`;
+
+    const { aiBalancer } = await import('../../core/ai/AiBalancer');
+    const aiRes = await aiBalancer.callAI(prompt, schoolId);
+    
+    let aiParsed;
+    try {
+      // Robust extraction as done in the processor
+      const match = aiRes.content.match(/\{[\s\S]*\}/);
+      aiParsed = JSON.parse(match ? match[0] : aiRes.content);
+    } catch (e) {
+      aiParsed = { summary: aiRes.content, recommendation: 'Analyse manuelle requise', priority: 'MEDIUM' };
+    }
+
+    // 4. Create the Decision
+    const decision = await prisma.decision.create({
+      data: {
+        campaignId: id,
+        deciderId: userId,
+        schoolId,
+        title: `Suivi suite à la campagne : ${campaign.title}`,
+        rationale: aiParsed.summary,
+        aiSuggestion: aiParsed.recommendation,
+        status: 'PENDING',
+        priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
+      } as any,
+      include: { decider: { select: { firstName: true, lastName: true } } }
+    });
+
+    return decision;
   }
 };

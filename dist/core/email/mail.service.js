@@ -8,10 +8,12 @@ const axios_1 = __importDefault(require("axios"));
 const env_1 = require("../config/env");
 const logger_1 = require("../../utils/logger");
 /**
- * Sends transactional email. With MAIL_PROVIDER=console, logs body (dev / no API key).
+ * Sends transactional email.
+ * - `MAIL_PROVIDER=console`: log only (dev).
+ * - `MAIL_PROVIDER=resend`: HTTPS API Resend (`RESEND_API_KEY`, `EMAIL_FROM` vérifié côté Resend).
  */
 async function sendTransactionalEmail(params) {
-    if (env_1.env.MAIL_PROVIDER === "console" || !env_1.env.RESEND_API_KEY) {
+    if (env_1.env.MAIL_PROVIDER === "console") {
         logger_1.logger.info("[mail:console]", {
             to: params.to,
             subject: params.subject,

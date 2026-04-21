@@ -3,37 +3,65 @@ import { prisma } from '../../core/database/prisma';
 import { RegisterInput } from './auth.types';
 
 export const authRepository = {
-  async findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { email } });
+  async findByEmail(email: string, schoolId: string) {
+    return prisma.user.findFirst({
+      where: { email, schoolId },
+      include: { campuses: { select: { id: true } } },
+    });
   },
 
-  async findByIdentifier(identifier: string): Promise<User | null> {
+  async findByIdentifier(identifier: string, schoolId: string) {
     return prisma.user.findFirst({
       where: {
+        schoolId,
         OR: [
           { email: identifier },
           { matricule: identifier }
         ]
-      }
+      },
+      include: { campuses: { select: { id: true } } },
     });
   },
 
-  async findById(id: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { id } });
+  /** Pour message d’erreur login : compte connu mais mauvais tenant (x-school-slug). */
+  async findByIdentifierGlobal(identifier: string) {
+    return prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { matricule: identifier }],
+      },
+      include: { school: { select: { slug: true, name: true } } },
+    });
   },
 
-  async create(data: RegisterInput & { passwordHash: string }): Promise<User> {
+  async findById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: { campuses: { select: { id: true } } },
+    });
+  },
+
+  async create(
+    data: RegisterInput & {
+      passwordHash: string;
+      schoolId: string;
+      /** Si false (OTP requis), compte créé mais login interdit jusqu'à verify-otp. */
+      emailVerified?: boolean;
+    }
+  ) {
+    const verified = data.emailVerified ?? false;
     return prisma.user.create({
       data: {
         email: data.email,
         passwordHash: data.passwordHash,
         firstName: data.firstName,
         lastName: data.lastName,
-        campusId: data.campusId,
+        campuses: data.campusId ? { connect: [{ id: data.campusId }] } : undefined,
         classId: data.classId,
-        emailVerified: false,
-        emailVerifiedAt: null,
+        schoolId: data.schoolId,
+        emailVerified: verified,
+        emailVerifiedAt: verified ? new Date() : null,
       },
+      include: { campuses: { select: { id: true } } },
     });
   },
 
@@ -46,11 +74,24 @@ export const authRepository = {
 
   async updateProfile(
     userId: string,
-    data: { firstName?: string; lastName?: string }
+    data: {
+      firstName?: string;
+      lastName?: string;
+      matricule?: string | null;
+      numero?: string | null;
+      phone?: string | null;
+    }
   ): Promise<User> {
     return prisma.user.update({
       where: { id: userId },
       data,
+    });
+  },
+
+  async updateAvatarPath(userId: string, avatarPath: string | null): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { avatarPath },
     });
   },
 
@@ -69,7 +110,11 @@ export const authRepository = {
   async findRefreshToken(token: string) {
     return prisma.refreshToken.findUnique({
       where: { token },
-      include: { user: true },
+      include: { 
+        user: { 
+          include: { campuses: { select: { id: true } } } 
+        } 
+      },
     });
   },
 
@@ -105,7 +150,11 @@ export const authRepository = {
   async findLoginOtpChallengeById(id: string) {
     return prisma.loginOtpChallenge.findUnique({
       where: { id },
-      include: { user: true },
+      include: { 
+        user: { 
+          include: { campuses: { select: { id: true } } } 
+        } 
+      },
     });
   },
 
@@ -133,7 +182,11 @@ export const authRepository = {
   async findPasswordResetByTokenHash(tokenHash: string) {
     return prisma.passwordResetToken.findUnique({
       where: { tokenHash },
-      include: { user: true },
+      include: { 
+        user: { 
+          include: { campuses: { select: { id: true } } } 
+        } 
+      },
     });
   },
 

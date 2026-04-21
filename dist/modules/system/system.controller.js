@@ -5,10 +5,11 @@ const system_service_1 = require("./system.service");
 const AiBalancer_1 = require("../../core/ai/AiBalancer");
 const AppError_1 = require("../../core/errors/AppError");
 exports.systemController = {
-    async getPublicSettings(_req, res, next) {
+    async getPublicSettings(req, res, next) {
         try {
-            // Single-school friendly: expose only non-sensitive toggles to bootstrap clients.
-            const settings = await system_service_1.systemService.getPublicSettings();
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const settings = await system_service_1.systemService.getPublicSettings(req.schoolId);
             res.sendSuccess('Public settings fetched', settings);
         }
         catch (error) {
@@ -17,7 +18,7 @@ exports.systemController = {
     },
     async getSettings(req, res, next) {
         try {
-            const schoolId = req.user.schoolId;
+            const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId is required');
             const settings = await system_service_1.systemService.getSettings(schoolId);
@@ -29,7 +30,7 @@ exports.systemController = {
     },
     async updateSettings(req, res, next) {
         try {
-            const schoolId = req.user.schoolId;
+            const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId context missing');
             const settings = await system_service_1.systemService.updateSettings(schoolId, req.body);

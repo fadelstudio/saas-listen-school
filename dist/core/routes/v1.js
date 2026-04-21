@@ -25,6 +25,7 @@ const saas_route_1 = __importDefault(require("../../modules/saas/saas.route"));
 const school_users_route_1 = require("../../modules/school-users/school-users.route");
 const analytics_route_1 = require("../../modules/analytics/analytics.route");
 const bulk_import_route_1 = require("../../modules/bulk-import/bulk-import.route");
+const resolveSchool_middleware_1 = require("../middleware/resolveSchool.middleware");
 const router = (0, express_1.Router)();
 // Basic API v1 info (non-sensitive)
 /**
@@ -49,6 +50,10 @@ router.get("/", (_req, res) => {
         serverTime: new Date().toISOString(),
     });
 });
+// Global/tenant-management endpoints that are not scoped to a resolved school.
+router.use("/saas", saas_route_1.default);
+// Tenant resolution is mandatory for all school-scoped business routes.
+router.use(resolveSchool_middleware_1.resolveSchoolMiddleware);
 router.use("/auth", auth_route_1.authRouter);
 router.use("/reports", reports_route_1.reportsRouter);
 router.use("/evaluations", evaluations_route_1.evaluationsRouter);
@@ -67,7 +72,6 @@ router.use("/uploads", uploads_route_1.uploadsRouter);
 router.use("/assignments", class_modules_route_1.classModulesRouter);
 router.use("/evaluation-campaigns", evaluation_campaigns_route_1.evaluationCampaignsRouter);
 router.use("/notifications", notifications_route_1.notificationsRouter);
-router.use("/saas", saas_route_1.default);
 router.use("/school-users", school_users_route_1.schoolUsersRouter);
 router.use("/analytics", analytics_route_1.analyticsRouter);
 router.use("/bulk-import", bulk_import_route_1.bulkImportRouter);

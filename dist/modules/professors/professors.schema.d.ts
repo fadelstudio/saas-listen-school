@@ -1,11 +1,18 @@
 import { z } from 'zod';
 export declare const createProfessorSchema: z.ZodObject<{
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    numero: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     firstName: z.ZodString;
     lastName: z.ZodString;
     email: z.ZodString;
     userId: z.ZodOptional<z.ZodString>;
+    password: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const updateProfessorSchema: z.ZodObject<{
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    numero: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     firstName: z.ZodOptional<z.ZodString>;
     lastName: z.ZodOptional<z.ZodString>;
     email: z.ZodOptional<z.ZodString>;
@@ -15,7 +22,6 @@ export declare const professorParamsSchema: z.ZodObject<{
     id: z.ZodString;
 }, z.core.$strip>;
 export declare const professorQuerySchema: z.ZodObject<{
-    campusId: z.ZodOptional<z.ZodString>;
     search: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 //# sourceMappingURL=professors.schema.d.ts.map

@@ -2,14 +2,28 @@ import { systemRepository } from './system.repository';
 import { UpdateSystemSettingsInput } from './system.schema';
 import { SystemSettingsResponse } from './system.types';
 import { prisma } from '../../core/database/prisma';
+import { NotFoundError } from '../../core/errors/AppError';
 
 // In-memory cache per school
 const settingsCache = new Map<string, { data: SystemSettingsResponse, timestamp: number }>();
 const CACHE_TTL = 30000; // 30 seconds
 
 export const systemService = {
-  async getPublicSettings() {
-    const settings = await prisma.systemSettings.findFirst({
+  /**
+   * Toggles publics pour l’école résolue par le middleware (req.schoolId).
+   * Ne renvoie jamais de valeurs « génériques » d’une autre école : le nom vient de `School` si pas de ligne system_settings.
+   */
+  async getPublicSettings(schoolId: string) {
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { name: true, slug: true },
+    });
+    if (!school) {
+      throw new NotFoundError('School');
+    }
+
+    const settings = await prisma.systemSettings.findUnique({
+      where: { schoolId },
       select: {
         schoolName: true,
         aiEnabled: true,
@@ -19,16 +33,18 @@ export const systemService = {
         updatedAt: true,
       },
     });
-    return (
-      settings ?? {
-        schoolName: 'AFI',
-        aiEnabled: true,
-        authOtpRequired: false,
-        authReportsRequired: false,
-        authEvaluationsRequired: false,
-        updatedAt: new Date(0),
-      }
-    );
+
+    const base = {
+      schoolSlug: school.slug,
+      schoolName: settings?.schoolName ?? school.name,
+      aiEnabled: settings?.aiEnabled ?? true,
+      authOtpRequired: settings?.authOtpRequired ?? false,
+      authReportsRequired: settings?.authReportsRequired ?? false,
+      authEvaluationsRequired: settings?.authEvaluationsRequired ?? false,
+      updatedAt: settings?.updatedAt ?? new Date(0),
+    };
+
+    return base;
   },
   async getSettings(schoolId: string, forceRefresh = false): Promise<SystemSettingsResponse> {
     const cached = settingsCache.get(schoolId);
@@ -51,19 +67,4 @@ export const systemService = {
     settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
     return response;
   },
-
-  async getSchoolSettingsByCampus(campusId: string) {
-    return prisma.campus.findUnique({
-      where: { id: campusId },
-      select: { schoolId: true }
-    });
-  },
-
-  async getSchoolSettingsByClass(classId: string) {
-    const cls = await prisma.class.findUnique({
-      where: { id: classId },
-      select: { campus: { select: { schoolId: true } } },
-    });
-    return { schoolId: cls?.campus?.schoolId || null };
-  }
 };

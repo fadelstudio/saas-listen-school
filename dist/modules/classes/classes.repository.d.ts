@@ -3,34 +3,38 @@ import { ClassFilters } from './classes.types';
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const classesRepository: {
-    findAll(filters: ClassFilters, pagination: PaginationArgs): Promise<{
+    findAll(schoolId: string, filters: ClassFilters, pagination: PaginationArgs): Promise<{
         items: ({
             campus: {
+                code: string | null;
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 schoolId: string;
                 location: string | null;
-            };
-            _count: {
-                users: number;
-                reports: number;
+                phone: string | null;
             };
             academicLevel: {
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                schoolId: string;
                 order: number;
+            };
+            _count: {
+                users: number;
+                reports: number;
             };
             classModules: ({
                 module: {
+                    code: string | null;
                     name: string;
                     id: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    code: string | null;
+                    schoolId: string;
                 };
             } & {
                 id: string;
@@ -44,33 +48,36 @@ export declare const classesRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         })[];
         total: number;
     }>;
-    findById(id: string): Promise<({
+    findById(id: string, schoolId: string): Promise<({
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         };
-        users: {
-            id: string;
-            email: string;
-            firstName: string;
-            lastName: string;
-        }[];
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
         };
+        users: {
+            email: string;
+            id: string;
+            firstName: string;
+            lastName: string;
+        }[];
         reports: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -92,23 +99,28 @@ export declare const classesRepository: {
             aiAnalysis: Prisma.JsonValue | null;
         }[];
         classModules: ({
-            professors: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                email: string;
-                firstName: string;
-                lastName: string;
-                campusId: string | null;
-                userId: string | null;
-            }[];
             module: {
+                code: string | null;
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                code: string | null;
+                schoolId: string;
             };
+            professors: {
+                email: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string | null;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
+                userId: string | null;
+            }[];
         } & {
             id: string;
             createdAt: Date;
@@ -121,8 +133,8 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }) | null>;
     create(data: {
         name: string;
@@ -130,18 +142,21 @@ export declare const classesRepository: {
         levelId: string;
     }): Promise<{
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
         };
     } & {
@@ -149,27 +164,30 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         name?: string;
         campusId?: string;
         levelId?: string;
-    }): Promise<{
+    }): Promise<({
         campus: {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
         };
     } & {
@@ -177,25 +195,20 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
-    }>;
-    delete(id: string): Promise<{
-        name: string;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
         campusId: string;
-        levelId: string;
-    }>;
-    findStudents(id: string): Promise<{
-        id: string;
+    }) | null>;
+    delete(id: string, schoolId: string): Promise<boolean>;
+    findStudents(classId: string, schoolId: string): Promise<{
         email: string;
+        id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
         isActive: boolean;
-        campusId: string | null;
+        campuses: {
+            id: string;
+        }[];
     }[]>;
 };
 export {};

@@ -14,8 +14,10 @@ Endpoints pour la gestion des comptes et sessions.
 | POST | `/login/resend-otp` | Renvoi du code OTP | Non |
 | POST | `/forgot-password` | Demande réinitialisation MDP | Non |
 | POST | `/reset-password` | Réinitialisation avec token | Non |
-| GET | `/me` | Profil chargé | Oui |
-| PATCH | `/me` | Mise à jour profil | Oui |
+| GET | `/me` | Profil chargé (`user` inclut `avatarUrl`, identité optionnelle) | Oui |
+| PATCH | `/me` | Mise à jour profil (JSON : prénom, nom, matricule, numero, phone) | Oui |
+| POST | `/me/avatar` | Photo de profil — `multipart/form-data`, champ `file` (JPEG/PNG/WebP) | Oui |
+| DELETE | `/me/avatar` | Supprime la photo de profil | Oui |
 | POST | `/change-password` | Changement de mot de passe | Oui |
 | POST | `/refresh` | Rafraîchissement des tokens | Non |
 | POST | `/logout` | Déconnexion | Non |
@@ -97,7 +99,8 @@ Configuration et gestion multi-école.
 
 - **Campuses** : `/campuses` (CRUD)
 - **Classes** : `/classes` (CRUD)
-- **Professors** : `/professors` (CRUD)
+- **Professors** : `/professors` (CRUD) + `POST/DELETE /professors/:id/avatar` (photo fiche ; réponses avec `avatarUrl`, `userId`, `isLinkedToUser`)
+- **School users** : `/school-users` (création/listes/admin) — réponses avec `avatarUrl`, `campusIds`, `campusScopeLabel` ; `POST /school-users/:id/reset-password-default`
 - **Academic Modules** : `/academic-modules` (CRUD)
 - **Levels** : `/levels` (CRUD)
 - **Uploads** : `/uploads` (Gestion fichiers)

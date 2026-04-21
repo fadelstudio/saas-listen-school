@@ -31,9 +31,14 @@ schoolUsersRouter.use(authMiddleware);
  *         email: { type: string }
  *         firstName: { type: string }
  *         lastName: { type: string }
- *         role: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER, STUDENT] }
+ *         role: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER, STUDENT, PROFESSOR] }
  *         isActive: { type: boolean }
  *         matricule: { type: string, nullable: true }
+ *         numero: { type: string, nullable: true }
+ *         phone: { type: string, nullable: true }
+ *         campusIds: { type: array, items: { type: string }, description: "Liste des IDs de campus accessibles" }
+ *         campusScopeLabel: { type: string, nullable: true, example: "TOUS" }
+ *         avatarUrl: { type: string, nullable: true, description: "URL signée photo de profil" }
  *         classId: { type: string, format: uuid, nullable: true }
  *         createdAt: { type: string, format: date-time }
  */
@@ -138,6 +143,32 @@ schoolUsersRouter.get(
 
 /**
  * @swagger
+ * /api/school-users/{id}/reset-password-default:
+ *   post:
+ *     summary: "[ADMIN+] Réinitialiser le mot de passe au défaut serveur"
+ *     description: |
+ *       Applique le mot de passe défini par `DEFAULT_PASSWORD_RESET` (fichier d’environnement),
+ *       révoque les refresh tokens et les jetons OTP / reset email en cours.
+ *     tags: [School Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Mot de passe réinitialisé
+ */
+schoolUsersRouter.post(
+  '/:id/reset-password-default',
+  validate({ params: schoolUserParamsSchema }),
+  schoolUsersController.resetPasswordToDefault
+);
+
+/**
+ * @swagger
  * /api/school-users/{id}:
  *   get:
  *     summary: Récupérer le détail d'un utilisateur
@@ -185,6 +216,9 @@ schoolUsersRouter.get(
  *               lastName: { type: string }
  *               role: { type: string, enum: [MANAGER, AGENT, VIEWER, STUDENT] }
  *               matricule: { type: string }
+ *               numero: { type: string }
+ *               phone: { type: string }
+ *               campusIds: { type: array, items: { type: string }, description: "Optionnel ; liste des IDs de campus. Vide = accès toute l'école" }
  *               classId: { type: string, format: uuid, description: "Obligatoire si STUDENT" }
  *     responses:
  *       201:
@@ -255,7 +289,7 @@ schoolUsersRouter.get(
  *           schema:
  *             type: object
  *             properties:
- *               role: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER, STUDENT] }
+ *               role: { type: string, enum: [ADMIN, MANAGER, AGENT, VIEWER, STUDENT, PROFESSOR] }
  *               isActive: { type: boolean }
  *               classId: { type: string, format: uuid }
  *     responses:

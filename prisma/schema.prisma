@@ -20,6 +20,7 @@ enum Role {
   AGENT
   STUDENT
   VIEWER
+  PROFESSOR
 }
 
 enum ReportStatus {
@@ -79,18 +80,24 @@ enum RatingBand {
 model School {
   id          String   @id @default(uuid())
   name        String   @unique // e.g. "AFI L'UE"
+  slug        String   @unique // e.g. "afi"
   domain      String?  @unique // e.g. "afi-ue.sn"
   logoUrl     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  campuses    Campus[]
-  users       User[]
-  settings    SystemSettings?
-  
+  campuses       Campus[]
+  users          User[]
+  settings       SystemSettings?
+  academicLevels AcademicLevel[]
+  modules        Module[]
+
   // Data separation
   reports     Report[]
   evaluations Evaluation[]
+  decisions   Decision[]
+  professors  Professor[]
+  notifications Notification[]
 
   @@map("schools")
 }
@@ -104,6 +111,10 @@ model Campus {
   schoolId  String
   name      String   @unique
   location  String?
+  /// Code court affichable (optionnel)
+  code      String?
+  /// Téléphone de contact du campus (optionnel)
+  phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -111,7 +122,6 @@ model Campus {
 
   classes     Class[]
   users       User[]
-  professors  Professor[] @relation("CampusProfessors")
   evaluationCampaigns EvaluationCampaign[]
 
   @@map("campuses")
@@ -138,28 +148,36 @@ model Class {
 
 model AcademicLevel {
   id        String   @id @default(uuid())
-  name      String   @unique // e.g. "L1", "Formation Continue", "Certificat X"
+  schoolId  String
+  name      String // e.g. "L1" — unique par école
   order     Int      @default(0) // For display order
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes   Class[]
 
+  @@unique([schoolId, name])
+  @@index([schoolId])
   @@map("academic_levels")
 }
 
 model Module {
   id        String   @id @default(uuid())
-  name      String   @unique // e.g. "Algorithmique"
-  code      String?  @unique // e.g. "INF-GEN"
+  schoolId  String
+  name      String // e.g. "Algorithmique" — unique par école
+  code      String? // e.g. "INF-GEN" (optionnel, pas d’unicité globale)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  classModules ClassModule[]
-  reports      Report[]
-  evaluations  Evaluation[]
+  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classModules         ClassModule[]
+  reports              Report[]
+  evaluations          Evaluation[]
   evaluationCampaigns EvaluationCampaign[]
 
+  @@unique([schoolId, name])
+  @@index([schoolId])
   @@map("modules")
 }
 
@@ -184,11 +202,17 @@ model Professor {
   lastName  String
   email     String   @unique
   userId    String?  @unique // Link to User if they have login access
-  campusId  String?
+  matricule String?
+  /// Numéro interne / identifiant métier (optionnel)
+  numero    String?
+  phone     String?
+  /// Photo de la fiche enseignant (si pas de compte lié, ou en secours du compte User)
+  avatarPath String?
+  schoolId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campus      Campus?      @relation("CampusProfessors", fields: [campusId], references: [id])
+  school      School?      @relation(fields: [schoolId], references: [id])
   user        User?        @relation(fields: [userId], references: [id])
   modules     ClassModule[] // Linked to specific class assignments
   reports     Report[]
@@ -209,6 +233,11 @@ model User {
   firstName    String
   lastName     String
   matricule    String?  @unique
+  /// Numéro interne / dossier (optionnel, distinct du matricule si besoin)
+  numero       String?
+  phone        String?
+  /// Chemin fichier dans le bucket Supabase `attachments` (URL signée exposée en API en `avatarUrl`)
+  avatarPath   String?
   role         Role     @default(STUDENT)
   isActive     Boolean  @default(true)
   fcmToken      String?
@@ -217,14 +246,13 @@ model User {
 
   // Relations
   schoolId     String?
-  campusId     String?
   classId      String?
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   school    School?    @relation(fields: [schoolId], references: [id])
-  campus    Campus?    @relation(fields: [campusId], references: [id])
+  campuses  Campus[]
   class     Class?     @relation(fields: [classId],  references: [id])
   professor Professor?
 
@@ -389,12 +417,17 @@ model Decision {
   
   aiSuggestion String?        // AI-generated decision suggestion
   
+  schoolId     String?
+
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
   // Relations
+  school       School?         @relation(fields: [schoolId], references: [id])
   evaluation   Evaluation?     @relation(fields: [evaluationId], references: [id])
   report       Report?         @relation(fields: [reportId],     references: [id])
+  campaignId   String?         @unique
+  campaign     EvaluationCampaign? @relation(fields: [campaignId], references: [id])
   decider      User           @relation(fields: [deciderId],    references: [id])
   aiJobs       AiJob[]
 
@@ -458,17 +491,21 @@ model Notification {
   title       String
   message     String
   type        String   // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "EVALUATION_CAMPAIGN_REMINDER" | "SYSTEM"
-  userId      String?  // Null means global
+  userId      String?  // Null means global (tous les users de l'école)
   campaignId  String?  // Optional linkage (reminders, campaign created)
+  /// Isolation multi-tenant : schoolId null = broadcast SuperAdmin (toutes écoles)
+  schoolId    String?
   isRead      Boolean  @default(false)
   
   createdAt   DateTime @default(now())
   
   user        User?    @relation(fields: [userId], references: [id])
+  school      School?  @relation(fields: [schoolId], references: [id])
   campaign    EvaluationCampaign? @relation(fields: [campaignId], references: [id])
 
   @@map("notifications")
   @@index([userId, isRead, createdAt])
+  @@index([schoolId, isRead, createdAt])
   @@index([campaignId, createdAt])
   @@unique([userId, campaignId, type])
 }
@@ -480,8 +517,8 @@ model EvaluationCampaign {
   scope       String   @default("CLASS") // CLASS | CAMPUS | SCHOOL
   classId     String?
   campusId    String?
-  moduleId    String
-  professorId String
+  moduleId    String?
+  professorId String?
   status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
   dueDate     DateTime // end date (deadline)
   
@@ -490,10 +527,11 @@ model EvaluationCampaign {
 
   class       Class?    @relation(fields: [classId], references: [id])
   campus      Campus?   @relation(fields: [campusId], references: [id])
-  module      Module   @relation(fields: [moduleId], references: [id])
-  professor   Professor @relation(fields: [professorId], references: [id])
+  module      Module?   @relation(fields: [moduleId], references: [id])
+  professor   Professor? @relation(fields: [professorId], references: [id])
   evaluations Evaluation[]
   notifications Notification[]
+  decision    Decision?
 
   @@map("evaluation_campaigns")
   @@index([scope, status, dueDate])

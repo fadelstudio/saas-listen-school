@@ -1,0 +1,314 @@
+{
+  "info": {
+    "_postman_id": "afi-listen-tenant-auth-scenarios",
+    "name": "AFI-LISTEN — Tenant + Auth (scénarios)",
+    "description": "Couvre: system/public (header bon/mauquant/mauvais), préfixe path /slug/api/v1, login (tenant bon/mauvais), register + OTP éventuel.\n\n**Variables** : `goodSchoolSlug` = slug réel en base (ex. afi-default-school). `baseUrl` = http://localhost:3000/api/v1 ; `baseUrlPathTenant` = http://localhost:3000/{{goodSchoolSlug}}/api/v1 (nécessite app montée sur /:tenantSlug/api/v1).\n\n**Serveur** : pour « public sans header → 200 », mettre TENANT_STRICT_MODE=false + DEFAULT_SCHOOL_SLUG. Pour « → 404 », strict=true.\n\n**OTP** : si authOtpRequired + register renvoie REGISTER_OTP_REQUIRED, lire le code dans les logs serveur (MAIL_PROVIDER=console) puis exécuter « Register verify OTP » manuellement.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set('uniq', Date.now().toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Standard envelope', function () {",
+          "  var j = pm.response.json();",
+          "  pm.expect(j).to.have.property('success');",
+          "  pm.expect(j).to.have.property('message');",
+          "  pm.expect(j).to.have.property('data');",
+          "  pm.expect(j).to.have.property('error');",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "baseUrlPathTenant", "value": "http://localhost:3000/afi-default-school/api/v1", "type": "string" },
+    { "key": "goodSchoolSlug", "value": "afi-default-school", "type": "string" },
+    { "key": "badSchoolSlug", "value": "ecole-inexistante-999", "type": "string" },
+    { "key": "adminEmail", "value": "admin@afi.com", "type": "string" },
+    { "key": "adminPassword", "value": "fadeldev", "type": "string" },
+    { "key": "otpChallengeId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. GET system/public",
+      "item": [
+        {
+          "name": "A — Header slug valide → 200 + schoolSlug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.have.property('schoolSlug');",
+                  "pm.expect(j.data.schoolSlug).to.eql(pm.collectionVariables.get('goodSchoolSlug'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "x-school-slug", "value": "{{goodSchoolSlug}}" }
+            ],
+            "url": "{{baseUrl}}/system/public"
+          }
+        },
+        {
+          "name": "B — Header slug invalide → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "x-school-slug", "value": "{{badSchoolSlug}}" }
+            ],
+            "url": "{{baseUrl}}/system/public"
+          }
+        },
+        {
+          "name": "C — Sans header x-school-slug (strict=404 ou non-strict=200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Strict: 404 | Non-strict avec DEFAULT_SCHOOL_SLUG: 200', function () {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/system/public"
+          }
+        },
+        {
+          "name": "D — Path /slug/api/v1 sans header (non strict seulement)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Path tenant: 200 si path slug activé', function () {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrlPathTenant}}/system/public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. POST auth/login",
+      "item": [
+        {
+          "name": "E — Tenant correct + identifiants OK → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "pm.expect(j.data).to.have.property('token');",
+                  "pm.collectionVariables.set('goodTenantToken', j.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{goodSchoolSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "F — Tenant faux (slug inconnu) → 404 avant auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('School 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{badSchoolSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "G — Tenant correct mais mauvais mot de passe → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unauthorized', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{goodSchoolSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"wrong-password-xxx\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "G2 — Login sans header (strict→404 | non-strict + DEFAULT_SCHOOL_SLUG→200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Strict: 404 | Non-strict avec défaut env: 200', function () {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.data).to.have.property('token');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Register + OTP (optionnel)",
+      "item": [
+        {
+          "name": "H — Register (OTP ou tokens selon settings)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 register', function () { pm.response.to.have.status(201); });",
+                  "var j = pm.response.json();",
+                  "if (j.data && j.data.step === 'REGISTER_OTP_REQUIRED' && j.data.challengeId) {",
+                  "  pm.collectionVariables.set('otpChallengeId', j.data.challengeId);",
+                  "  console.log('OTP requis — challengeId=', j.data.challengeId);",
+                  "} else if (j.data && j.data.token) {",
+                  "  console.log('Pas d OTP — tokens retournés');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{goodSchoolSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"tenant-scen-{{uniq}}@example.com\",\"password\":\"Testpass1\",\"firstName\":\"Test\",\"lastName\":\"Tenant\"}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "I — Register verify OTP (remplir otp depuis logs serveur si requis)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (!pm.collectionVariables.get('otpChallengeId')) {",
+                  "  console.warn('Pas de challengeId — exécuter H avant ou OTP désactivé');",
+                  "} else {",
+                  "  pm.test('OTP verify: 200 si code OK, 401 si otp factice', function () {",
+                  "    pm.expect([200, 401]).to.include(pm.response.code);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-school-slug", "value": "{{goodSchoolSlug}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"challengeId\":\"{{otpChallengeId}}\",\"otp\":\"000000\"}"
+            },
+            "url": "{{baseUrl}}/auth/register/verify-otp"
+          }
+        }
+      ]
+    }
+  ]
+}

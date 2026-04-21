@@ -19,11 +19,25 @@ export const systemRouter = Router();
  * /api/system/public:
  *   get:
  *     summary: "Récupérer les toggles publics (bootstrapping frontend)"
- *     description: Endpoint libre. Renvoie uniquement les booléens nécessaires au flux (OTP, auth reports/evals) + infos non sensibles.
+ *     description: "Endpoint libre, mais scoppé par école résolue (sous-domaine principal ou x-school-slug fallback). Sans contexte valide: 404."
  *     tags: [System]
+ *     parameters:
+ *       - $ref: '#/components/parameters/SchoolSlugHeader'
  *     responses:
  *       200:
- *         description: Toggles publics
+ *         description: Toggles publics pour l’école détectée (schoolSlug + schoolName alignés sur cette école).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 schoolSlug: { type: string, example: "afi-default-school" }
+ *                 schoolName: { type: string }
+ *                 aiEnabled: { type: boolean }
+ *                 authOtpRequired: { type: boolean }
+ *                 authReportsRequired: { type: boolean }
+ *                 authEvaluationsRequired: { type: boolean }
+ *                 updatedAt: { type: string, format: date-time }
  */
 systemRouter.get('/public', systemController.getPublicSettings);
 

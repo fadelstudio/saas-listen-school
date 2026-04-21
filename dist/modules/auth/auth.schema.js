@@ -44,6 +44,9 @@ exports.changePasswordSchema = zod_1.z
 exports.updateProfileSchema = zod_1.z.object({
     firstName: zod_1.z.string().min(1).max(50).optional(),
     lastName: zod_1.z.string().min(1).max(50).optional(),
+    matricule: zod_1.z.union([zod_1.z.string().max(50), zod_1.z.literal(''), zod_1.z.null()]).optional(),
+    numero: zod_1.z.union([zod_1.z.string().max(120), zod_1.z.literal(''), zod_1.z.null()]).optional(),
+    phone: zod_1.z.union([zod_1.z.string().max(40), zod_1.z.literal(''), zod_1.z.null()]).optional(),
 });
 exports.verifyLoginOtpSchema = zod_1.z.object({
     challengeId: idSchema_1.idStringSchema,

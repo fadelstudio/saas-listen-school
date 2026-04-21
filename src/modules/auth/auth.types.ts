@@ -6,7 +6,7 @@ export interface JwtPayload {
   userId: string;
   role: Role;
   schoolId?: string | null;
-  campusId?: string | null;
+  campusIds?: string[];
   classId?: string | null;
   iat: number;
   exp: number;
@@ -37,6 +37,9 @@ export interface ChangePasswordInput {
 export interface UpdateProfileInput {
   firstName?: string;
   lastName?: string;
+  matricule?: string | null;
+  numero?: string | null;
+  phone?: string | null;
 }
 
 // ─── Outputs ──────────────────────────────────────────────────────────────────
@@ -65,9 +68,14 @@ export interface SafeUser {
   role: Role;
   isActive: boolean;
   emailVerified: boolean;
-  campusId?: string | null;
+  matricule?: string | null;
+  numero?: string | null;
+  phone?: string | null;
+  campusIds?: string[];
   classId?: string | null;
   schoolId?: string | null;
+  /** URL signée (bucket Supabase) — rafraîchir après expiration via GET /auth/me */
+  avatarUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

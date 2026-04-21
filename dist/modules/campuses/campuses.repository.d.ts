@@ -9,12 +9,14 @@ export declare const campusesRepository: {
                 users: number;
             };
         } & {
+            code: string | null;
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
             location: string | null;
+            phone: string | null;
         })[];
         total: number;
     }>;
@@ -28,16 +30,18 @@ export declare const campusesRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         })[];
     } & {
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     }) | null>;
     create(data: {
         name: string;
@@ -48,43 +52,48 @@ export declare const campusesRepository: {
         name?: string;
         location?: string;
     }, schoolId: string): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     } | null>;
     delete(id: string, schoolId: string): Promise<{
+        code: string | null;
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         schoolId: string;
         location: string | null;
+        phone: string | null;
     } | null>;
     findClasses(id: string, schoolId: string): Promise<({
-        _count: {
-            users: number;
-        };
         academicLevel: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string;
             order: number;
+        };
+        _count: {
+            users: number;
         };
     } & {
         name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     })[]>;
     findStudents(id: string, schoolId: string): Promise<{
-        id: string;
         email: string;
+        id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -99,18 +108,28 @@ export declare const campusesRepository: {
         students: number;
         professors: number;
     }>;
+    /**
+     * Retourne les professeurs enseignant dans ce campus.
+     * Fix #6 : schoolId est maintenant utilisé (était ignoré avec le préfixe _).
+     * Double filtre : campus + schoolId pour éviter toute fuite si l'id du campus
+     * était réutilisé dans une autre école (cas improbable mais défensif).
+     */
     findProfessors(id: string, schoolId: string): Promise<({
         _count: {
             evaluations: number;
         };
     } & {
+        email: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        email: string;
+        schoolId: string | null;
+        phone: string | null;
         firstName: string;
         lastName: string;
-        campusId: string | null;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
         userId: string | null;
     })[]>;
 };

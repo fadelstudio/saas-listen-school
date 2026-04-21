@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./core/config/swagger";
 import { errorMiddleware } from "./core/middleware/error.middleware";
+import { env } from "./core/config/env";
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(compression());
 app.use(cors({
   origin: true, // Allow all origins but echo them back (better for some browsers)
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "x-school-slug"],
   credentials: true,
 }));
 app.use(express.json());
@@ -49,14 +50,17 @@ app.get("/health", (_req, res) => {
 
 // ── API Routes (v1) ──────────────────────────────────────────────────────────
 import v1Router from "./core/routes/v1";
-import { systemController } from "./modules/system/system.controller";
 
-// Public system toggles (bootstrapping) — keep available even if router changes
-app.get(["/api/v1/system/public", "/api/system/public"], systemController.getPublicSettings);
-
-// Mount v1 at /api/v1 AND /api for backward compatibility as requested
+// Toujours : API canonique (prod = sous-domaine ou header `x-school-slug` uniquement en strict)
 app.use("/api/v1", v1Router);
-app.use("/api",    v1Router);
+app.use("/api", v1Router);
+
+// Préfixe `/<slug>/api/v1` : uniquement si mode non strict (dev / repli path + DEFAULT).
+// En strict, ces URLs ne sont pas montées → plus de confusion « path qui ressemble à l’API ».
+if (!env.tenantResolutionStrict) {
+  app.use("/:tenantSlug/api/v1", v1Router);
+  app.use("/:tenantSlug/api", v1Router);
+}
 
 // ── 404 handler (must come after all routes) ──────────────────────────────────
 app.use((_req, res) => {

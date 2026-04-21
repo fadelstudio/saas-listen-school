@@ -12,8 +12,9 @@ class AppError extends Error {
 }
 exports.AppError = AppError;
 class NotFoundError extends AppError {
-    constructor(resource = "Resource") {
-        super(`${resource} not found`, 404);
+    /** `messageOverride` remplace entièrement le texte (ex. détails tenant). */
+    constructor(resource = "Resource", messageOverride) {
+        super(messageOverride ?? `${resource} not found`, 404);
     }
 }
 exports.NotFoundError = NotFoundError;

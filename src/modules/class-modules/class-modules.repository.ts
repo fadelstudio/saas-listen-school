@@ -1,12 +1,19 @@
 import { prisma } from '../../core/database/prisma';
 import { Prisma } from '@prisma/client';
 
+const classModuleInSchool = (schoolId: string): Prisma.ClassModuleWhereInput => ({
+  class: { campus: { schoolId } },
+});
+
 export const classModulesRepository = {
-  async findAll(filters: { classId?: string; moduleId?: string }) {
+  async findAll(schoolId: string, filters: { classId?: string; moduleId?: string }) {
     return prisma.classModule.findMany({
       where: {
-        ...(filters.classId && { classId: filters.classId }),
-        ...(filters.moduleId && { moduleId: filters.moduleId }),
+        AND: [
+          classModuleInSchool(schoolId),
+          ...(filters.classId ? [{ classId: filters.classId }] : []),
+          ...(filters.moduleId ? [{ moduleId: filters.moduleId }] : []),
+        ],
       },
       include: {
         class: true,
@@ -17,9 +24,9 @@ export const classModulesRepository = {
     });
   },
 
-  async findById(id: string) {
-    return prisma.classModule.findUnique({
-      where: { id },
+  async findById(id: string, schoolId: string) {
+    return prisma.classModule.findFirst({
+      where: { id, ...classModuleInSchool(schoolId) },
       include: {
         class: true,
         module: true,
@@ -28,9 +35,14 @@ export const classModulesRepository = {
     });
   },
 
-  async findByClassAndModule(classId: string, moduleId: string) {
-    return prisma.classModule.findUnique({
-      where: { classId_moduleId: { classId, moduleId } },
+  async findByClassAndModule(classId: string, moduleId: string, schoolId: string) {
+    return prisma.classModule.findFirst({
+      where: {
+        AND: [
+          { classId, moduleId },
+          classModuleInSchool(schoolId),
+        ],
+      },
       include: { professors: true },
     });
   },
@@ -39,27 +51,30 @@ export const classModulesRepository = {
     const { professorIds, classId, moduleId } = data;
     return prisma.classModule.create({
       data: {
-        class:  { connect: { id: classId } },
+        class: { connect: { id: classId } },
         module: { connect: { id: moduleId } },
-        professors: professorIds ? { connect: professorIds.map(id => ({ id })) } : undefined,
+        professors: professorIds ? { connect: professorIds.map((pid) => ({ id: pid })) } : undefined,
       } as Prisma.ClassModuleCreateInput,
       include: { class: true, module: true, professors: true },
     });
   },
 
-  async update(id: string, data: { professorIds?: string[] }) {
+  async update(id: string, schoolId: string, data: { professorIds?: string[] }) {
+    const row = await prisma.classModule.findFirst({ where: { id, ...classModuleInSchool(schoolId) } });
+    if (!row) return null;
     return prisma.classModule.update({
       where: { id },
       data: {
-        professors: data.professorIds ? { set: data.professorIds.map(id => ({ id })) } : undefined,
+        professors: data.professorIds ? { set: data.professorIds.map((pid) => ({ id: pid })) } : undefined,
       },
       include: { class: true, module: true, professors: true },
     });
   },
 
-  async delete(id: string) {
-    return prisma.classModule.delete({
-      where: { id },
-    });
+  async delete(id: string, schoolId: string): Promise<boolean> {
+    const row = await prisma.classModule.findFirst({ where: { id, ...classModuleInSchool(schoolId) } });
+    if (!row) return false;
+    await prisma.classModule.delete({ where: { id } });
+    return true;
   },
 };

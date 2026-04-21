@@ -1,1 +1,1 @@
-{"version":3,"file":"analytics.controller.d.ts","sourceRoot":"","sources":["../../../src/modules/analytics/analytics.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAG1D,eAAO,MAAM,mBAAmB;sBACN,OAAO,OAAO,QAAQ,QAAQ,YAAY;CASnE,CAAC"}
+{"version":3,"file":"analytics.controller.d.ts","sourceRoot":"","sources":["../../../src/modules/analytics/analytics.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAI1D,eAAO,MAAM,mBAAmB;sBACN,OAAO,OAAO,QAAQ,QAAQ,YAAY;CAUnE,CAAC"}

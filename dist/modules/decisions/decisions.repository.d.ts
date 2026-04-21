@@ -3,7 +3,7 @@ import { CreateDecisionInput, UpdateDecisionInput, DecisionFilters } from './dec
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const decisionsRepository: {
-    create(data: CreateDecisionInput, deciderId: string, _schoolId?: string | null): Promise<{
+    create(data: CreateDecisionInput, deciderId: string, schoolId?: string | null): Promise<{
         report: {
             type: import("@prisma/client").$Enums.ReportType;
             id: string;
@@ -23,15 +23,17 @@ export declare const decisionsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
-        dueDate: Date | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
         responsible: string | null;
+        dueDate: Date | null;
         aiSuggestion: string | null;
     }>;
     findById(id: string, schoolId?: string | null): Promise<({
@@ -91,8 +93,8 @@ export declare const decisionsRepository: {
             decisionId: string | null;
         }[];
         decider: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         };
@@ -100,15 +102,17 @@ export declare const decisionsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
-        dueDate: Date | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
         responsible: string | null;
+        dueDate: Date | null;
         aiSuggestion: string | null;
     }) | null>;
     findAll(filters: DecisionFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
@@ -122,15 +126,17 @@ export declare const decisionsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             title: string;
             priority: import("@prisma/client").$Enums.Priority;
             status: import("@prisma/client").$Enums.DecisionStatus;
             reportId: string | null;
-            dueDate: Date | null;
+            campaignId: string | null;
             evaluationId: string | null;
             deciderId: string;
             rationale: string | null;
             responsible: string | null;
+            dueDate: Date | null;
             aiSuggestion: string | null;
         })[];
         total: number;
@@ -139,30 +145,34 @@ export declare const decisionsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
-        dueDate: Date | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
         responsible: string | null;
+        dueDate: Date | null;
         aiSuggestion: string | null;
     } | null>;
     updateStatus(id: string, status: DecisionStatus, schoolId?: string | null): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.Priority;
         status: import("@prisma/client").$Enums.DecisionStatus;
         reportId: string | null;
-        dueDate: Date | null;
+        campaignId: string | null;
         evaluationId: string | null;
         deciderId: string;
         rationale: string | null;
         responsible: string | null;
+        dueDate: Date | null;
         aiSuggestion: string | null;
     } | null>;
     delete(id: string, schoolId?: string | null): Promise<Prisma.BatchPayload>;

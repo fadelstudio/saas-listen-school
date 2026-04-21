@@ -10,7 +10,7 @@ exports.bulkImportController = {
                 return res.status(400).json({ success: false, message: 'No file uploaded' });
             }
             const csvData = req.file.buffer.toString('utf8');
-            const schoolId = req.user.schoolId;
+            const schoolId = req.schoolId;
             const campusId = req.body.campusId;
             if (!schoolId) {
                 throw new AppError_1.BadRequestError('schoolId context missing');
@@ -31,7 +31,7 @@ exports.bulkImportController = {
                 return res.status(400).json({ success: false, message: 'No file uploaded' });
             }
             const csvData = req.file.buffer.toString('utf8');
-            const schoolId = req.user.schoolId;
+            const schoolId = req.schoolId;
             const campusId = req.body.campusId;
             if (!schoolId) {
                 throw new AppError_1.BadRequestError('schoolId context missing');

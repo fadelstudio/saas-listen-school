@@ -16,8 +16,9 @@ export class AppError extends Error {
 }
 
 export class NotFoundError extends AppError {
-  constructor(resource: string = "Resource") {
-    super(`${resource} not found`, 404);
+  /** `messageOverride` remplace entièrement le texte (ex. détails tenant). */
+  constructor(resource: string = "Resource", messageOverride?: string) {
+    super(messageOverride ?? `${resource} not found`, 404);
   }
 }
 

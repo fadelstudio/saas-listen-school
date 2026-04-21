@@ -13,6 +13,7 @@ npm run dev
 - API (alias): `http://localhost:3000/api/v1`
 - Swagger: `http://localhost:3000/api-docs`
 - Health: `GET http://localhost:3000/health`
+- **Intégration front (profils, avatars, tenant, JSON)** : voir [`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md) ; référence endpoints : [`docs/api.md`](docs/api.md)
 
 ## Environnement local “comme Render” (API + Worker + Redis)
 

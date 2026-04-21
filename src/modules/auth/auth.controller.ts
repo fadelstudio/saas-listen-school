@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
+import { BadRequestError } from '../../core/errors/AppError';
 
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.register(req.body);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await authService.register(req.body, req.schoolId);
       if ('step' in result && result.step === 'REGISTER_OTP_REQUIRED') {
         res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
       } else {
@@ -17,7 +19,8 @@ export const authController = {
 
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.login(req.body);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await authService.login(req.body, req.schoolId);
       res.sendSuccess('Login successful', result);
     } catch (error) {
       next(error);
@@ -26,7 +29,8 @@ export const authController = {
 
   async verifyRegisterOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.verifyRegisterOtp(req.body);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await authService.verifyRegisterOtp(req.body, req.schoolId);
       res.sendSuccess('Registration verified. Login successful.', result);
     } catch (error) {
       next(error);
@@ -35,7 +39,8 @@ export const authController = {
 
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await authService.forgotPassword(req.body);
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      await authService.forgotPassword(req.body, req.schoolId);
       res.sendSuccess('If an account exists for this email, a reset link has been sent.', null);
     } catch (error) {
       next(error);
@@ -79,6 +84,28 @@ export const authController = {
     }
   },
 
+  async uploadAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const file = req.file;
+      if (!file) {
+        throw new BadRequestError('file is required (multipart field: file)');
+      }
+      const user = await authService.uploadAvatar(req.user!.userId, file);
+      res.sendSuccess('Profile photo updated', user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async clearAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await authService.clearAvatar(req.user!.userId);
+      res.sendSuccess('Profile photo removed', user);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { refreshToken } = req.body;
@@ -101,8 +128,9 @@ export const authController = {
 
   async resendOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
       const { challengeId } = req.body;
-      const result = await authService.resendOtp(challengeId);
+      const result = await authService.resendOtp(challengeId, req.schoolId);
       res.sendSuccess('New OTP sent successfully', result);
     } catch (error) {
       next(error);

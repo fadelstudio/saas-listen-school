@@ -9,31 +9,31 @@ export const reportsRepository = {
   async getUserContext(userId: string) {
     return prisma.user.findUnique({
       where: { id: userId },
-      select: { classId: true, campusId: true },
+      select: { classId: true, campuses: { select: { id: true }, take: 1 } },
     });
   },
 
   async create(data: CreateReportInput, authorId?: string, schoolId?: string | null) {
     return prisma.report.create({
       data: {
-        title:       data.title,
-        content:     data.content,
-        type:        data.type        ?? 'OTHER',
-        priority:    data.priority    ?? 'MEDIUM',
-        category:    data.category,
+        title: data.title,
+        content: data.content,
+        type: data.type ?? 'OTHER',
+        priority: data.priority ?? 'MEDIUM',
+        category: data.category,
         isAnonymous: data.isAnonymous ?? false,
-        author:      authorId ? { connect: { id: authorId } } : undefined,
-        class:       data.classId ? { connect: { id: data.classId } } : undefined,
-        professor:   data.professorId ? { connect: { id: data.professorId } } : undefined,
-        module:      data.moduleId ? { connect: { id: data.moduleId } } : undefined,
-        school:      schoolId ? { connect: { id: schoolId } } : undefined,
-        status:      ReportStatus.SUBMITTED,
+        author: authorId ? { connect: { id: authorId } } : undefined,
+        class: data.classId ? { connect: { id: data.classId } } : undefined,
+        professor: data.professorId ? { connect: { id: data.professorId } } : undefined,
+        module: data.moduleId ? { connect: { id: data.moduleId } } : undefined,
+        school: schoolId ? { connect: { id: schoolId } } : undefined,
+        status: ReportStatus.SUBMITTED,
       } satisfies Prisma.ReportCreateInput,
-      include: { 
-        author:    { select: { id: true, firstName: true, lastName: true, email: true } },
-        class:     true,
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true, email: true } },
+        class: true,
         professor: true,
-        module:    true,
+        module: true,
       },
     });
   },
@@ -45,11 +45,11 @@ export const reportsRepository = {
         ...(schoolId ? { schoolId } : {}),
       },
       include: {
-        author:    { select: { id: true, firstName: true, lastName: true, email: true } },
-        class:     true,
+        author: { select: { id: true, firstName: true, lastName: true, email: true } },
+        class: true,
         professor: true,
-        module:    true,
-        aiJobs:    { orderBy: { createdAt: 'desc' }, take: 5 },
+        module: true,
+        aiJobs: { orderBy: { createdAt: 'desc' }, take: 5 },
       },
     });
   },
@@ -57,19 +57,19 @@ export const reportsRepository = {
   async findAll(filters: ReportFilters, pagination: PaginationArgs, schoolId?: string | null) {
     const where: Prisma.ReportWhereInput = {
       ...(schoolId ? { schoolId } : {}),
-      ...(filters.status      && { status: filters.status }),
-      ...(filters.authorId    && { authorId: filters.authorId }),
-      ...(filters.campusId    && { class: { campusId: filters.campusId } }),
-      ...(filters.classId     && { classId: filters.classId }),
+      ...(filters.status && { status: filters.status }),
+      ...(filters.authorId && { authorId: filters.authorId }),
+      ...(filters.campusId && { class: { campusId: filters.campusId } }),
+      ...(filters.classId && { classId: filters.classId }),
       ...(filters.professorId && { professorId: filters.professorId }),
-      ...(filters.moduleId    && { moduleId: filters.moduleId }),
-      ...(filters.priority    && { priority: filters.priority }),
+      ...(filters.moduleId && { moduleId: filters.moduleId }),
+      ...(filters.priority && { priority: filters.priority }),
       ...(filters.isAnonymous !== undefined && { isAnonymous: filters.isAnonymous }),
-      ...(filters.startDate   && { createdAt: { gte: new Date(filters.startDate) } }),
-      ...(filters.endDate     && { createdAt: { lte: new Date(filters.endDate) } }),
-      ...(filters.search      && {
+      ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
+      ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),
+      ...(filters.search && {
         OR: [
-          { title:   { contains: filters.search, mode: 'insensitive' } },
+          { title: { contains: filters.search, mode: 'insensitive' } },
           { content: { contains: filters.search, mode: 'insensitive' } },
         ],
       }),
@@ -81,14 +81,14 @@ export const reportsRepository = {
     const [items, total] = await Promise.all([
       prisma.report.findMany({
         where,
-        skip:    pagination.skip,
-        take:    pagination.limit,
+        skip: pagination.skip,
+        take: pagination.limit,
         orderBy: { [sortBy]: pagination.sortOrder } as Prisma.ReportOrderByWithRelationInput,
-        include: { 
-          author:    { select: { id: true, firstName: true, lastName: true, email: true } },
-          class:     true,
+        include: {
+          author: { select: { id: true, firstName: true, lastName: true, email: true } },
+          class: true,
           professor: true,
-          module:    true,
+          module: true,
         },
       }),
       prisma.report.count({ where }),
@@ -106,7 +106,7 @@ export const reportsRepository = {
     return prisma.report.update({
       where: { id: report.id },
       data: {
-        ...(data.title   !== undefined && { title: data.title }),
+        ...(data.title !== undefined && { title: data.title }),
         ...(data.content !== undefined && { content: data.content }),
       },
     });

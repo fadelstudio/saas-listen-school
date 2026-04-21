@@ -1,98 +1,64 @@
+import { Role } from '@prisma/client';
 export declare const professorsService: {
-    getAll(query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
-        _count: {
-            evaluations: number;
-        };
-    } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        firstName: string;
-        lastName: string;
-        campusId: string | null;
-        userId: string | null;
+    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+        avatarUrl: string | null;
+        linkedUserId: string | null;
+        campusAccess: "ALL";
+        campusScopeLabel: "TOUS";
     }>>;
-    getById(id: string): Promise<{
-        evaluations: ({
-            module: {
-                name: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                code: string | null;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            schoolId: string | null;
-            classId: string;
-            status: import("@prisma/client").$Enums.EvaluationStatus;
-            isAnonymous: boolean;
-            professorId: string;
-            moduleId: string;
-            reportId: string | null;
-            evaluatorId: string | null;
-            score: number | null;
-            comprehensionRating: import("@prisma/client").$Enums.RatingBand | null;
-            explanationRating: import("@prisma/client").$Enums.RatingBand | null;
-            pedagogyRating: import("@prisma/client").$Enums.RatingBand | null;
-            availabilityRating: import("@prisma/client").$Enums.RatingBand | null;
-            rhythmRating: import("@prisma/client").$Enums.RatingBand | null;
-            comment: string | null;
-            aiScore: number | null;
-            campaignId: string | null;
-        })[];
-    } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        firstName: string;
-        lastName: string;
-        campusId: string | null;
-        userId: string | null;
+    getById(id: string, schoolId: string): Promise<{
+        avatarUrl: string | null;
+        linkedUserId: string | null;
+        campusAccess: "ALL";
+        campusScopeLabel: "TOUS";
     }>;
-    create(data: {
+    create(schoolId: string, data: {
         firstName: string;
         lastName: string;
         email: string;
         userId?: string;
+        password?: string;
+        matricule?: string | null;
+        numero?: string | null;
+        phone?: string | null;
     }): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        firstName: string;
-        lastName: string;
-        campusId: string | null;
-        userId: string | null;
+        avatarUrl: string | null;
+        linkedUserId: string | null;
+        campusAccess: "ALL";
+        campusScopeLabel: "TOUS";
     }>;
-    update(id: string, data: {
+    update(id: string, schoolId: string, data: {
         firstName?: string;
         lastName?: string;
         email?: string;
         userId?: string;
+        matricule?: string | null;
+        numero?: string | null;
+        phone?: string | null;
     }): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        firstName: string;
-        lastName: string;
-        campusId: string | null;
-        userId: string | null;
+        avatarUrl: string | null;
+        linkedUserId: string | null;
+        campusAccess: "ALL";
+        campusScopeLabel: "TOUS";
     }>;
-    delete(id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        firstName: string;
-        lastName: string;
-        campusId: string | null;
-        userId: string | null;
+    delete(id: string, schoolId: string): Promise<void>;
+    uploadAvatar(schoolId: string, professorId: string, file: Express.Multer.File, requester: {
+        userId: string;
+        role: Role;
+    }): Promise<{
+        avatarUrl: string | null;
+        linkedUserId: string | null;
+        campusAccess: "ALL";
+        campusScopeLabel: "TOUS";
+    }>;
+    clearAvatar(schoolId: string, professorId: string, requester: {
+        userId: string;
+        role: Role;
+    }): Promise<{
+        avatarUrl: string | null;
+        linkedUserId: string | null;
+        campusAccess: "ALL";
+        campusScopeLabel: "TOUS";
     }>;
 };
 //# sourceMappingURL=professors.service.d.ts.map

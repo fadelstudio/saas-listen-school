@@ -8,13 +8,74 @@ import {
   BadRequestError,
 } from '../../core/errors/AppError';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
+import { env } from '../../core/config/env';
+import { uploadsService } from '../uploads/uploads.service';
 
 const SALT_ROUNDS = 12;
 
-const ASSIGNABLE: Role[] = [Role.MANAGER, Role.AGENT, Role.VIEWER, Role.STUDENT];
+const ASSIGNABLE: Role[] = [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.VIEWER, Role.STUDENT];
+
+function enrichSchoolUser<T extends { campuses?: { id: string }[] }>(row: T) {
+  const isGlobal = !row.campuses || row.campuses.length === 0;
+  return {
+    ...row,
+    campusAccess: isGlobal ? ('ALL' as const) : ('RESTRICTED' as const),
+    campusScopeLabel: isGlobal ? 'TOUS' : null,
+  };
+}
+
+async function enrichSchoolUserWithAvatar<T extends { campuses?: { id: string }[]; avatarPath?: string | null }>(
+  row: T,
+) {
+  const base = enrichSchoolUser(row);
+  const avatarUrl = await uploadsService.getSignedUrlForPath(row.avatarPath ?? null);
+  return { ...base, avatarUrl };
+}
+
+/** Affectation campus : classe > campus explicite > null (= tous les campus de l’école). */
+async function resolveCampusesForUser(
+  admin: { schoolId: string | null; campuses: { id: string }[] },
+  input: { campusIds?: string[]; classId?: string },
+  role: Role
+): Promise<string[]> {
+  if (role === Role.ADMIN || role === Role.SUPERADMIN) return [];
+
+  const schoolId = admin.schoolId!;
+  if (input.classId) {
+    const cls = await prisma.class.findFirst({
+      where: {
+        id: input.classId,
+        campus: { schoolId },
+        // Restreindre au scope de l'admin si non global
+        ...(admin.campuses.length > 0 ? { campusId: { in: admin.campuses.map(c => c.id) } } : {}),
+      },
+    });
+    if (!cls) throw new BadRequestError('Class does not belong to your scope');
+    return [cls.campusId];
+  }
+
+  if (input.campusIds && input.campusIds.length > 0) {
+    const count = await prisma.campus.count({
+      where: { 
+        id: { in: input.campusIds }, 
+        schoolId,
+        // Restreindre au scope de l'admin si non global
+        ...(admin.campuses.length > 0 ? { id: { in: admin.campuses.map(c => c.id) } } : {}),
+      },
+    });
+    if (count !== input.campusIds.length) {
+      throw new BadRequestError('One or more campuses are invalid or out of scope');
+    }
+    return input.campusIds;
+  }
+  return [];
+}
 
 async function assertCampusAdmin(adminUserId: string) {
-  const admin = await prisma.user.findUnique({ where: { id: adminUserId } });
+  const admin = await prisma.user.findUnique({ 
+    where: { id: adminUserId },
+    include: { campuses: { select: { id: true } } }
+  });
   if (!admin || !([Role.ADMIN, Role.SUPERADMIN] as Role[]).includes(admin.role)) {
     throw new ForbiddenError('Only administrators can manage users');
   }
@@ -29,8 +90,11 @@ export const schoolUsersService = {
       password: string;
       firstName: string;
       lastName: string;
-      role: 'MANAGER' | 'AGENT' | 'VIEWER' | 'STUDENT';
+      role: 'ADMIN' | 'MANAGER' | 'AGENT' | 'VIEWER' | 'STUDENT';
       matricule?: string;
+      numero?: string;
+      phone?: string;
+      campusIds?: string[];
       classId?: string;
     }
   ) {
@@ -38,6 +102,10 @@ export const schoolUsersService = {
     const role = input.role as Role;
     if (!ASSIGNABLE.includes(role)) {
       throw new ForbiddenError('Cannot assign this role');
+    }
+
+    if (role === Role.STUDENT && !input.classId) {
+      throw new BadRequestError('Students must be assigned to a class');
     }
 
     const existing = await prisma.user.findFirst({
@@ -49,15 +117,10 @@ export const schoolUsersService = {
       throw new ConflictError('Email or matricule already in use');
     }
 
-    if (input.classId) {
-      const cls = await prisma.class.findFirst({
-        where: { 
-          id: input.classId, 
-          ...(admin.campusId && { campusId: admin.campusId as string })
-        },
-      });
-      if (!cls) throw new BadRequestError('Class does not belong to your scope');
-    }
+    const resolvedCampusIds = await resolveCampusesForUser(admin, {
+      campusIds: input.campusIds,
+      classId: input.classId,
+    }, role);
 
     const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
 
@@ -69,25 +132,31 @@ export const schoolUsersService = {
         lastName: input.lastName,
         role,
         schoolId: admin.schoolId,
-        campusId: admin.role === Role.SUPERADMIN ? (admin.campusId || null) : admin.campusId,
+        campuses: { connect: resolvedCampusIds.map(id => ({ id })) },
         classId: input.classId ?? null,
         matricule: input.matricule ?? null,
+        numero: input.numero?.trim() || null,
+        phone: input.phone?.trim() || null,
         emailVerified: true,
         emailVerifiedAt: new Date(),
       },
+      include: { campuses: { select: { id: true } } },
     });
 
-    return {
+    return enrichSchoolUserWithAvatar({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      campusId: user.campusId,
+      campuses: user.campuses,
       classId: user.classId,
       matricule: user.matricule,
+      numero: user.numero,
+      phone: user.phone,
+      avatarPath: user.avatarPath,
       isActive: user.isActive,
-    };
+    });
   },
 
   async list(adminUserId: string, query: Record<string, unknown>) {
@@ -101,11 +170,13 @@ export const schoolUsersService = {
       schoolId: admin.schoolId,
     };
 
-    // Campus filtering
+    // Campus filtering : ADMIN sans campus = toute l’école ; sinon scope campus
     if (admin.role === Role.ADMIN) {
-      where.campusId = admin.campusId as string;
+      if (admin.campuses.length > 0) {
+        where.campuses = { some: { id: { in: admin.campuses.map(c => c.id) } } };
+      }
     } else if (campusId) {
-      where.campusId = campusId as string;
+      where.campuses = { some: { id: campusId as string } };
     }
 
     // Filter by role(s)
@@ -134,6 +205,7 @@ export const schoolUsersService = {
         { firstName: { contains: s, mode: 'insensitive' } },
         { lastName: { contains: s, mode: 'insensitive' } },
         { matricule: { contains: s, mode: 'insensitive' } },
+        { numero: { contains: s, mode: 'insensitive' } },
       ];
     }
 
@@ -151,15 +223,20 @@ export const schoolUsersService = {
           role: true,
           isActive: true,
           matricule: true,
+          numero: true,
+          phone: true,
           classId: true,
-          campusId: true,
+          campuses: { select: { id: true } },
+          avatarPath: true,
           createdAt: true,
         },
       }),
       prisma.user.count({ where }),
     ]);
 
-    return buildPaginated(items, total, pagination.page, pagination.limit);
+    const enriched = await Promise.all(items.map((u) => enrichSchoolUserWithAvatar(u)));
+
+    return buildPaginated(enriched, total, pagination.page, pagination.limit);
   },
 
   async listStaff(adminUserId: string, query: Record<string, unknown>) {
@@ -186,25 +263,36 @@ export const schoolUsersService = {
     adminUserId: string,
     targetId: string,
     input: {
-      role?: 'MANAGER' | 'AGENT' | 'VIEWER' | 'STUDENT';
+      role?: 'ADMIN' | 'MANAGER' | 'AGENT' | 'VIEWER' | 'STUDENT';
       isActive?: boolean;
       classId?: string | null;
+      campusIds?: string[];
     }
   ) {
     const admin = await assertCampusAdmin(adminUserId);
-    if (targetId === adminUserId) {
-      throw new ForbiddenError('Use profile or account settings to change your own account');
-    }
-
+    
     const target = await prisma.user.findUnique({ where: { id: targetId } });
     if (!target) throw new NotFoundError('User');
+    
+    if (targetId === adminUserId && input.role && input.role !== target.role) {
+      throw new ForbiddenError('You cannot change your own role');
+    }
+    if (targetId === adminUserId && input.isActive !== undefined && input.isActive !== target.isActive) {
+      throw new ForbiddenError('You cannot deactivate yourself');
+    }
 
     // Access control
     if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
       throw new ForbiddenError('Access denied: different school');
     }
-    if (admin.role === Role.ADMIN && target.campusId !== admin.campusId) {
-      throw new ForbiddenError('Access denied: different campus');
+    if (admin.role === Role.ADMIN && admin.campuses.length > 0) {
+       const hasCommon = await prisma.user.findFirst({
+         where: { 
+           id: targetId,
+           campuses: { some: { id: { in: admin.campuses.map(c => c.id) } } }
+         }
+       });
+       if (!hasCommon) throw new ForbiddenError('Access denied: different campus');
     }
     if (target.role === Role.SUPERADMIN) {
       throw new ForbiddenError('Cannot modify super administrator');
@@ -217,14 +305,18 @@ export const schoolUsersService = {
       }
     }
 
+    let resolvedCampusIds = input.campusIds;
+
     if (input.classId) {
       const cls = await prisma.class.findFirst({
-        where: { 
-          id: input.classId, 
-          ...(admin.campusId && { campusId: admin.campusId as string })
+        where: {
+          id: input.classId,
+          campus: { schoolId: admin.schoolId! },
+          ...(admin.campuses.length > 0 ? { campusId: { in: admin.campuses.map(c => c.id) } } : {}),
         },
       });
       if (!cls) throw new BadRequestError('Class does not belong to your scope');
+      resolvedCampusIds = [cls.campusId];
     }
 
     return prisma.user.update({
@@ -233,6 +325,7 @@ export const schoolUsersService = {
         ...(input.role !== undefined && { role: input.role as Role }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
         ...(input.classId !== undefined && { classId: input.classId }),
+        ...(resolvedCampusIds !== undefined && { campuses: { set: resolvedCampusIds.map(id => ({ id })) } }),
       },
       select: {
         id: true,
@@ -243,20 +336,83 @@ export const schoolUsersService = {
         isActive: true,
         matricule: true,
         classId: true,
+        campuses: { select: { id: true } },
       },
     });
   },
 
   async getById(adminUserId: string, targetId: string) {
     const admin = await assertCampusAdmin(adminUserId);
+    const target = await prisma.user.findUnique({
+      where: { id: targetId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        matricule: true,
+        numero: true,
+        phone: true,
+        classId: true,
+        campuses: { select: { id: true } },
+        schoolId: true,
+        avatarPath: true,
+        createdAt: true,
+        updatedAt: true,
+        emailVerified: true,
+      },
+    });
+    if (!target) throw new NotFoundError('User');
+
+    if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
+      throw new ForbiddenError('Access denied');
+    }
+
+    return enrichSchoolUserWithAvatar(target);
+  },
+
+  async resetPasswordToDefault(adminUserId: string, targetId: string) {
+    const admin = await assertCampusAdmin(adminUserId);
+    if (targetId === adminUserId) {
+      throw new ForbiddenError('Use change-password to update your own password');
+    }
+
     const target = await prisma.user.findUnique({ where: { id: targetId } });
     if (!target) throw new NotFoundError('User');
-    
+
     if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
-       throw new ForbiddenError('Access denied');
+      throw new ForbiddenError('Access denied: different school');
     }
-    
-    return target;
+    if (admin.role === Role.ADMIN && admin.campuses.length > 0) {
+       const hasCommon = await prisma.user.findFirst({
+         where: { 
+           id: targetId,
+           campuses: { some: { id: { in: admin.campuses.map(c => c.id) } } }
+         }
+       });
+       if (!hasCommon) throw new ForbiddenError('Access denied: different campus');
+    }
+    if (target.role === Role.SUPERADMIN) {
+      throw new ForbiddenError('Cannot reset super administrator password');
+    }
+
+    const passwordHash = await bcrypt.hash(env.DEFAULT_PASSWORD_RESET, SALT_ROUNDS);
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: targetId },
+        data: { passwordHash },
+      }),
+      prisma.refreshToken.deleteMany({ where: { userId: targetId } }),
+      prisma.passwordResetToken.deleteMany({ where: { userId: targetId } }),
+      prisma.loginOtpChallenge.deleteMany({ where: { userId: targetId } }),
+    ]);
+
+    return {
+      message:
+        'Password reset. The user must sign in with the default password configured for the server (DEFAULT_PASSWORD_RESET).',
+    };
   },
 
   async delete(adminUserId: string, targetId: string) {
@@ -271,8 +427,14 @@ export const schoolUsersService = {
     if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
       throw new ForbiddenError('Access denied: different school');
     }
-    if (admin.role === Role.ADMIN && target.campusId !== admin.campusId) {
-       throw new ForbiddenError('Access denied: different campus');
+    if (admin.role === Role.ADMIN && admin.campuses.length > 0) {
+       const hasCommon = await prisma.user.findFirst({
+         where: { 
+           id: targetId,
+           campuses: { some: { id: { in: admin.campuses.map(c => c.id) } } }
+         }
+       });
+       if (!hasCommon) throw new ForbiddenError('Access denied: different campus');
     }
     
     // Deactivate instead of hard delete to preserve history?

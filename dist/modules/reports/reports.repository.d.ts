@@ -4,38 +4,45 @@ import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const reportsRepository: {
     getUserContext(userId: string): Promise<{
-        campusId: string | null;
         classId: string | null;
+        campuses: {
+            id: string;
+        }[];
     } | null>;
     create(data: CreateReportInput, authorId?: string, schoolId?: string | null): Promise<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        } | null;
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
-        } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            email: string;
-            firstName: string;
-            lastName: string;
-            campusId: string | null;
-            userId: string | null;
+            campusId: string;
         } | null;
         author: {
-            id: string;
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
         } | null;
@@ -60,30 +67,41 @@ export declare const reportsRepository: {
         aiAnalysis: Prisma.JsonValue | null;
     }>;
     findById(id: string, schoolId?: string | null): Promise<({
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        } | null;
         class: {
             name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         } | null;
-        module: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            code: string | null;
-        } | null;
-        professor: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
+        author: {
             email: string;
+            id: string;
             firstName: string;
             lastName: string;
-            campusId: string | null;
-            userId: string | null;
         } | null;
         aiJobs: {
             result: Prisma.JsonValue | null;
@@ -98,12 +116,6 @@ export declare const reportsRepository: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
-        author: {
-            id: string;
-            email: string;
-            firstName: string;
-            lastName: string;
-        } | null;
     } & {
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
@@ -126,34 +138,39 @@ export declare const reportsRepository: {
     }) | null>;
     findAll(filters: ReportFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
         items: ({
+            module: {
+                code: string | null;
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string;
+            } | null;
+            professor: {
+                email: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                schoolId: string | null;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                matricule: string | null;
+                numero: string | null;
+                avatarPath: string | null;
+                userId: string | null;
+            } | null;
             class: {
                 name: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                campusId: string;
                 levelId: string;
-            } | null;
-            module: {
-                name: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                code: string | null;
-            } | null;
-            professor: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                email: string;
-                firstName: string;
-                lastName: string;
-                campusId: string | null;
-                userId: string | null;
+                campusId: string;
             } | null;
             author: {
-                id: string;
                 email: string;
+                id: string;
                 firstName: string;
                 lastName: string;
             } | null;

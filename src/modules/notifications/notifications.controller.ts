@@ -5,7 +5,8 @@ import { buildPaginated, parsePagination } from '../../utils/pagination';
 export const notificationsController = {
   async getMyNotifications(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId   = req.user!.userId;
+      const schoolId = req.user!.schoolId!; // toujours présent pour les non-SuperAdmin
 
       const pagination = parsePagination(req.query as Record<string, unknown>);
       const isRead =
@@ -15,10 +16,10 @@ export const notificationsController = {
       const type =
         typeof req.query.type === 'string' ? (req.query.type as NotificationType) : undefined;
 
-      const { items, total } = await notificationService.getAllForUser(userId, {
+      const { items, total } = await notificationService.getAllForUser(userId, schoolId, {
         isRead,
         type,
-        skip: pagination.skip,
+        skip:  pagination.skip,
         limit: pagination.limit,
       });
 
@@ -38,5 +39,5 @@ export const notificationsController = {
     } catch (error) {
       next(error);
     }
-  }
+  },
 };

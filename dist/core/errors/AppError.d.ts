@@ -4,7 +4,8 @@ export declare class AppError extends Error {
     constructor(message: string, statusCode?: number, isOperational?: boolean);
 }
 export declare class NotFoundError extends AppError {
-    constructor(resource?: string);
+    /** `messageOverride` remplace entièrement le texte (ex. détails tenant). */
+    constructor(resource?: string, messageOverride?: string);
 }
 export declare class UnauthorizedError extends AppError {
     constructor(message?: string);

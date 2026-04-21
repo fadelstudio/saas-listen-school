@@ -22,14 +22,20 @@ async function authMiddleware(req, _res, next) {
                 where: { id: payload.userId },
                 select: {
                     schoolId: true,
-                    campus: { select: { schoolId: true } },
+                    campuses: { select: { schoolId: true }, take: 1 },
                 },
             });
-            const resolvedSchoolId = user?.schoolId || user?.campus?.schoolId || null;
+            const resolvedSchoolId = user?.schoolId || user?.campuses?.[0]?.schoolId || null;
             if (!resolvedSchoolId) {
                 throw new AppError_1.UnauthorizedError("Token missing school context. Please log in again.");
             }
             payload.schoolId = resolvedSchoolId;
+        }
+        if (payload.role !== "SUPERADMIN" &&
+            req.schoolId &&
+            payload.schoolId &&
+            payload.schoolId !== req.schoolId) {
+            throw new AppError_1.ForbiddenError("Token school does not match request school context");
         }
         req.user = payload;
         next();
