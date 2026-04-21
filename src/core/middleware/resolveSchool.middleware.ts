@@ -11,7 +11,7 @@ function normalizeSlug(value: string | undefined | null): string | null {
   return cleaned.length > 0 ? cleaned : null;
 }
 
-/** Priorité 1 — sous-domaine : `afi.monsite.com` → `afi` (ignoré sur localhost). */
+/** Priorité 1 — sous-domaine : `afi.monsite.com` → `afi` (ignoré sur localhost et domaines plateforme). */
 function slugFromHostname(hostnameRaw: string | undefined): string | null {
   if (!hostnameRaw) return null;
   const hostname = hostnameRaw.split(":")[0].toLowerCase();
@@ -19,6 +19,23 @@ function slugFromHostname(hostnameRaw: string | undefined): string | null {
 
   const parts = hostname.split(".").filter(Boolean);
   if (parts.length < 3) return null;
+
+  // Exclusion des domaines de plateforme technique (Railway, Vercel, Render, etc.)
+  // On ignore le premier segment si le reste correspond à un domaine de plateforme connu
+  const platformDomains = [
+    "up.railway.app",
+    "railway.app",
+    "vercel.app",
+    "onrender.com",
+    "herokuapp.com",
+  ];
+  const domainSuffix = parts.slice(1).join(".");
+  if (platformDomains.includes(domainSuffix)) {
+    // Si c'est un domaine plateforme et qu'on n'a que 3 segments (ex: app.vercel.app)
+    // ou 4 segments pour railway (ex: app.up.railway.app), on ignore.
+    return null;
+  }
+
   return normalizeSlug(parts[0]);
 }
 
