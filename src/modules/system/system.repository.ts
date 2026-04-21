@@ -5,11 +5,14 @@ export const systemRepository = {
   async getSettings(schoolId: string) {
     try {
       return await prisma.systemSettings.findUnique({
-        where: { schoolId }
+        where: { schoolId },
+        include: { school: { select: { logoUrl: true } } }
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
-        return prisma.systemSettings.findFirst();
+        return prisma.systemSettings.findFirst({
+          include: { school: { select: { logoUrl: true } } }
+        });
       }
       throw error;
     }
