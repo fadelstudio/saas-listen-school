@@ -6,7 +6,7 @@ export interface JwtPayload {
   userId: string;
   role: Role;
   schoolId?: string | null;
-  campusId?: string | null;
+  campusIds?: string[];
   classId?: string | null;
   iat: number;
   exp: number;
@@ -71,7 +71,7 @@ export interface SafeUser {
   matricule?: string | null;
   numero?: string | null;
   phone?: string | null;
-  campusId?: string | null;
+  campusIds?: string[];
   classId?: string | null;
   schoolId?: string | null;
   /** URL signée (bucket Supabase) — rafraîchir après expiration via GET /auth/me */

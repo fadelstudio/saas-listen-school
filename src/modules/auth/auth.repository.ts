@@ -3,11 +3,14 @@ import { prisma } from '../../core/database/prisma';
 import { RegisterInput } from './auth.types';
 
 export const authRepository = {
-  async findByEmail(email: string, schoolId: string): Promise<User | null> {
-    return prisma.user.findFirst({ where: { email, schoolId } });
+  async findByEmail(email: string, schoolId: string) {
+    return prisma.user.findFirst({
+      where: { email, schoolId },
+      include: { campuses: { select: { id: true } } },
+    });
   },
 
-  async findByIdentifier(identifier: string, schoolId: string): Promise<User | null> {
+  async findByIdentifier(identifier: string, schoolId: string) {
     return prisma.user.findFirst({
       where: {
         schoolId,
@@ -15,7 +18,8 @@ export const authRepository = {
           { email: identifier },
           { matricule: identifier }
         ]
-      }
+      },
+      include: { campuses: { select: { id: true } } },
     });
   },
 
@@ -29,8 +33,11 @@ export const authRepository = {
     });
   },
 
-  async findById(id: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { id } });
+  async findById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: { campuses: { select: { id: true } } },
+    });
   },
 
   async create(
@@ -40,7 +47,7 @@ export const authRepository = {
       /** Si false (OTP requis), compte créé mais login interdit jusqu'à verify-otp. */
       emailVerified?: boolean;
     }
-  ): Promise<User> {
+  ) {
     const verified = data.emailVerified ?? false;
     return prisma.user.create({
       data: {
@@ -48,12 +55,13 @@ export const authRepository = {
         passwordHash: data.passwordHash,
         firstName: data.firstName,
         lastName: data.lastName,
-        campusId: data.campusId,
+        campuses: data.campusId ? { connect: [{ id: data.campusId }] } : undefined,
         classId: data.classId,
         schoolId: data.schoolId,
         emailVerified: verified,
         emailVerifiedAt: verified ? new Date() : null,
       },
+      include: { campuses: { select: { id: true } } },
     });
   },
 
@@ -102,7 +110,11 @@ export const authRepository = {
   async findRefreshToken(token: string) {
     return prisma.refreshToken.findUnique({
       where: { token },
-      include: { user: true },
+      include: { 
+        user: { 
+          include: { campuses: { select: { id: true } } } 
+        } 
+      },
     });
   },
 
@@ -138,7 +150,11 @@ export const authRepository = {
   async findLoginOtpChallengeById(id: string) {
     return prisma.loginOtpChallenge.findUnique({
       where: { id },
-      include: { user: true },
+      include: { 
+        user: { 
+          include: { campuses: { select: { id: true } } } 
+        } 
+      },
     });
   },
 
@@ -166,7 +182,11 @@ export const authRepository = {
   async findPasswordResetByTokenHash(tokenHash: string) {
     return prisma.passwordResetToken.findUnique({
       where: { tokenHash },
-      include: { user: true },
+      include: { 
+        user: { 
+          include: { campuses: { select: { id: true } } } 
+        } 
+      },
     });
   },
 

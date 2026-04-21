@@ -7,12 +7,13 @@ exports.notificationsController = {
     async getMyNotifications(req, res, next) {
         try {
             const userId = req.user.userId;
+            const schoolId = req.user.schoolId; // toujours présent pour les non-SuperAdmin
             const pagination = (0, pagination_1.parsePagination)(req.query);
             const isRead = typeof req.query.isRead === 'string'
                 ? req.query.isRead === 'true'
                 : undefined;
             const type = typeof req.query.type === 'string' ? req.query.type : undefined;
-            const { items, total } = await notifications_service_1.notificationService.getAllForUser(userId, {
+            const { items, total } = await notifications_service_1.notificationService.getAllForUser(userId, schoolId, {
                 isRead,
                 type,
                 skip: pagination.skip,
@@ -35,6 +36,6 @@ exports.notificationsController = {
         catch (error) {
             next(error);
         }
-    }
+    },
 };
 //# sourceMappingURL=notifications.controller.js.map

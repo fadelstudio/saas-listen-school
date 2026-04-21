@@ -23,7 +23,9 @@ export const analyticsService = {
       if (!campus) throw new BadRequestError('Campus not found in this school');
     }
 
-    const userWhere: Prisma.UserWhereInput = campusId ? { schoolId, campusId } : { schoolId };
+    const userWhere: Prisma.UserWhereInput = campusId 
+      ? { schoolId, campuses: { some: { id: campusId } } } 
+      : { schoolId };
 
     const reportWhere: Prisma.ReportWhereInput = campusId
       ? { AND: [reportsInSchool(schoolId), { class: { campusId } }] }

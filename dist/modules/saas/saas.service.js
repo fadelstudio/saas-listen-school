@@ -83,7 +83,6 @@ exports.saasService = {
                     lastName: input.adminLastName,
                     role: client_1.Role.ADMIN,
                     schoolId: school.id,
-                    campusId: null,
                     matricule: input.matricule,
                     isActive: true,
                     emailVerified: true,
@@ -120,8 +119,7 @@ exports.saasService = {
                         _count: {
                             select: {
                                 users: true,
-                                classes: true,
-                                professors: true
+                                classes: true
                             }
                         }
                     }

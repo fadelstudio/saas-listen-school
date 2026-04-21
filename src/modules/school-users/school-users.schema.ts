@@ -16,7 +16,7 @@ export const createSchoolUserSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number'),
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
-  role: z.enum(['MANAGER', 'AGENT', 'VIEWER', 'STUDENT']),
+  role: z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT', 'PROFESSOR']),
   matricule: z.string().min(1).max(50).optional(),
   numero: z.string().max(120).optional(),
   phone: z.string().max(40).optional(),
@@ -25,14 +25,15 @@ export const createSchoolUserSchema = z.object({
    * (périmètre toute l’école, comme un admin école sans campus).
    * Pour STUDENT : utiliser `classId` (le campus est déduit de la classe).
    */
-  campusId: optionalId,
+  campusIds: z.array(idStringSchema).optional(),
   classId: optionalId,
 });
 
 export const updateSchoolUserSchema = z.object({
-  role: z.enum(['MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
+  role: z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT', 'PROFESSOR']).optional(),
   isActive: z.boolean().optional(),
   classId: z.union([idStringSchema, z.null()]).optional(),
+  campusIds: z.array(idStringSchema).optional(),
 });
 
 export const schoolUserParamsSchema = z.object({
@@ -42,7 +43,7 @@ export const schoolUserParamsSchema = z.object({
 export const schoolUserQuerySchema = z.object({
   page: z.coerce.number().min(1).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
-  role: z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT']).optional(),
+  role: z.enum(['ADMIN', 'MANAGER', 'AGENT', 'VIEWER', 'STUDENT', 'PROFESSOR']).optional(),
   campusId: optionalId,
   classId: optionalId,
   search: z.string().optional(),

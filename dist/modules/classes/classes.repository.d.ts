@@ -48,8 +48,8 @@ export declare const classesRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         })[];
         total: number;
     }>;
@@ -112,13 +112,13 @@ export declare const classesRepository: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                schoolId: string | null;
                 phone: string | null;
                 firstName: string;
                 lastName: string;
                 matricule: string | null;
                 numero: string | null;
                 avatarPath: string | null;
-                campusId: string | null;
                 userId: string | null;
             }[];
         } & {
@@ -133,8 +133,8 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }) | null>;
     create(data: {
         name: string;
@@ -164,8 +164,8 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }>;
     update(id: string, schoolId: string, data: {
         name?: string;
@@ -195,8 +195,8 @@ export declare const classesRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }) | null>;
     delete(id: string, schoolId: string): Promise<boolean>;
     findStudents(classId: string, schoolId: string): Promise<{
@@ -206,7 +206,9 @@ export declare const classesRepository: {
         lastName: string;
         matricule: string | null;
         isActive: boolean;
-        campusId: string | null;
+        campuses: {
+            id: string;
+        }[];
     }[]>;
 };
 export {};

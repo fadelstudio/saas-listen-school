@@ -102,7 +102,7 @@ export const classesRepository = {
         lastName: true,
         matricule: true,
         isActive: true,
-        campusId: true,
+        campuses: { select: { id: true }, take: 1 },
       },
       orderBy: { lastName: 'asc' },
     });

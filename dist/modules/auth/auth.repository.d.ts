@@ -1,8 +1,54 @@
 import { User } from '@prisma/client';
 import { RegisterInput } from './auth.types';
 export declare const authRepository: {
-    findByEmail(email: string, schoolId: string): Promise<User | null>;
-    findByIdentifier(identifier: string, schoolId: string): Promise<User | null>;
+    findByEmail(email: string, schoolId: string): Promise<({
+        campuses: {
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        classId: string | null;
+    }) | null>;
+    findByIdentifier(identifier: string, schoolId: string): Promise<({
+        campuses: {
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        classId: string | null;
+    }) | null>;
     /** Pour message d’erreur login : compte connu mais mauvais tenant (x-school-slug). */
     findByIdentifierGlobal(identifier: string): Promise<({
         school: {
@@ -27,16 +73,61 @@ export declare const authRepository: {
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
-        campusId: string | null;
         classId: string | null;
     }) | null>;
-    findById(id: string): Promise<User | null>;
+    findById(id: string): Promise<({
+        campuses: {
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        classId: string | null;
+    }) | null>;
     create(data: RegisterInput & {
         passwordHash: string;
         schoolId: string;
         /** Si false (OTP requis), compte créé mais login interdit jusqu'à verify-otp. */
         emailVerified?: boolean;
-    }): Promise<User>;
+    }): Promise<{
+        campuses: {
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        avatarPath: string | null;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        classId: string | null;
+    }>;
     updatePassword(userId: string, passwordHash: string): Promise<User>;
     updateProfile(userId: string, data: {
         firstName?: string;
@@ -55,6 +146,10 @@ export declare const authRepository: {
     }>;
     findRefreshToken(token: string): Promise<({
         user: {
+            campuses: {
+                id: string;
+            }[];
+        } & {
             email: string;
             id: string;
             createdAt: Date;
@@ -72,7 +167,6 @@ export declare const authRepository: {
             fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
-            campusId: string | null;
             classId: string | null;
         };
     } & {
@@ -102,6 +196,10 @@ export declare const authRepository: {
     }>;
     findLoginOtpChallengeById(id: string): Promise<({
         user: {
+            campuses: {
+                id: string;
+            }[];
+        } & {
             email: string;
             id: string;
             createdAt: Date;
@@ -119,7 +217,6 @@ export declare const authRepository: {
             fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
-            campusId: string | null;
             classId: string | null;
         };
     } & {
@@ -157,6 +254,10 @@ export declare const authRepository: {
     }>;
     findPasswordResetByTokenHash(tokenHash: string): Promise<({
         user: {
+            campuses: {
+                id: string;
+            }[];
+        } & {
             email: string;
             id: string;
             createdAt: Date;
@@ -174,7 +275,6 @@ export declare const authRepository: {
             fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
-            campusId: string | null;
             classId: string | null;
         };
     } & {

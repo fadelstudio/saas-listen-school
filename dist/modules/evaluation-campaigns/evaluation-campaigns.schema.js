@@ -12,12 +12,17 @@ exports.createEvaluationCampaignSchema = zod_1.z.object({
     scope: zod_1.z.enum(['CLASS', 'CAMPUS', 'SCHOOL']).default('CLASS'),
     classId: idSchema_1.idStringSchema.optional(),
     campusId: idSchema_1.idStringSchema.optional(),
-    moduleId: idSchema_1.idStringSchema,
-    professorId: idSchema_1.idStringSchema,
+    moduleId: idSchema_1.idStringSchema.optional(),
+    professorId: idSchema_1.idStringSchema.optional(),
     dueDate: zod_1.z.string().datetime({ offset: true }),
 }).superRefine((val, ctx) => {
-    if (val.scope === 'CLASS' && !val.classId) {
-        ctx.addIssue({ code: 'custom', message: 'classId is required when scope=CLASS', path: ['classId'] });
+    if (val.scope === 'CLASS') {
+        if (!val.classId)
+            ctx.addIssue({ code: 'custom', message: 'classId is required when scope=CLASS', path: ['classId'] });
+        if (!val.moduleId)
+            ctx.addIssue({ code: 'custom', message: 'moduleId is required when scope=CLASS', path: ['moduleId'] });
+        if (!val.professorId)
+            ctx.addIssue({ code: 'custom', message: 'professorId is required when scope=CLASS', path: ['professorId'] });
     }
     if (val.scope === 'CAMPUS' && !val.campusId) {
         ctx.addIssue({ code: 'custom', message: 'campusId is required when scope=CAMPUS', path: ['campusId'] });

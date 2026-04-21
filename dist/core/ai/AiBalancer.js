@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiBalancer = exports.AiBalancer = void 0;
 const system_service_1 = require("../../modules/system/system.service");
@@ -25,7 +58,15 @@ class AiBalancer {
         }
         const configs = settings.aiConfigs || [];
         if (configs.length === 0) {
-            throw new Error('No AI configurations found in system settings');
+            if (process.env.GEMINI_API_KEY) {
+                configs.push({ id: 'env-gemini', name: 'Gemini Pro (Env)', provider: 'GEMINI', model: 'gemini-pro', apiKey: process.env.GEMINI_API_KEY, priority: 1, isFree: true });
+            }
+            if (process.env.GROQ_API_KEY) {
+                configs.push({ id: 'env-groq', name: 'Groq Llama (Env)', provider: 'GROQ', model: 'llama3-70b-8192', apiKey: process.env.GROQ_API_KEY, priority: 2, isFree: true });
+            }
+            if (configs.length === 0) {
+                throw new Error('No AI configurations found in system settings or .env');
+            }
         }
         // Sort by priority (asc)
         const sortedConfigs = [...configs].sort((a, b) => a.priority - b.priority);
@@ -73,6 +114,27 @@ class AiBalancer {
             }
         }
         const lastMessage = lastError instanceof Error ? lastError.message : 'Unknown';
+        // Notify admins that AI failed
+        try {
+            const { prisma } = await Promise.resolve().then(() => __importStar(require('../../core/database/prisma')));
+            const admins = await prisma.user.findMany({
+                where: { role: 'ADMIN', schoolId }
+            });
+            for (const admin of admins) {
+                await prisma.notification.create({
+                    data: {
+                        title: '⚠️ Alerte IA - Échec de tous les fournisseurs',
+                        message: `Tous les modèles d'Intelligence Artificielle ont échoué (${configs.length} testés). Dernière erreur : ${lastMessage}. Le système fonctionne en mode dégradé sans IA.`,
+                        type: 'SYSTEM_ALERT',
+                        userId: admin.id,
+                        schoolId
+                    }
+                });
+            }
+        }
+        catch (notifErr) {
+            console.error('⚠️ Failed to send AI failure notification', notifErr);
+        }
         throw new Error(`AI Balancer: All ${configs.length} providers failed. Last error: ${lastMessage}`);
     }
     async executeCall(config, prompt) {

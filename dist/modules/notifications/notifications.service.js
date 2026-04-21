@@ -4,6 +4,11 @@ exports.notificationService = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const AppError_1 = require("../../core/errors/AppError");
 exports.notificationService = {
+    /**
+     * Crée une notification.
+     * - userId : null = notification globale (visible par tous les utilisateurs de l'école)
+     * - schoolId : permet d'isoler les notifications globales par école
+     */
     async create(data) {
         return prisma_1.prisma.notification.create({
             data: {
@@ -12,12 +17,29 @@ exports.notificationService = {
                 type: data.type,
                 userId: data.userId ?? null,
                 campaignId: data.campaignId ?? null,
+                // schoolId stocké si disponible pour isoler les notifications globales
+                // Si le champ n'existe pas encore en DB, cette ligne sera ignorée gracieusement
+                ...(data.schoolId ? { schoolId: data.schoolId } : {}),
             },
         });
     },
-    async getAllForUser(userId, opts) {
+    /**
+     * Récupère les notifications pour un utilisateur donné, isolées par école.
+     * Retourne :
+     *  - Les notifications adressées directement à l'utilisateur (userId = userId)
+     *  - Les notifications globales de l'école (userId = null AND schoolId = schoolId)
+     *  - Les notifications globales système pures (userId = null AND schoolId = null)
+     */
+    async getAllForUser(userId, schoolId, opts) {
         const where = {
-            OR: [{ userId }, { userId: null }],
+            OR: [
+                // Notifications personnelles
+                { userId },
+                // Notifications globales de cette école
+                { userId: null, schoolId },
+                // Notifications globales système (SuperAdmin broadcast)
+                { userId: null, schoolId: null },
+            ],
             ...(typeof opts?.isRead === 'boolean' ? { isRead: opts.isRead } : {}),
             ...(opts?.type ? { type: opts.type } : {}),
         };

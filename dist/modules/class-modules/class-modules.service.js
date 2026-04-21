@@ -4,10 +4,19 @@ exports.classModulesService = void 0;
 const class_modules_repository_1 = require("./class-modules.repository");
 const AppError_1 = require("../../core/errors/AppError");
 const prisma_1 = require("../../core/database/prisma");
-/** Prof rattaché à l’école : sans campus (= tous) ou campus de l’école. */
+/**
+ * Vérifie que les professeurs appartiennent à l'école.
+ * Utilise la même logique que professors.repository.ts :
+ *   - Via user.schoolId, OU
+ *   - Via assignation ClassModule → class → campus → schoolId.
+ * N'accepte plus { user: null } comme "appartient à l'école" (trop permissif).
+ */
 function professorInSchoolWhere(schoolId) {
     return {
-        OR: [{ campusId: null }, { campus: { schoolId } }],
+        OR: [
+            { user: { schoolId } },
+            { modules: { some: { class: { campus: { schoolId } } } } },
+        ],
     };
 }
 async function assertProfessorsInSchool(professorIds, schoolId) {

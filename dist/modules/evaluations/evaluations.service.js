@@ -38,16 +38,6 @@ exports.evaluationsService = {
             throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
         }
         const evaluation = await evaluations_repository_1.evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
-        // 3. Automatic AI Trigger
-        try {
-            await queue_1.jobQueue.add('ai-analysis', {
-                type: 'evaluation-scoring',
-                evaluationId: evaluation.id,
-            });
-        }
-        catch (error) {
-            console.warn('⚠️ Could not auto-enqueue AI scoring (Redis down?):', error);
-        }
         return evaluation;
     },
     async getById(id, userRole, schoolId) {
@@ -67,6 +57,10 @@ exports.evaluationsService = {
             status: query.status,
             evaluatorId: query.evaluatorId,
             reportId: query.reportId,
+            professorId: query.professorId,
+            moduleId: query.moduleId,
+            classId: query.classId,
+            campusId: query.campusId,
             startDate: query.startDate,
             endDate: query.endDate,
         };
@@ -102,6 +96,10 @@ exports.evaluationsService = {
     async getStats(query, schoolId) {
         const filters = {
             reportId: query.reportId,
+            professorId: query.professorId,
+            moduleId: query.moduleId,
+            classId: query.classId,
+            campusId: query.campusId,
             startDate: query.startDate,
             endDate: query.endDate,
         };

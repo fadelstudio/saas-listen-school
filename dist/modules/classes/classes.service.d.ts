@@ -44,8 +44,8 @@ export declare const classesService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }>>;
     getById(id: string, schoolId: string): Promise<{
         campus: {
@@ -106,13 +106,13 @@ export declare const classesService: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                schoolId: string | null;
                 phone: string | null;
                 firstName: string;
                 lastName: string;
                 matricule: string | null;
                 numero: string | null;
                 avatarPath: string | null;
-                campusId: string | null;
                 userId: string | null;
             }[];
         } & {
@@ -127,8 +127,8 @@ export declare const classesService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }>;
     create(schoolId: string, data: {
         name: string;
@@ -158,8 +158,8 @@ export declare const classesService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }>;
     update(id: string, schoolId: string, data: {
         name?: string;
@@ -189,8 +189,8 @@ export declare const classesService: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        campusId: string;
         levelId: string;
+        campusId: string;
     }>;
     delete(id: string, schoolId: string): Promise<void>;
     getStudents(id: string, schoolId: string): Promise<{
@@ -200,7 +200,9 @@ export declare const classesService: {
         lastName: string;
         matricule: string | null;
         isActive: boolean;
-        campusId: string | null;
+        campuses: {
+            id: string;
+        }[];
     }[]>;
 };
 //# sourceMappingURL=classes.service.d.ts.map

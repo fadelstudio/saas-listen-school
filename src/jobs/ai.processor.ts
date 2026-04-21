@@ -51,14 +51,21 @@ const aiResultSchema = z.object({
 });
 
 function parseAiJsonStrict(raw: string): Omit<AiAnalysisResult, 'processedAt'> {
-  // We accept ONLY a JSON object. If model returns extra text, parsing fails.
-  const parsed = JSON.parse(raw) as unknown;
-  const validated = aiResultSchema.safeParse(parsed);
-  if (!validated.success) {
-    const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
-    throw new Error(`AI JSON validation failed: ${issues}`);
+  // 1. Try to extract the JSON block using regex (most robust method)
+  const match = raw.match(/\{[\s\S]*\}/);
+  const cleanRaw = match ? match[0] : raw.trim();
+
+  try {
+    const parsed = JSON.parse(cleanRaw) as unknown;
+    const validated = aiResultSchema.safeParse(parsed);
+    if (!validated.success) {
+      const issues = validated.error.issues.map((i) => `${i.path.join('.') || 'root'}: ${i.message}`).join('; ');
+      throw new Error(`AI JSON validation failed: ${issues}`);
+    }
+    return validated.data;
+  } catch (e) {
+    throw new Error(`Invalid JSON response from AI: ${e instanceof Error ? e.message : String(e)} (Raw: ${raw.slice(0, 100)}...)`);
   }
-  return validated.data;
 }
 
 function analysisPrompt(content: string): string {
@@ -254,19 +261,13 @@ const aiWorker = new Worker<AiAnalysisPayload>(
   }
 );
 
-import { notificationService } from '../modules/notifications/notifications.service';
-
 aiWorker.on('completed', (job) => logger.info(`✅ AI job completed: ${job.id} [${job.data.type}]`));
 
 aiWorker.on('failed', async (job, err) => {
-  logger.error(`❌ AI job failed: ${job?.id}`, { message: err.message });
-  
-  // Notify internal profiles about AI failure
-  await notificationService.create({
-    title: `Échec du traitement IA [${job?.data.type}]`,
-    message: `Le traitement automatique a échoué: ${err.message}. ID Job: ${job?.id}`,
-    type: 'AI_FAILURE',
-  }).catch(e => logger.error('Failed to create failure notification:', { error: e.message }));
+  logger.error(`❌ AI job failed: ${job?.id} ${job?.data.type}`, { message: err.message.slice(0, 200) });
+  // NOTE: School-scoped admin notifications are handled directly by AiBalancer
+  // (quota-switch + total-failure events, throttled per 5 min).
+  // We do NOT duplicate them here to avoid notification spam.
 });
 
 aiWorker.on('error', (_err) => { /* Silence Redis errors */ });

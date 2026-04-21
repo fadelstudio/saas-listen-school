@@ -47,4 +47,34 @@ export const evaluationCampaignsController = {
       next(error);
     }
   },
+
+  async getAnalytics(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const data = await evaluationCampaignsService.getAnalytics(req.params.id as string, req.schoolId);
+      res.sendSuccess('Analytics fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async analyze(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const data = await evaluationCampaignsService.generatePostDeadlineAnalysis(req.params.id as string, req.user!.userId, req.schoolId);
+      res.sendSuccess('Analysis completed and decision created', data);
+    } catch (error) {
+      next(error);
+    }
+  },
+  
+  async remind(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      await evaluationCampaignsService.sendReminders(req.params.id as string, req.schoolId);
+      res.sendSuccess('Reminders sent successfully');
+    } catch (error) {
+      next(error);
+    }
+  },
 };

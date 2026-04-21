@@ -23,8 +23,8 @@ export declare const levelsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            campusId: string;
             levelId: string;
+            campusId: string;
         }[];
     } & {
         name: string;

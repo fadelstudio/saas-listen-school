@@ -56,7 +56,6 @@ export declare const saasService: {
             _count: {
                 classes: number;
                 users: number;
-                professors: number;
             };
         } & {
             code: string | null;

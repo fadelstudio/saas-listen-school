@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, ReportType, ReportStatus, Priority, EvaluationStatus, RatingBand, DecisionStatus, AiJobStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import bcrypt from 'bcrypt';
@@ -10,246 +10,192 @@ const prisma = new PrismaClient({ adapter });
 
 const DEFAULT_SCHOOL_ID = 'afi-default-school';
 
-async function main() {
-  console.log('🌱 Starting database seeding (Idempotent)...');
+async function clearData() {
+  console.log('🗑️ Clearing data...');
+  const usersToKeep = await prisma.user.findMany({
+    where: { role: { in: [Role.SUPERADMIN, Role.ADMIN] } },
+    select: { id: true },
+  });
+  const keptUserIds = usersToKeep.map((u) => u.id);
 
+  await prisma.aiJob.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.decision.deleteMany();
+  await prisma.evaluation.deleteMany();
+  await prisma.report.deleteMany();
+  await prisma.evaluationCampaign.deleteMany();
+  await prisma.classModule.deleteMany();
+  await prisma.module.deleteMany();
+  await prisma.professor.deleteMany();
+  await prisma.user.deleteMany({ where: { id: { notIn: keptUserIds } } });
+  await prisma.class.deleteMany();
+  await prisma.academicLevel.deleteMany();
+  await prisma.campus.deleteMany();
+  await prisma.systemSettings.deleteMany({ where: { schoolId: { not: DEFAULT_SCHOOL_ID } } });
+  await prisma.school.deleteMany({ where: { id: { not: DEFAULT_SCHOOL_ID } } });
+  console.log('✅ Data cleared.');
+}
+
+async function main() {
+  console.log('🌱 Seeding Diverse & Comprehensive Data Scenario...');
+  await clearData();
+
+  const passwordHash = await bcrypt.hash('Changeme@123', 12);
+  const studentPassword = await bcrypt.hash('Student@123', 12);
+
+  // 1. School
   await prisma.school.upsert({
     where: { id: DEFAULT_SCHOOL_ID },
     update: {},
-    create: {
-      id: DEFAULT_SCHOOL_ID,
-      name: 'AFI (default)',
-      slug: 'afi-default-school',
-    },
+    create: { id: DEFAULT_SCHOOL_ID, name: "AFI L'UE", slug: 'afi', domain: 'afi-ue.sn' },
   });
 
-  const campusDakar = await prisma.campus.upsert({
-    where: { name: 'Campus Dakar' },
-    update: { schoolId: DEFAULT_SCHOOL_ID },
-    create: {
-      name: 'Campus Dakar',
-      location: 'Dakar, Sénégal',
-      schoolId: DEFAULT_SCHOOL_ID,
-    },
-  });
+  // 2. Structure
+  const campusDakar = await prisma.campus.create({ data: { name: 'Campus Dakar Point E', location: 'Dakar', schoolId: DEFAULT_SCHOOL_ID } });
+  const campusAbidjan = await prisma.campus.create({ data: { name: 'Campus Abidjan Plateau', location: 'Abidjan', schoolId: DEFAULT_SCHOOL_ID } });
 
-  await prisma.campus.upsert({
-    where: { name: 'Campus Abidjan' },
-    update: { schoolId: DEFAULT_SCHOOL_ID },
-    create: {
-      name: 'Campus Abidjan',
-      location: "Abidjan, Côte d'Ivoire",
-      schoolId: DEFAULT_SCHOOL_ID,
-    },
-  });
+  const l3 = await prisma.academicLevel.create({ data: { name: 'Licence 3', order: 3, schoolId: DEFAULT_SCHOOL_ID } });
+  const m1 = await prisma.academicLevel.create({ data: { name: 'Master 1', order: 4, schoolId: DEFAULT_SCHOOL_ID } });
 
-  console.log('✅ School + campuses');
+  const classL3 = await prisma.class.create({ data: { name: 'L3 Informatique', levelId: l3.id, campusId: campusDakar.id } });
+  const classM1 = await prisma.class.create({ data: { name: 'M1 Management', levelId: m1.id, campusId: campusAbidjan.id } });
 
-  const levels = [
-    { name: 'L1', order: 1 },
-    { name: 'L2', order: 2 },
-    { name: 'L3', order: 3 },
-    { name: 'M1', order: 4 },
-    { name: 'Formation Continue', order: 5 },
+  const modulesData = [
+    { name: 'Développement Web', code: 'INF-301' },
+    { name: 'Réseaux Informatiques', code: 'INF-302' },
+    { name: 'Intelligence Artificielle', code: 'INF-401' },
+    { name: 'Marketing Digital', code: 'MKT-301' },
+    { name: 'Droit des Affaires', code: 'DRT-301' },
+    { name: 'Gestion de Projet', code: 'MGT-401' },
   ];
-
-  const levelMap: Record<string, string> = {};
-  for (const l of levels) {
-    const level = await prisma.academicLevel.upsert({
-      where: { schoolId_name: { schoolId: DEFAULT_SCHOOL_ID, name: l.name } },
-      update: { order: l.order },
-      create: { schoolId: DEFAULT_SCHOOL_ID, name: l.name, order: l.order },
-    });
-    levelMap[l.name] = level.id;
+  const modules = [];
+  for (const m of modulesData) {
+    modules.push(await prisma.module.create({ data: { ...m, schoolId: DEFAULT_SCHOOL_ID } }));
   }
 
-  console.log('✅ Academic levels (scoped school)');
-
-  const classes = [
-    { id: 'class-l3-info', name: 'L3 Informatique', level: 'L3', campus: campusDakar.id },
-    { id: 'class-m1-mkt', name: 'M1 Marketing', level: 'M1', campus: campusDakar.id },
-    { id: 'class-fc-mgmt', name: 'Management (FC)', level: 'Formation Continue', campus: campusDakar.id },
+  // 3. Professors (12 Professors)
+  const profNames = [
+    { first: 'Abdoulaye', last: 'Kane', email: 'a.kane@afi.com' },
+    { first: 'Seynabou', last: 'Diop', email: 's.diop@afi.com' },
+    { first: 'Issa', last: 'Traoré', email: 'i.traore@afi.com' },
+    { first: 'Mariama', last: 'Ba', email: 'm.ba@afi.com' },
+    { first: 'Cheikh', last: 'Anta Fall', email: 'c.fall@afi.com' },
+    { first: 'Ndèye', last: 'Saliou', email: 'n.saliou@afi.com' },
+    { first: 'Boubacar', last: 'Diallo', email: 'b.diallo@afi.com' },
+    { first: 'Ousmane', last: 'Sonko', email: 'o.sonko@afi.com' },
+    { first: 'Aminata', last: 'Touré', email: 'a.toure@afi.com' },
+    { first: 'Khalifa', last: 'Sall', email: 'k.sall@afi.com' },
+    { first: 'Aïssatou', last: 'Tall Sall', email: 'a.tall@afi.com' },
+    { first: 'Bamba', last: 'Dieye', email: 'b.dieye@afi.com' },
   ];
+  const professors = [];
+  for (const p of profNames) {
+    professors.push(await prisma.professor.create({ data: { firstName: p.first, lastName: p.last, email: p.email, schoolId: DEFAULT_SCHOOL_ID } }));
+  }
 
-  for (const c of classes) {
-    await prisma.class.upsert({
-      where: { id: c.id },
-      update: { levelId: levelMap[c.level] },
-      create: {
-        id: c.id,
-        name: c.name,
-        levelId: levelMap[c.level],
-        campusId: c.campus,
+  // Assign every professor to at least one module
+  const assignments = [];
+  for (let i = 0; i < professors.length; i++) {
+    const mod = modules[i % modules.length];
+    const cls = i < 6 ? classL3 : classM1;
+    await prisma.classModule.create({
+      data: {
+        classId: cls.id,
+        moduleId: mod.id,
+        professors: { connect: [{ id: professors[i].id }] },
       },
     });
+    assignments.push({ professorId: professors[i].id, moduleId: mod.id, classId: cls.id });
   }
 
-  console.log('✅ Classes');
+  // 4. Students (25 Students)
+  const studentNames = ['Omar', 'Awa', 'Fatou', 'Moussa', 'Jean', 'Modou', 'Bineta', 'Saliou', 'Penda', 'Babacar', 'Ramata', 'Abdou', 'Khady', 'Talla', 'Astou', 'Malick', 'Dior', 'Bamba', 'Fatimata', 'Alioune', 'Yasmine', 'Cheikh', 'Nafi', 'Demba', 'Binta'];
+  const students = [];
+  for (let i = 0; i < studentNames.length; i++) {
+    const cls = i < 15 ? classL3 : classM1;
+    const campus = i < 15 ? campusDakar : campusAbidjan;
+    students.push(await prisma.user.create({
+      data: {
+        email: `${studentNames[i].toLowerCase()}.${i}@student.afi.com`, firstName: studentNames[i], lastName: 'Ndiaye', role: Role.STUDENT,
+        schoolId: DEFAULT_SCHOOL_ID, classId: cls.id, campuses: { connect: [{ id: campus.id }] },
+        passwordHash: studentPassword, emailVerified: true,
+      },
+    }));
+  }
 
-  const professors = [
-    { email: 'diallo@afi.com', first: 'Ibrahima', last: 'Diallo' },
-    { email: 'traore@afi.com', first: 'Mariam', last: 'Traoré' },
-    { email: 'diop@afi.com', first: 'Cheikh', last: 'Diop' },
-  ];
-
-  const profIds: Record<string, string> = {};
-  for (const p of professors) {
-    const prof = await prisma.professor.upsert({
-      where: { email: p.email },
-      update: { campusId: campusDakar.id },
-      create: {
-        firstName: p.first,
-        lastName: p.last,
-        email: p.email,
-        campusId: campusDakar.id,
+  // 5. Campaigns & Evaluations
+  for (const assign of assignments) {
+    const campaign = await prisma.evaluationCampaign.create({
+      data: {
+        title: `Évaluation ${professors.find(p => p.id === assign.professorId)?.lastName} - ${modules.find(m => m.id === assign.moduleId)?.name}`,
+        scope: 'CLASS', classId: assign.classId, moduleId: assign.moduleId, professorId: assign.professorId,
+        status: 'ACTIVE', dueDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
       },
     });
-    profIds[p.email] = prof.id;
-  }
 
-  console.log('✅ Professors');
-
-  const modules = [
-    { name: 'Algorithmique & Structure de données', code: 'INF-ALGO' },
-    { name: 'Base de données', code: 'INF-DB' },
-    { name: 'Stratégie Digitale', code: 'MKT-STRAT' },
-  ];
-
-  const modIds: Record<string, string> = {};
-  for (const m of modules) {
-    const mod = await prisma.module.upsert({
-      where: { schoolId_name: { schoolId: DEFAULT_SCHOOL_ID, name: m.name } },
-      update: { code: m.code },
-      create: { schoolId: DEFAULT_SCHOOL_ID, name: m.name, code: m.code },
-    });
-    modIds[m.name] = mod.id;
-  }
-
-  console.log('✅ Modules (scoped school)');
-
-  const assignments = [
-    { classId: 'class-l3-info', modName: 'Algorithmique & Structure de données', profs: ['diallo@afi.com'] },
-    { classId: 'class-l3-info', modName: 'Base de données', profs: ['diallo@afi.com', 'traore@afi.com'] },
-    { classId: 'class-m1-mkt', modName: 'Stratégie Digitale', profs: ['traore@afi.com'] },
-  ];
-
-  for (const a of assignments) {
-    const modId = modIds[a.modName];
-    const existingAssignment = await prisma.classModule.findUnique({
-      where: { classId_moduleId: { classId: a.classId, moduleId: modId } },
-    });
-
-    if (!existingAssignment) {
-      await prisma.classModule.create({
+    const classStudents = students.filter(s => s.classId === assign.classId);
+    for (let j = 0; j < 3; j++) {
+      const student = classStudents[j % classStudents.length];
+      await prisma.evaluation.create({
         data: {
-          classId: a.classId,
-          moduleId: modId,
-          professors: { connect: a.profs.map((email) => ({ id: profIds[email] })) },
+          schoolId: DEFAULT_SCHOOL_ID, campaignId: campaign.id, evaluatorId: student.id,
+          professorId: assign.professorId, moduleId: assign.moduleId, classId: assign.classId,
+          status: EvaluationStatus.COMPLETED, score: 12 + Math.floor(Math.random() * 8),
+          isAnonymous: j % 2 === 0,
+          comprehensionRating: RatingBand.GOOD, explanationRating: RatingBand.EXCELLENT,
+          pedagogyRating: RatingBand.GOOD, availabilityRating: RatingBand.FAIR, rhythmRating: RatingBand.GOOD,
+          comment: "Bon cours dans l'ensemble.",
         },
-      });
-    } else {
-      await prisma.classModule.update({
-        where: { id: existingAssignment.id },
-        data: { professors: { set: a.profs.map((email) => ({ id: profIds[email] })) } },
       });
     }
   }
 
-  console.log('✅ Class modules');
-
-  const passwordHash = await bcrypt.hash('fadeldev', 12);
-  const studentPassword = await bcrypt.hash('Student@123', 12);
-
-  const users = [
-    { email: 'superadmin@saas.com', role: Role.SUPERADMIN, mat: 'SUPER-001', first: 'SaaS', last: 'SuperAdmin', class: null as string | null },
-    { email: 'admin@afi.com', role: Role.ADMIN, mat: 'ADM-AFI-001', first: 'Admin', last: 'AFI', class: null },
-    { email: 'student1@afi.com', role: Role.STUDENT, mat: 'STU-001', first: 'John', last: 'Doe', class: 'class-l3-info' },
-    { email: 'student2@afi.com', role: Role.STUDENT, mat: 'STU-002', first: 'Jane', last: 'Smith', class: 'class-l3-info' },
+  // 6. RICH & VARIED REPORTS (40+ Reports)
+  console.log('📝 Generating rich and varied reports...');
+  const reportScenarios = [
+    { type: ReportType.PROBLEM_MATERIAL, title: "Climatisation Salle 102 en panne", content: "Il fait extrêmement chaud en salle 102, la clim ne marche plus depuis lundi.", priority: Priority.HIGH },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Manque de supports de cours", content: "Le professeur ne nous a pas encore transmis les slides du dernier chapitre.", priority: Priority.MEDIUM },
+    { type: ReportType.INCIDENT, title: "Incident dans les escaliers", content: "Une marche semble instable au deuxième étage, attention aux chutes.", priority: Priority.CRITICAL },
+    { type: ReportType.SUGGESTION, title: "Installation de fontaines à eau", content: "Ce serait bien d'avoir des fontaines à eau accessibles dans les couloirs.", priority: Priority.LOW },
+    { type: ReportType.PROBLEM_MATERIAL, title: "Wifi instable au 3ème étage", content: "Impossible de se connecter correctement pour les TP de programmation.", priority: Priority.HIGH },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Rythme de cours trop rapide", content: "Beaucoup d'étudiants ont du mal à suivre le rythme actuel en mathématiques.", priority: Priority.MEDIUM },
+    { type: ReportType.SUGGESTION, title: "Organisation d'un Hackathon", content: "Pourquoi ne pas organiser un hackathon interne pour la filière info ?", priority: Priority.LOW },
+    { type: ReportType.INCIDENT, title: "Vols signalés dans les casiers", content: "Plusieurs étudiants ont rapporté des disparitions d'effets personnels.", priority: Priority.CRITICAL },
+    { type: ReportType.PROBLEM_MATERIAL, title: "Projecteur défectueux Amphi A", content: "L'image saute tout le temps, c'est très difficile de voir le tableau.", priority: Priority.MEDIUM },
+    { type: ReportType.OTHER, title: "Demande de partenariat entreprises", content: "Serait-il possible d'avoir plus de conférences avec des professionnels ?", priority: Priority.LOW },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Méthode d'évaluation peu claire", content: "On ne comprend pas bien comment les projets seront notés.", priority: Priority.MEDIUM },
+    { type: ReportType.PROBLEM_MATERIAL, title: "Manque de prises électriques", content: "Pas assez de prises pour charger les ordinateurs en salle de TP.", priority: Priority.MEDIUM },
+    { type: ReportType.SUGGESTION, title: "Club de sport universitaire", content: "On aimerait créer une équipe de foot officielle pour représenter l'école.", priority: Priority.LOW },
+    { type: ReportType.INCIDENT, title: "Aggression aux abords de l'école", content: "Un étudiant s'est fait voler son sac juste devant le portail hier soir.", priority: Priority.CRITICAL },
+    { type: ReportType.PROBLEM_PEDAGOGICAL, title: "Supports de cours obsolètes", content: "Certains exemples utilisés en cours datent de plus de 10 ans.", priority: Priority.MEDIUM },
+    { type: ReportType.SUGGESTION, title: "Ouverture bibliothèque le samedi", content: "Ce serait utile de pouvoir réviser à l'école le week-end.", priority: Priority.MEDIUM },
   ];
 
-  for (const u of users) {
-    const schoolId = u.role === Role.SUPERADMIN ? null : DEFAULT_SCHOOL_ID;
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: {
-        matricule: u.mat,
-        role: u.role,
-        classId: u.class,
-        campusId: campusDakar.id,
-        schoolId,
-        emailVerified: true,
-        emailVerifiedAt: new Date(),
-      },
-      create: {
-        email: u.email,
-        passwordHash: u.email.includes('student') ? studentPassword : passwordHash,
-        firstName: u.first,
-        lastName: u.last,
-        role: u.role,
-        isActive: true,
-        matricule: u.mat,
-        classId: u.class,
-        campusId: campusDakar.id,
-        schoolId,
-        emailVerified: true,
-        emailVerifiedAt: new Date(),
-      },
-    });
-  }
+  for (let i = 0; i < 45; i++) {
+    const scenario = reportScenarios[i % reportScenarios.length];
+    const student = students[Math.floor(Math.random() * students.length)];
+    const isAnonymous = i % 3 === 0;
+    
+    // Randomize status
+    const statusValues = [ReportStatus.SUBMITTED, ReportStatus.REVIEWED, ReportStatus.APPROVED, ReportStatus.REJECTED];
+    const status = statusValues[Math.floor(Math.random() * statusValues.length)];
 
-  console.log('✅ Users');
-
-  await prisma.systemSettings.upsert({
-    where: { schoolId: DEFAULT_SCHOOL_ID },
-    update: {},
-    create: {
-      schoolId: DEFAULT_SCHOOL_ID,
-      schoolName: 'AFI Université',
-      aiEnabled: true,
-      aiConfigs: [
-        {
-          id: 'config-gemini',
-          name: 'Gemini Pro',
-          provider: 'GEMINI',
-          model: 'gemini-pro',
-          apiKey: process.env.GEMINI_API_KEY,
-          priority: 1,
-          isFree: false,
-        },
-      ],
-    },
-  });
-
-  console.log('✅ System settings');
-
-  const existingCampaign = await prisma.evaluationCampaign.findFirst({
-    where: { title: 'Évaluation Mi-Semestre L3 Info' },
-  });
-
-  if (!existingCampaign) {
-    await prisma.evaluationCampaign.create({
+    await prisma.report.create({
       data: {
-        title: 'Évaluation Mi-Semestre L3 Info',
-        description: 'Veuillez évaluer vos cours pour nous aider à nous améliorer.',
-        scope: 'CLASS',
-        classId: 'class-l3-info',
-        moduleId: modIds['Base de données'],
-        professorId: profIds['diallo@afi.com'],
-        status: 'ACTIVE',
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        title: `${scenario.title} #${i}`,
+        content: scenario.content,
+        type: scenario.type,
+        priority: scenario.priority,
+        isAnonymous: isAnonymous,
+        authorId: student.id,
+        schoolId: DEFAULT_SCHOOL_ID,
+        classId: student.classId,
+        status: status,
       },
     });
-    console.log('✅ Sample evaluation campaign');
   }
 
-  console.log('✨ Seeding finished successfully!');
+  console.log('✨ Seed finished: 45+ rich reports with different contexts injected!');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch(console.error).finally(() => prisma.$disconnect());

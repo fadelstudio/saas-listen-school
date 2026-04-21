@@ -22,10 +22,10 @@ async function authMiddleware(req, _res, next) {
                 where: { id: payload.userId },
                 select: {
                     schoolId: true,
-                    campus: { select: { schoolId: true } },
+                    campuses: { select: { schoolId: true }, take: 1 },
                 },
             });
-            const resolvedSchoolId = user?.schoolId || user?.campus?.schoolId || null;
+            const resolvedSchoolId = user?.schoolId || user?.campuses?.[0]?.schoolId || null;
             if (!resolvedSchoolId) {
                 throw new AppError_1.UnauthorizedError("Token missing school context. Please log in again.");
             }

@@ -2,16 +2,14 @@ import { Prisma } from '@prisma/client';
 import { ProfessorFilters } from './professors.types';
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
-/** Prof rattaché à l’école : campus dans l’école OU aucun campus (= tous les campus). */
+/**
+ * Filtre les professeurs appartenant à une école donnée.
+ * Un professeur appartient à l'école si son schoolId correspond.
+ */
 export declare function professorInSchool(schoolId: string): Prisma.ProfessorWhereInput;
 export declare const professorsRepository: {
     findAll(schoolId: string, filters: ProfessorFilters, pagination: PaginationArgs): Promise<{
         items: ({
-            campus: {
-                code: string | null;
-                name: string;
-                id: string;
-            } | null;
             user: {
                 id: string;
                 avatarPath: string | null;
@@ -24,23 +22,18 @@ export declare const professorsRepository: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
         })[];
         total: number;
     }>;
     findById(id: string, schoolId: string): Promise<({
-        campus: {
-            code: string | null;
-            name: string;
-            id: string;
-        } | null;
         user: {
             id: string;
             avatarPath: string | null;
@@ -81,13 +74,13 @@ export declare const professorsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
         numero: string | null;
         avatarPath: string | null;
-        campusId: string | null;
         userId: string | null;
     }) | null>;
     create(data: {
@@ -95,16 +88,11 @@ export declare const professorsRepository: {
         lastName: string;
         email: string;
         userId?: string;
-        campusId: string | null;
+        schoolId: string;
         matricule?: string | null;
         numero?: string | null;
         phone?: string | null;
     }): Promise<{
-        campus: {
-            code: string | null;
-            name: string;
-            id: string;
-        } | null;
         user: {
             id: string;
             avatarPath: string | null;
@@ -117,30 +105,22 @@ export declare const professorsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
         numero: string | null;
         avatarPath: string | null;
-        campusId: string | null;
         userId: string | null;
     }>;
     update(id: string, schoolId: string, data: {
-        firstName?: string;
-        lastName?: string;
         email?: string;
         userId?: string;
-        campusId?: string | null;
         matricule?: string | null;
         numero?: string | null;
         phone?: string | null;
     }): Promise<({
-        campus: {
-            code: string | null;
-            name: string;
-            id: string;
-        } | null;
         user: {
             id: string;
             avatarPath: string | null;
@@ -153,13 +133,13 @@ export declare const professorsRepository: {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        schoolId: string | null;
         phone: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
         numero: string | null;
         avatarPath: string | null;
-        campusId: string | null;
         userId: string | null;
     }) | null>;
     delete(id: string, schoolId: string): Promise<boolean>;

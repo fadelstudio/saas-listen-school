@@ -21,7 +21,7 @@ export function campaignInSchool(schoolId: string): Prisma.EvaluationCampaignWhe
       {
         AND: [
           { scope: 'SCHOOL' },
-          { professor: { campus: { schoolId } } },
+          { module: { schoolId } },
         ],
       },
     ],
@@ -87,22 +87,22 @@ export const evaluationCampaignsRepository = {
     scope: string;
     classId?: string;
     campusId?: string;
-    moduleId: string;
-    professorId: string;
+    moduleId?: string;
+    professorId?: string;
     dueDate: Date;
   }) {
     return prisma.evaluationCampaign.create({
       data: {
         title: data.title,
-        description: data.description,
+        description: data.description || undefined,
         scope: data.scope,
-        classId: data.classId,
-        campusId: data.campusId,
-        moduleId: data.moduleId,
-        professorId: data.professorId,
+        classId: data.classId || undefined,
+        campusId: data.campusId || undefined,
+        moduleId: data.moduleId || undefined,
+        professorId: data.professorId || undefined,
         dueDate: data.dueDate,
         status: 'ACTIVE',
-      },
+      } as any,
     });
   },
 
@@ -115,5 +115,57 @@ export const evaluationCampaignsRepository = {
       where: { id },
       data: { status },
     });
+  },
+
+  async getAnalytics(id: string, schoolId: string) {
+    const campaign = await prisma.evaluationCampaign.findFirst({
+      where: { id, ...campaignInSchool(schoolId) },
+      include: {
+        class: { include: { users: { where: { role: 'STUDENT' }, select: { id: true } } } },
+        campus: { include: { users: { where: { role: 'STUDENT' }, select: { id: true } } } },
+        _count: { select: { evaluations: true } },
+        evaluations: {
+          select: { id: true, score: true, aiScore: true, comment: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        module: true,
+        professor: true,
+      },
+    });
+
+    if (!campaign) return null;
+
+    let totalExpected = 0;
+    if (campaign.scope === 'CLASS') {
+      totalExpected = campaign.class?.users.length || 0;
+    } else if (campaign.scope === 'CAMPUS') {
+      totalExpected = campaign.campus?.users.length || 0;
+    } else if (campaign.scope === 'SCHOOL') {
+      totalExpected = await prisma.user.count({ where: { role: 'STUDENT', schoolId } });
+    }
+
+    const totalDone = campaign._count.evaluations;
+    const completionRate = totalExpected > 0 ? (totalDone / totalExpected) * 100 : 0;
+    
+    const avgScore = campaign.evaluations.reduce((acc, curr) => acc + (curr.score || 0), 0) / (totalDone || 1);
+    const avgAiScore = campaign.evaluations.reduce((acc, curr) => acc + (curr.aiScore || 0), 0) / (totalDone || 1);
+
+    // Get the decision if it exists
+    const decision = await prisma.decision.findFirst({
+      where: { campaignId: id } as any,
+      include: { decider: { select: { firstName: true, lastName: true } } },
+    });
+
+    return {
+      campaign,
+      stats: {
+        totalExpected,
+        totalDone,
+        completionRate: Number(completionRate.toFixed(1)),
+        avgScore: Number(avgScore.toFixed(1)),
+        avgAiScore: Number(avgAiScore.toFixed(1)),
+      },
+      decision,
+    };
   },
 };

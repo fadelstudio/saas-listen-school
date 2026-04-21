@@ -4,8 +4,10 @@ import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
 export declare const reportsRepository: {
     getUserContext(userId: string): Promise<{
-        campusId: string | null;
         classId: string | null;
+        campuses: {
+            id: string;
+        }[];
     } | null>;
     create(data: CreateReportInput, authorId?: string, schoolId?: string | null): Promise<{
         module: {
@@ -16,27 +18,27 @@ export declare const reportsRepository: {
             updatedAt: Date;
             schoolId: string;
         } | null;
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        } | null;
         professor: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
         } | null;
         author: {
             email: string;
@@ -73,27 +75,33 @@ export declare const reportsRepository: {
             updatedAt: Date;
             schoolId: string;
         } | null;
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            campusId: string;
-            levelId: string;
-        } | null;
         professor: {
             email: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            schoolId: string | null;
             phone: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
             numero: string | null;
             avatarPath: string | null;
-            campusId: string | null;
             userId: string | null;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        } | null;
+        author: {
+            email: string;
+            id: string;
+            firstName: string;
+            lastName: string;
         } | null;
         aiJobs: {
             result: Prisma.JsonValue | null;
@@ -108,12 +116,6 @@ export declare const reportsRepository: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
-        author: {
-            email: string;
-            id: string;
-            firstName: string;
-            lastName: string;
-        } | null;
     } & {
         type: import("@prisma/client").$Enums.ReportType;
         id: string;
@@ -144,27 +146,27 @@ export declare const reportsRepository: {
                 updatedAt: Date;
                 schoolId: string;
             } | null;
-            class: {
-                name: string;
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                campusId: string;
-                levelId: string;
-            } | null;
             professor: {
                 email: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                schoolId: string | null;
                 phone: string | null;
                 firstName: string;
                 lastName: string;
                 matricule: string | null;
                 numero: string | null;
                 avatarPath: string | null;
-                campusId: string | null;
                 userId: string | null;
+            } | null;
+            class: {
+                name: string;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                levelId: string;
+                campusId: string;
             } | null;
             author: {
                 email: string;

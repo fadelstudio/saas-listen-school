@@ -19,11 +19,11 @@ export const createReportSchema = z.object({
   content: z.string().min(10, 'Content must be at least 10 characters').max(5000),
   type: reportTypeEnum.optional(),
   category: z.string().max(100).optional(),
-  priority:    priorityEnum.optional(),
+  priority: priorityEnum.optional(),
   isAnonymous: z.boolean().optional().default(false),
-  classId:     z.string().uuid('Invalid class ID').optional(),
+  classId: z.string().uuid('Invalid class ID').optional(),
   professorId: z.string().uuid('Invalid professor ID').optional(),
-  moduleId:    z.string().uuid('Invalid module ID').optional(),
+  moduleId: z.string().uuid('Invalid module ID').optional(),
 });
 
 // ─── Update ───────────────────────────────────────────────────────────────────
