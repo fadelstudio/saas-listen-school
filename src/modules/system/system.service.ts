@@ -54,7 +54,9 @@ export const systemService = {
       const settings = await systemRepository.getSettings(schoolId);
       if (!settings) throw new Error('Settings not found for this school');
       
-      const response = settings as unknown as SystemSettingsResponse;
+      const response = { ...settings, logoUrl: (settings as any).school?.logoUrl } as unknown as SystemSettingsResponse;
+      delete (response as any).school;
+      
       settingsCache.set(schoolId, { data: response, timestamp: now });
       return response;
     }
@@ -102,6 +104,8 @@ export const systemService = {
       where: { id: schoolId },
       data: { logoUrl: result.url }
     });
+
+    settingsCache.delete(schoolId);
 
     return { url: result.url };
   }
