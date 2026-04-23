@@ -2,7 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { QUEUE_NAMES } from '../core/config/queue';
 import { redisConnection } from '../core/config/redis';
 import { prisma } from '../core/database/prisma';
-import { AiJobStatus, Prisma } from '@prisma/client';
+import { AiJobStatus, Prisma, Priority } from '@prisma/client';
 import { z } from 'zod';
 import { logger } from '../utils/logger';
 
@@ -89,6 +89,26 @@ async function handleReportAnalysis(payload: AiAnalysisPayload): Promise<AiAnaly
     where: { id: report.id },
     data: { aiAnalysis: result as unknown as Prisma.InputJsonObject },
   });
+
+  // 4. Proactive Decision: Create a PROPOSED decision ONLY if priority is HIGH/CRITICAL
+  if (result.priority === 'HIGH' || result.priority === 'CRITICAL') {
+    const systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN', schoolId: report.schoolId as string } });
+    if (systemUser) {
+      await prisma.decision.create({
+        data: {
+          reportId:     report.id,
+          schoolId:     report.schoolId,
+          deciderId:    systemUser.id,
+          title:        `Action requise : ${report.title}`,
+          rationale:    result.summary,
+          aiSuggestion: result.recommendation,
+          priority:     result.priority as Priority,
+          status:       'PROPOSED',
+        } as any,
+      });
+    }
+  }
+
   return result;
 }
 

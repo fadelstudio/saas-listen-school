@@ -246,7 +246,7 @@ export const evaluationCampaignsService = {
         title: `Suivi suite à la campagne : ${campaign.title}`,
         rationale: aiParsed.summary,
         aiSuggestion: aiParsed.recommendation,
-        status: 'PENDING',
+        status: 'PROPOSED',
         priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
       } as any,
       include: { decider: { select: { firstName: true, lastName: true } } }

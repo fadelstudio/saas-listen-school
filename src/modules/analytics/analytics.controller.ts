@@ -13,4 +13,18 @@ export const analyticsController = {
       next(error);
     }
   },
+
+  async generateGlobalAnalysis(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await analyticsService.generateGlobalAnalysis(
+        req.body,
+        req.user!.userId,
+        req.schoolId
+      );
+      res.sendSuccess('Global analysis triggered and report generated', result);
+    } catch (error) {
+      next(error);
+    }
+  },
 };

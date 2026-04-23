@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { DecisionStatus } from '@prisma/client';
 
 const priorityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
 
@@ -21,7 +20,7 @@ export const updateDecisionSchema = z.object({
 });
 
 export const updateDecisionStatusSchema = z.object({
-  status: z.nativeEnum(DecisionStatus),
+  status: z.enum(['PROPOSED', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DONE']),
 });
 
 export const decisionParamsSchema = z.object({
@@ -33,7 +32,7 @@ export const decisionQuerySchema = z.object({
   limit:     z.coerce.number().min(1).max(100).optional(),
   sortBy:    z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
-  status:    z.nativeEnum(DecisionStatus).optional(),
+  status:    z.enum(['PROPOSED', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DONE']).optional(),
   priority:  priorityEnum.optional(),
   deciderId: z.string().uuid().optional(),
 });
