@@ -38,11 +38,11 @@ enum EvaluationStatus {
 }
 
 enum DecisionStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  DEFERRED
-  DONE
+  PROPOSED    // Proposé par l'IA, en attente de validation
+  APPROVED    // Validé par l'admin, à exécuter
+  REJECTED    // Rejeté par l'admin
+  IN_PROGRESS // En cours d'exécution
+  DONE        // Terminé
 }
 
 enum AiJobStatus {
@@ -96,6 +96,7 @@ model School {
   reports     Report[]
   evaluations Evaluation[]
   decisions   Decision[]
+  analysisReports AnalysisReport[]
   professors  Professor[]
   notifications Notification[]
 
@@ -261,6 +262,7 @@ model User {
   decisions   Decision[]
   notifications Notification[]
   refreshTokens RefreshToken[]
+  analysisReports AnalysisReport[]
   passwordResetTokens PasswordResetToken[]
   loginOtpChallenges  LoginOtpChallenge[]
 
@@ -410,7 +412,7 @@ model Decision {
   deciderId    String
   title        String
   rationale    String?
-  status       DecisionStatus @default(PENDING)
+  status       DecisionStatus @default(PROPOSED)
   priority     Priority       @default(MEDIUM)
   responsible  String?        // Name or Department
   dueDate      DateTime?
@@ -428,10 +430,37 @@ model Decision {
   report       Report?         @relation(fields: [reportId],     references: [id])
   campaignId   String?         @unique
   campaign     EvaluationCampaign? @relation(fields: [campaignId], references: [id])
+  
+  // Liaison avec une analyse globale
+  analysisId   String?
+  analysis     AnalysisReport? @relation(fields: [analysisId], references: [id])
+
   decider      User           @relation(fields: [deciderId],    references: [id])
   aiJobs       AiJob[]
 
   @@map("decisions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYSIS REPORTS (Global AI Analysis)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AnalysisReport {
+  id           String   @id @default(uuid())
+  schoolId     String
+  title        String
+  content      Json     // Le contenu du rapport (synthèse, stats, etc.)
+  filters      Json     // Les filtres utilisés (dateRange, campusId, etc.)
+  generatedById String
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  school       School     @relation(fields: [schoolId], references: [id])
+  generatedBy  User       @relation(fields: [generatedById], references: [id])
+  decisions    Decision[]
+
+  @@map("analysis_reports")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
