@@ -38,6 +38,7 @@ enum EvaluationStatus {
 }
 
 enum DecisionStatus {
+  PENDING     // Legacy/Fallback status
   PROPOSED    // Proposé par l'IA, en attente de validation
   APPROVED    // Validé par l'admin, à exécuter
   REJECTED    // Rejeté par l'admin
@@ -451,6 +452,7 @@ model AnalysisReport {
   title        String
   content      Json     // Le contenu du rapport (synthèse, stats, etc.)
   filters      Json     // Les filtres utilisés (dateRange, campusId, etc.)
+  isRead       Boolean  @default(false)
   generatedById String
   
   createdAt    DateTime @default(now())

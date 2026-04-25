@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { systemRepository } from './system.repository';
 import { UpdateSystemSettingsInput } from './system.schema';
 import { SystemSettingsResponse } from './system.types';

@@ -49,6 +49,9 @@ const envSchema = z.object({
   MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
   SIGNED_URL_EXPIRES_IN: z.coerce.number().int().positive().default(60 * 60), // seconds
 
+  // Analytics
+  ANALYTICS_REPORT_INTERVAL_DAYS: z.coerce.number().int().positive().default(30),
+
   // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   MAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),

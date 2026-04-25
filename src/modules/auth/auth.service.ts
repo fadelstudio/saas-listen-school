@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { env } from '../../core/config/env';
+/// <reference types="multer" />
 import { prisma } from '../../core/database/prisma';
 import {
   ConflictError,

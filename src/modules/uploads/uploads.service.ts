@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { supabase } from '../../core/database/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequestException, InternalServerException } from '../../core/errors/HttpException';
