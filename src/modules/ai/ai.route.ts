@@ -162,12 +162,16 @@ aiRouter.post(
  *       200:
  *         description: Traitement lancé. Récupérez le résultat via /api/ai/jobs/{jobId}/result
  */
-aiRouter.post(
-  '/chat',
-  authMiddleware,
-  validate({ body: chatSchema }),
-  aiController.chat
-);
+aiRouter.post('/chat', authMiddleware, validate({ body: chatSchema }), (req, res, next) => aiController.chat(req, res, next));
+
+// Direct synchronous chat — no queue, instant response
+aiRouter.post('/chat-direct', authMiddleware, (req, res, next) => aiController.chatDirect(req, res, next));
+
+// Conversation history management
+aiRouter.get('/conversations', authMiddleware, (req, res, next) => aiController.getConversations(req, res, next));
+aiRouter.get('/conversations/:id/messages', authMiddleware, (req, res, next) => aiController.getMessages(req, res, next));
+aiRouter.post('/conversations/:id/save', authMiddleware, (req, res, next) => aiController.saveConversation(req, res, next));
+aiRouter.delete('/conversations/:id', authMiddleware, (req, res, next) => aiController.deleteConversation(req, res, next));
 
 /**
  * @swagger

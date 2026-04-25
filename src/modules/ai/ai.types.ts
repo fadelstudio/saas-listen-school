@@ -10,6 +10,12 @@ export interface AiJobFilters {
 
 export interface ChatInput {
   question: string;
+  conversationId?: string;
+}
+
+export interface ChatDirectInput {
+  question: string;
+  conversationId?: string;
 }
 
 export interface SynthesisInput {

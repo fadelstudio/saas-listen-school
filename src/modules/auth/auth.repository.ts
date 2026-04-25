@@ -119,7 +119,7 @@ export const authRepository = {
   },
 
   async deleteRefreshToken(token: string) {
-    return prisma.refreshToken.delete({
+    return prisma.refreshToken.deleteMany({
       where: { token },
     });
   },

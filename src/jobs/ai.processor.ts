@@ -15,6 +15,7 @@ export interface AiAnalysisPayload {
   decisionId?:   string;
   question?:     string;
   userId?:       string;
+  conversationId?: string; // New: link back to chat history
   startDate?:    string;
   endDate?:      string;
 }
@@ -202,34 +203,81 @@ async function handleChatQuery(payload: AiAnalysisPayload): Promise<AiAnalysisRe
   if (!user?.schoolId) throw new Error('Chat context missing schoolId');
   const schoolId = user.schoolId;
 
-  const [recentReports, recentEvals] = await Promise.all([
-    prisma.report.findMany({ where: { schoolId }, take: 10, select: { title: true, content: true } }),
-    prisma.evaluation.findMany({ where: { schoolId }, take: 10, select: { comment: true } }),
-  ]);
+  // 1. Intent Detection: Do we need heavy data?
+  const question = payload.question?.toLowerCase() || '';
+  const needsData = /(prof|critique|note|score|rapport|signalement|campus|stat|classe|satisfaction)/.test(question);
 
-  const prompt = `Contexte récent de l'école:
-  Signalements: ${JSON.stringify(recentReports)}
-  Evaluations: ${JSON.stringify(recentEvals)}
+  let contextSummary = '';
   
-  Question de l'utilisateur: ${payload.question}
+  if (needsData) {
+    // Heavy path: Fetch Aggregated Data
+    const [reportStats, satisfactionStats, professorCritiques] = await Promise.all([
+      prisma.report.groupBy({ by: ['status'], _count: true, where: { schoolId } }),
+      prisma.evaluation.aggregate({ _avg: { score: true }, _count: true, where: { schoolId } }),
+      prisma.evaluation.groupBy({ 
+        by: ['professorId'], 
+        _avg: { score: true }, 
+        _count: true,
+        where: { schoolId, score: { lte: 10 } },
+        orderBy: { _count: { professorId: 'desc' } },
+        take: 5
+      })
+    ]);
+
+    const topCritiquedProfIds = professorCritiques.map(p => p.professorId).filter(Boolean) as string[];
+    const profNames = await prisma.professor.findMany({
+      where: { id: { in: topCritiquedProfIds } },
+      select: { id: true, firstName: true, lastName: true }
+    });
+
+    const data = {
+      totalReports: reportStats.reduce((acc, curr) => acc + (curr._count as any), 0),
+      avgSatisfaction: satisfactionStats._avg?.score || 0,
+      critiquedProfessors: professorCritiques.map(p => {
+        const name = profNames.find(n => n.id === p.professorId);
+        return `${name?.firstName} ${name?.lastName}: ${p._count} critiques (Score moy: ${p._avg?.score?.toFixed(1)})`;
+      })
+    };
+    
+    contextSummary = `
+      DONNÉES ÉTABLISSEMENT :
+      - Satisfaction Moyenne: ${data.avgSatisfaction.toFixed(1)}/20
+      - Volume de Signalements: ${data.totalReports}
+      - Professeurs les plus critiqués: ${data.critiquedProfessors.join(' | ')}
+    `;
+  }
+
+  const prompt = `Tu es l'Assistant IA expert de cette école.
+  ${contextSummary ? `Voici les données actuelles : ${contextSummary}` : "L'utilisateur te salue ou pose une question générale."}
   
-  Réponds de manière concise et utile en JSON strict.
-  Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
+  Question: ${payload.question}
+  
+  RÈGLES :
+  1. Si tu as des données, utilise-les pour répondre précisément.
+  2. Si tu n'as pas de données (car la question est simple), réponds poliment et invite à poser des questions sur les rapports ou les performances.
+  3. Réponds en JSON strict : {"summary":"...","recommendation":"","confidence":0.98}`;
 
   const raw = await callAI(prompt, schoolId);
   const processedAt = new Date().toISOString();
 
+  let validated: { summary?: string; recommendation?: string; confidence?: number };
   try {
-    const validated = parseAiJsonStrict(raw);
-    return { ...validated, processedAt };
+    validated = parseAiJsonStrict(raw);
   } catch (e) {
-    return {
-      summary: raw,
-      recommendation: '',
-      confidence: 0.5,
-      processedAt,
-    };
+    validated = { summary: raw, recommendation: '', confidence: 0.5 };
   }
+
+  // Save assistant message to history if conversationId is provided
+  if (payload.conversationId) {
+    try {
+      const { chatService } = await import('../modules/ai/chat.service');
+      await chatService.addMessage(payload.conversationId as string, 'assistant', validated.summary || '');
+    } catch (err) {
+      logger.warn('Could not save AI response to chat history', { err });
+    }
+  }
+
+  return { ...validated, processedAt };
 }
 
 // ─── BullMQ Worker ────────────────────────────────────────────────────────────

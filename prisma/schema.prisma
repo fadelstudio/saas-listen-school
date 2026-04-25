@@ -471,7 +471,7 @@ model AnalysisReport {
 
 model AiJob {
   id           String      @id @default(uuid())
-  jobType      String      // "report-analysis" | "evaluation-scoring" | "decision-suggestion"
+  jobType      String      // "report-analysis" | "evaluation-scoring" | "decision-suggestion" | "chat-query"
   status       AiJobStatus @default(QUEUED)
   payload      Json
   result       Json?
@@ -490,6 +490,37 @@ model AiJob {
   decision     Decision?   @relation(fields: [decisionId],   references: [id])
 
   @@map("ai_jobs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI CHAT HISTORY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AiConversation {
+  id        String      @id @default(uuid())
+  schoolId  String
+  userId    String
+  title     String
+  messages  AiMessage[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  school    School      @relation(fields: [schoolId], references: [id])
+  user      User        @relation(fields: [userId],   references: [id])
+
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  role           String         // "user" | "assistant"
+  content        String         @db.Text
+  createdAt      DateTime       @default(now())
+
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("ai_messages")
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // SYSTEM CONFIGURATION (SaaS Ready)
