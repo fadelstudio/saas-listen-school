@@ -35,10 +35,12 @@ export declare const decisionsRepository: {
         responsible: string | null;
         dueDate: Date | null;
         aiSuggestion: string | null;
+        analysisId: string | null;
     }>;
     findById(id: string, schoolId?: string | null): Promise<({
         report: {
             type: import("@prisma/client").$Enums.ReportType;
+            attachments: Prisma.JsonValue | null;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -53,7 +55,6 @@ export declare const decisionsRepository: {
             authorId: string | null;
             professorId: string | null;
             moduleId: string | null;
-            attachments: Prisma.JsonValue | null;
             deviceMetadata: Prisma.JsonValue | null;
             aiAnalysis: Prisma.JsonValue | null;
         } | null;
@@ -114,6 +115,7 @@ export declare const decisionsRepository: {
         responsible: string | null;
         dueDate: Date | null;
         aiSuggestion: string | null;
+        analysisId: string | null;
     }) | null>;
     findAll(filters: DecisionFilters, pagination: PaginationArgs, schoolId?: string | null): Promise<{
         items: ({
@@ -138,6 +140,7 @@ export declare const decisionsRepository: {
             responsible: string | null;
             dueDate: Date | null;
             aiSuggestion: string | null;
+            analysisId: string | null;
         })[];
         total: number;
     }>;
@@ -157,6 +160,7 @@ export declare const decisionsRepository: {
         responsible: string | null;
         dueDate: Date | null;
         aiSuggestion: string | null;
+        analysisId: string | null;
     } | null>;
     updateStatus(id: string, status: DecisionStatus, schoolId?: string | null): Promise<{
         id: string;
@@ -174,6 +178,7 @@ export declare const decisionsRepository: {
         responsible: string | null;
         dueDate: Date | null;
         aiSuggestion: string | null;
+        analysisId: string | null;
     } | null>;
     delete(id: string, schoolId?: string | null): Promise<Prisma.BatchPayload>;
     existsById(id: string, schoolId?: string | null): Promise<boolean>;

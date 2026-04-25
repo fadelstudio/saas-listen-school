@@ -7,8 +7,8 @@ export declare const evaluationCampaignsService: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -22,7 +22,7 @@ export declare const evaluationCampaignsService: {
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
-        };
+        } | null;
         professor: {
             email: string;
             id: string;
@@ -36,7 +36,7 @@ export declare const evaluationCampaignsService: {
             numero: string | null;
             avatarPath: string | null;
             userId: string | null;
-        };
+        } | null;
         _count: {
             evaluations: number;
         };
@@ -55,8 +55,8 @@ export declare const evaluationCampaignsService: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -85,7 +85,7 @@ export declare const evaluationCampaignsService: {
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
-        };
+        } | null;
         professor: {
             email: string;
             id: string;
@@ -99,7 +99,7 @@ export declare const evaluationCampaignsService: {
             numero: string | null;
             avatarPath: string | null;
             userId: string | null;
-        };
+        } | null;
         class: ({
             users: {
                 id: string;
@@ -141,8 +141,8 @@ export declare const evaluationCampaignsService: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -155,8 +155,8 @@ export declare const evaluationCampaignsService: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -185,7 +185,7 @@ export declare const evaluationCampaignsService: {
                 createdAt: Date;
                 updatedAt: Date;
                 schoolId: string;
-            };
+            } | null;
             professor: {
                 email: string;
                 id: string;
@@ -199,7 +199,7 @@ export declare const evaluationCampaignsService: {
                 numero: string | null;
                 avatarPath: string | null;
                 userId: string | null;
-            };
+            } | null;
             _count: {
                 evaluations: number;
             };
@@ -229,8 +229,8 @@ export declare const evaluationCampaignsService: {
             classId: string | null;
             title: string;
             status: string;
-            professorId: string;
-            moduleId: string;
+            professorId: string | null;
+            moduleId: string | null;
             dueDate: Date;
             campusId: string | null;
             description: string | null;
@@ -264,6 +264,7 @@ export declare const evaluationCampaignsService: {
             responsible: string | null;
             dueDate: Date | null;
             aiSuggestion: string | null;
+            analysisId: string | null;
         }) | null;
     }>;
     sendReminders(id: string, schoolId: string): Promise<void>;
@@ -283,6 +284,7 @@ export declare const evaluationCampaignsService: {
         responsible: string | null;
         dueDate: Date | null;
         aiSuggestion: string | null;
+        analysisId: string | null;
     }>;
 };
 //# sourceMappingURL=evaluation-campaigns.service.d.ts.map

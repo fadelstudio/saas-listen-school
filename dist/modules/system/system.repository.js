@@ -7,12 +7,15 @@ exports.systemRepository = {
     async getSettings(schoolId) {
         try {
             return await prisma_1.prisma.systemSettings.findUnique({
-                where: { schoolId }
+                where: { schoolId },
+                include: { school: { select: { logoUrl: true } } }
             });
         }
         catch (error) {
             if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
-                return prisma_1.prisma.systemSettings.findFirst();
+                return prisma_1.prisma.systemSettings.findFirst({
+                    include: { school: { select: { logoUrl: true } } }
+                });
             }
             throw error;
         }

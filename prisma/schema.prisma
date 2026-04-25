@@ -593,9 +593,17 @@ model Notification {
   message String
   type    String // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "EVALUATION_CAMPAIGN_REMINDER" | "SYSTEM" | "BROADCAST"
 
-  // Targeting
-  userId         String? // Null means global or group-based
-  targetRole     Role? // Targeted role
+  // Targeting (Legacy / Personal)
+  userId String? // Adressée directement à un utilisateur spécifique
+
+  // Targeting (Broadcast / Flex) - Nouveaux champs pour ciblage multiple
+  targetRoles     Role[]   @default([])
+  targetCampusIds String[] @default([])
+  targetClassIds  String[] @default([])
+  targetUserIds   String[] @default([]) // Pour ciblage de plusieurs personnes sans créer N notifications
+
+  // Legacy fields (kept for compatibility or simpler single-target)
+  targetRole     Role? // Targeted role (deprecated in favor of targetRoles?)
   targetCampusId String? // Targeted campus
   targetClassId  String? // Targeted class
 

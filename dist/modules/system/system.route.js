@@ -7,6 +7,7 @@ const auth_middleware_1 = require("../../core/middleware/auth.middleware");
 const validate_middleware_1 = require("../../core/middleware/validate.middleware");
 const system_schema_1 = require("./system.schema");
 const client_1 = require("@prisma/client");
+const profilePhotoUpload_middleware_1 = require("../../core/middleware/profilePhotoUpload.middleware");
 exports.systemRouter = (0, express_1.Router)();
 /**
  * @swagger
@@ -98,18 +99,45 @@ exports.systemRouter.get('/', auth_middleware_1.authMiddleware, (0, auth_middlew
  *         description: Configuration mise à jour et appliquée immédiatement.
  */
 exports.systemRouter.patch('/', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ body: system_schema_1.updateSystemSettingsSchema }), system_controller_1.systemController.updateSettings);
+exports.systemRouter.get('/ai-status', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), system_controller_1.systemController.getAiStatus);
 /**
  * @swagger
- * /api/system/ai-status:
+ * /api/system/ai-models:
  *   get:
- *     summary: "Statut temps réel du Balancer IA"
- *     description: Identifie quel modèle est actuellement utilisé et si le quota est épuisé.
+ *     summary: "Liste des modèles IA disponibles par fournisseur"
  *     tags: [System]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Healthcheck de la couche IA
+ *         description: Liste des modèles découverts ou fallbacks.
  */
-exports.systemRouter.get('/ai-status', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), system_controller_1.systemController.getAiStatus);
+exports.systemRouter.get('/ai-models', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), system_controller_1.systemController.getAiModels);
+/**
+ * @swagger
+ * /api/system/logo:
+ *   post:
+ *     summary: "Mettre à jour le logo de l'école"
+ *     tags: [System]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file: { type: string, format: binary }
+ *     responses:
+ *       200:
+ *         description: URL du logo mis à jour.
+ */
+exports.systemRouter.post('/logo', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (req, res, next) => {
+    profilePhotoUpload_middleware_1.profilePhotoUpload.single('file')(req, res, (err) => {
+        if (err)
+            return next(err);
+        next();
+    });
+}, system_controller_1.systemController.updateLogo);
 //# sourceMappingURL=system.route.js.map

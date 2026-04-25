@@ -1,7 +1,11 @@
 import type { UpdateSystemSettingsInput } from './system.schema';
 import { Prisma } from '@prisma/client';
 export declare const systemRepository: {
-    getSettings(schoolId: string): Promise<{
+    getSettings(schoolId: string): Promise<({
+        school: {
+            logoUrl: string | null;
+        };
+    } & {
         id: string;
         updatedAt: Date;
         schoolId: string;
@@ -12,7 +16,7 @@ export declare const systemRepository: {
         aiEnabled: boolean;
         aiConfigs: Prisma.JsonValue;
         aiOverrideConfigId: string | null;
-    } | null>;
+    }) | null>;
     updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<{
         id: string;
         updatedAt: Date;

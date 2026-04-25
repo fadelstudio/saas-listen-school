@@ -17,6 +17,9 @@ export declare const professorsRepository: {
             _count: {
                 evaluations: number;
             };
+            modules: {
+                moduleId: string;
+            }[];
         } & {
             email: string;
             id: string;

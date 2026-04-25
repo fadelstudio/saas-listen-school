@@ -17,12 +17,15 @@ export declare const authRepository: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
         classId: string | null;
     }) | null>;
     findByIdentifier(identifier: string, schoolId: string): Promise<({
@@ -41,12 +44,15 @@ export declare const authRepository: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
         classId: string | null;
     }) | null>;
     /** Pour message d’erreur login : compte connu mais mauvais tenant (x-school-slug). */
@@ -67,12 +73,15 @@ export declare const authRepository: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
         classId: string | null;
     }) | null>;
     findById(id: string): Promise<({
@@ -91,12 +100,15 @@ export declare const authRepository: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
         classId: string | null;
     }) | null>;
     create(data: RegisterInput & {
@@ -120,12 +132,15 @@ export declare const authRepository: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
         classId: string | null;
     }>;
     updatePassword(userId: string, passwordHash: string): Promise<User>;
@@ -161,12 +176,15 @@ export declare const authRepository: {
             lastName: string;
             matricule: string | null;
             numero: string | null;
+            bio: string | null;
+            address: string | null;
             avatarPath: string | null;
             role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
             fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
+            currentSessionId: string | null;
             classId: string | null;
         };
     } & {
@@ -176,13 +194,7 @@ export declare const authRepository: {
         token: string;
         expiresAt: Date;
     }) | null>;
-    deleteRefreshToken(token: string): Promise<{
-        id: string;
-        createdAt: Date;
-        userId: string;
-        token: string;
-        expiresAt: Date;
-    }>;
+    deleteRefreshToken(token: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     deleteAllUserRefreshTokens(userId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     setActive(userId: string, isActive: boolean): Promise<User>;
     deleteLoginChallengesForUser(userId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
@@ -211,12 +223,15 @@ export declare const authRepository: {
             lastName: string;
             matricule: string | null;
             numero: string | null;
+            bio: string | null;
+            address: string | null;
             avatarPath: string | null;
             role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
             fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
+            currentSessionId: string | null;
             classId: string | null;
         };
     } & {
@@ -269,12 +284,15 @@ export declare const authRepository: {
             lastName: string;
             matricule: string | null;
             numero: string | null;
+            bio: string | null;
+            address: string | null;
             avatarPath: string | null;
             role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
             fcmToken: string | null;
             emailVerified: boolean;
             emailVerifiedAt: Date | null;
+            currentSessionId: string | null;
             classId: string | null;
         };
     } & {

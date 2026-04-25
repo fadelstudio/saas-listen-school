@@ -90,20 +90,16 @@ export const evaluationCampaignsService = {
         studentIds = users.map((u) => u.id);
       }
 
-      await Promise.all(
-        studentIds.map((userId: string) =>
-          notificationService.create({
-            title: `Nouvelle évaluation demandée: ${campaign.title}`,
-            message: detailedCampaign.module 
-              ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
-              : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
-            type: 'EVALUATION_CAMPAIGN',
-            userId,
-            campaignId: campaign.id,
-            schoolId,
-          }),
-        ),
-      ).catch((e) => logger.error('Failed to send campaign notifications', { error: e }));
+      await notificationService.create({
+        title: `Nouvelle évaluation demandée: ${campaign.title}`,
+        message: detailedCampaign.module 
+          ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
+          : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
+        type: 'EVALUATION_CAMPAIGN',
+        targetUserIds: studentIds,
+        campaignId: campaign.id,
+        schoolId,
+      }).catch((e) => logger.error('Failed to send campaign notifications (bulk)', { error: e }));
     }
 
     return campaign;
@@ -178,20 +174,16 @@ export const evaluationCampaignsService = {
     const doneIds = new Set(doneEvaluations.map(e => e.evaluatorId).filter(Boolean));
     const missingIds = allStudentIds.filter(id => !doneIds.has(id));
 
-    await Promise.all(
-      missingIds.map((userId: string) =>
-        notificationService.create({
-          title: `Rappel: Évaluation requise pour ${campaign.title}`,
-          message: campaign.module 
-              ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
-              : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
-          type: 'EVALUATION_CAMPAIGN_REMINDER',
-          userId,
-          campaignId: campaign.id,
-          schoolId,
-        })
-      )
-    ).catch((e) => logger.error('Failed to send campaign reminders', { error: e }));
+    await notificationService.create({
+      title: `Rappel: Évaluation requise pour ${campaign.title}`,
+      message: campaign.module 
+          ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
+          : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
+      type: 'EVALUATION_CAMPAIGN_REMINDER',
+      targetUserIds: missingIds,
+      campaignId: campaign.id,
+      schoolId,
+    }).catch((e) => logger.error('Failed to send campaign reminders (bulk)', { error: e }));
   },
 
   async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {

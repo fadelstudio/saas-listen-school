@@ -92,6 +92,7 @@ export declare const evaluationsService: {
             responsible: string | null;
             dueDate: Date | null;
             aiSuggestion: string | null;
+            analysisId: string | null;
         } | null;
         professor: {
             email: string;

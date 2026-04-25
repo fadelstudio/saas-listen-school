@@ -92,7 +92,7 @@ exports.authRepository = {
         });
     },
     async deleteRefreshToken(token) {
-        return prisma_1.prisma.refreshToken.delete({
+        return prisma_1.prisma.refreshToken.deleteMany({
             where: { token },
         });
     },

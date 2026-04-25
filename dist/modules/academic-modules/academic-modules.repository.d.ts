@@ -33,12 +33,15 @@ export declare const academicModulesRepository: {
                 lastName: string;
                 matricule: string | null;
                 numero: string | null;
+                bio: string | null;
+                address: string | null;
                 avatarPath: string | null;
                 role: import("@prisma/client").$Enums.Role;
                 isActive: boolean;
                 fcmToken: string | null;
                 emailVerified: boolean;
                 emailVerifiedAt: Date | null;
+                currentSessionId: string | null;
                 classId: string | null;
             } | null;
         } & {

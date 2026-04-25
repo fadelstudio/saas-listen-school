@@ -133,7 +133,14 @@ exports.aiRouter.post('/jobs/:jobId/retry', auth_middleware_1.authMiddleware, (0
  *       200:
  *         description: Traitement lancé. Récupérez le résultat via /api/ai/jobs/{jobId}/result
  */
-exports.aiRouter.post('/chat', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ body: ai_schema_1.chatSchema }), ai_controller_1.aiController.chat);
+exports.aiRouter.post('/chat', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ body: ai_schema_1.chatSchema }), (req, res, next) => ai_controller_1.aiController.chat(req, res, next));
+// Direct synchronous chat — no queue, instant response
+exports.aiRouter.post('/chat-direct', auth_middleware_1.authMiddleware, (req, res, next) => ai_controller_1.aiController.chatDirect(req, res, next));
+// Conversation history management
+exports.aiRouter.get('/conversations', auth_middleware_1.authMiddleware, (req, res, next) => ai_controller_1.aiController.getConversations(req, res, next));
+exports.aiRouter.get('/conversations/:id/messages', auth_middleware_1.authMiddleware, (req, res, next) => ai_controller_1.aiController.getMessages(req, res, next));
+exports.aiRouter.post('/conversations/:id/save', auth_middleware_1.authMiddleware, (req, res, next) => ai_controller_1.aiController.saveConversation(req, res, next));
+exports.aiRouter.delete('/conversations/:id', auth_middleware_1.authMiddleware, (req, res, next) => ai_controller_1.aiController.deleteConversation(req, res, next));
 /**
  * @swagger
  * /api/ai/synthesis:

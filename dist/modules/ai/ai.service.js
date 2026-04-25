@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiService = void 0;
 const ai_repository_1 = require("./ai.repository");
@@ -46,24 +79,33 @@ exports.aiService = {
             return { retried: false, jobId, reason: 'REDIS_UNAVAILABLE' };
         }
     },
-    async chat(input, userId) {
+    async chat(input, userId, schoolId) {
+        const { chatService } = await Promise.resolve().then(() => __importStar(require('./chat.service')));
+        let conversationId = input.conversationId;
+        if (!conversationId) {
+            const conv = await chatService.createConversation(schoolId, userId, input.question);
+            conversationId = conv.id;
+        }
+        // Save user message
+        await chatService.addMessage(conversationId, 'user', input.question);
         try {
             const bullJob = await queue_1.jobQueue.add('ai-analysis', {
                 type: 'chat-query',
                 question: input.question,
                 userId,
+                conversationId, // Pass this to the worker
             });
-            return { queued: true, jobId: bullJob.id, message: 'Chat query queued — poll /api/ai/jobs/:jobId/result' };
+            return { queued: true, jobId: bullJob.id, conversationId, message: 'Chat query queued' };
         }
         catch (error) {
             logger_1.logger.warn('Could not enqueue AI chat (Redis down?)', { error });
             const dbJob = await ai_repository_1.aiRepository.createJob({
                 jobType: 'chat-query',
                 status: client_1.AiJobStatus.FAILED,
-                payload: { type: 'chat-query', question: input.question, userId },
+                payload: { type: 'chat-query', question: input.question, userId, conversationId },
                 errorMessage: 'REDIS_UNAVAILABLE',
             });
-            return { queued: false, jobId: dbJob.id, reason: 'REDIS_UNAVAILABLE' };
+            return { queued: false, jobId: dbJob.id, conversationId, reason: 'REDIS_UNAVAILABLE' };
         }
     },
     async generateSynthesis(input, userRole) {

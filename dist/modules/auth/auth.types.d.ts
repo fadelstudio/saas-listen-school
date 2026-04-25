@@ -31,6 +31,8 @@ export interface UpdateProfileInput {
     matricule?: string | null;
     numero?: string | null;
     phone?: string | null;
+    bio?: string | null;
+    address?: string | null;
 }
 export interface AuthResponse {
     token: string;
@@ -56,6 +58,8 @@ export interface SafeUser {
     matricule?: string | null;
     numero?: string | null;
     phone?: string | null;
+    bio?: string | null;
+    address?: string | null;
     campusIds?: string[];
     classId?: string | null;
     schoolId?: string | null;

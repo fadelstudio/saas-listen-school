@@ -114,16 +114,16 @@ exports.evaluationCampaignsService = {
                 });
                 studentIds = users.map((u) => u.id);
             }
-            await Promise.all(studentIds.map((userId) => notifications_service_1.notificationService.create({
+            await notifications_service_1.notificationService.create({
                 title: `Nouvelle évaluation demandée: ${campaign.title}`,
                 message: detailedCampaign.module
                     ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
                     : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
                 type: 'EVALUATION_CAMPAIGN',
-                userId,
+                targetUserIds: studentIds,
                 campaignId: campaign.id,
                 schoolId,
-            }))).catch((e) => logger_1.logger.error('Failed to send campaign notifications', { error: e }));
+            }).catch((e) => logger_1.logger.error('Failed to send campaign notifications (bulk)', { error: e }));
         }
         return campaign;
     },
@@ -186,16 +186,16 @@ exports.evaluationCampaignsService = {
         });
         const doneIds = new Set(doneEvaluations.map(e => e.evaluatorId).filter(Boolean));
         const missingIds = allStudentIds.filter(id => !doneIds.has(id));
-        await Promise.all(missingIds.map((userId) => notifications_service_1.notificationService.create({
+        await notifications_service_1.notificationService.create({
             title: `Rappel: Évaluation requise pour ${campaign.title}`,
             message: campaign.module
                 ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
                 : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
             type: 'EVALUATION_CAMPAIGN_REMINDER',
-            userId,
+            targetUserIds: missingIds,
             campaignId: campaign.id,
             schoolId,
-        }))).catch((e) => logger_1.logger.error('Failed to send campaign reminders', { error: e }));
+        }).catch((e) => logger_1.logger.error('Failed to send campaign reminders (bulk)', { error: e }));
     },
     async generatePostDeadlineAnalysis(id, userId, schoolId) {
         const analytics = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.getAnalytics(id, schoolId);
@@ -245,7 +245,7 @@ exports.evaluationCampaignsService = {
                 title: `Suivi suite à la campagne : ${campaign.title}`,
                 rationale: aiParsed.summary,
                 aiSuggestion: aiParsed.recommendation,
-                status: 'PENDING',
+                status: 'PROPOSED',
                 priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
             },
             include: { decider: { select: { firstName: true, lastName: true } } }

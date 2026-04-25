@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { notificationsController } from './notifications.controller';
 import { authMiddleware, requireRole } from '../../core/middleware/auth.middleware';
+import { validate } from '../../core/middleware/validate.middleware';
+import { notificationsSchema } from './notifications.schema';
 
 const router = Router();
 
@@ -30,18 +32,16 @@ router.use(authMiddleware);
  *       - in: query
  *         name: isRead
  *         schema: { type: boolean }
- *         description: Filtrer par statut de lecture
  *       - in: query
  *         name: type
  *         schema:
  *           type: string
- *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, SYSTEM, DECISION_TAKEN, NEW_REPORT]
- *         description: Filtrer par catégorie d'alerte
+ *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, SYSTEM, BROADCAST]
  *     responses:
  *       200:
- *         description: Flux de notifications (personnelles et annonces globales)
+ *         description: Flux de notifications
  */
-router.get('/', notificationsController.getMyNotifications);
+router.get('/', validate({ query: notificationsSchema.query }), notificationsController.getMyNotifications);
 
 /**
  * @swagger
@@ -57,15 +57,16 @@ router.get('/', notificationsController.getMyNotifications);
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Statut mis à jour avec succès
+ *         description: Succès
  */
-router.patch('/:id/read', notificationsController.markAsRead);
+router.patch('/:id/read', validate({ params: notificationsSchema.params }), notificationsController.markAsRead);
 
 /**
  * @swagger
  * /api/notifications/broadcast:
  *   post:
  *     summary: "Envoyer un message groupé (Admin/Manager)"
+ *     description: Permet de cibler par rôles, campus, classes ou IDs utilisateurs spécifiques.
  *     tags: [Notifications]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -78,16 +79,21 @@ router.patch('/:id/read', notificationsController.markAsRead);
  *             properties:
  *               title: { type: string }
  *               message: { type: string }
- *               targetRole: { type: string, enum: [ADMIN, MANAGER, AGENT, STUDENT, PROFESSOR] }
- *               targetCampusId: { type: string, format: uuid }
- *               targetClassId: { type: string, format: uuid }
+ *               targetRoles: { type: array, items: { type: string } }
+ *               targetCampusIds: { type: array, items: { type: string, format: uuid } }
+ *               targetClassIds: { type: array, items: { type: string, format: uuid } }
+ *               targetUserIds: { type: array, items: { type: string, format: uuid } }
  *               url: { type: string }
- *               attachments: { type: array, items: { type: object } }
  *     responses:
  *       201:
  *         description: Broadcast envoyé
  */
-router.post('/broadcast', authMiddleware, requireRole('ADMIN', 'MANAGER'), notificationsController.sendBroadcast);
+router.post(
+  '/broadcast', 
+  requireRole('ADMIN', 'MANAGER'), 
+  validate({ body: notificationsSchema.sendBroadcast }), 
+  notificationsController.sendBroadcast
+);
 
 /**
  * @swagger
@@ -105,6 +111,11 @@ router.post('/broadcast', authMiddleware, requireRole('ADMIN', 'MANAGER'), notif
  *       200:
  *         description: Succès
  */
-router.delete('/:id', authMiddleware, requireRole('ADMIN', 'MANAGER'), notificationsController.deleteNotification);
+router.delete(
+  '/:id', 
+  requireRole('ADMIN', 'MANAGER'), 
+  validate({ params: notificationsSchema.params }), 
+  notificationsController.deleteNotification
+);
 
 export { router as notificationsRouter };

@@ -6,6 +6,12 @@ import { GlobalAnalysisInput } from './analytics.schema';
 
 export const analyticsService = {
   async getDashboardStats(schoolId: string, campusId?: string) {
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(now.getDate() - 60);
+
     const userWhere: Prisma.UserWhereInput = { 
       schoolId, 
       ...(campusId && { campuses: { some: { id: campusId } } }) 
@@ -21,7 +27,6 @@ export const analyticsService = {
       ...(campusId && { class: { campusId } })
     };
 
-
     try {
       const [
         totalUsers,
@@ -30,6 +35,9 @@ export const analyticsService = {
         totalEvaluations,
         avgScore,
         reportsByType,
+        // For Trends
+        prevReports,
+        prevEvaluations
       ] = await Promise.all([
         prisma.user.count({ where: userWhere }),
         prisma.user.count({ where: { ...userWhere, role: 'STUDENT' } }),
@@ -44,9 +52,49 @@ export const analyticsService = {
           where: reportWhere,
           _count: { id: true },
         }),
+        // Counts for previous 30-day window
+        prisma.report.count({ 
+          where: { 
+            ...reportWhere, 
+            createdAt: { gte: sixtyDaysAgo, lte: thirtyDaysAgo } 
+          } 
+        }),
+        prisma.evaluation.count({ 
+          where: { 
+            ...evaluationWhere, 
+            createdAt: { gte: sixtyDaysAgo, lte: thirtyDaysAgo } 
+          } 
+        }),
+        prisma.user.count({
+          where: {
+            ...userWhere,
+            role: 'STUDENT',
+            createdAt: { gte: sixtyDaysAgo, lte: thirtyDaysAgo }
+          }
+        }),
+        prisma.user.count({
+          where: {
+            ...userWhere,
+            createdAt: { gte: sixtyDaysAgo, lte: thirtyDaysAgo }
+          }
+        })
       ]);
 
-      // Use raw query for decisions to bypass Enum validation issues (like 'PENDING')
+      // Calculate simple trends
+      const calculateTrend = (current: number, previous: number) => {
+        if (previous <= 0) return 0; // Avoid showing +100% on new installs
+        return Number((((current - previous) / previous) * 100).toFixed(1));
+      };
+
+      // Current 30-day counts for precise trend
+      const [currentReports, currentEvaluations, currentStudents, currentUsers] = await Promise.all([
+        prisma.report.count({ where: { ...reportWhere, createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.evaluation.count({ where: { ...evaluationWhere, createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.user.count({ where: { ...userWhere, role: 'STUDENT', createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.user.count({ where: { ...userWhere, createdAt: { gte: thirtyDaysAgo } } })
+      ]);
+
+      // Use raw query for decisions to bypass Enum validation issues
       const decisionsByStatusRaw = campusId 
         ? await prisma.$queryRaw<any[]>`
             SELECT status, CAST(COUNT(*) AS INTEGER) as count 
@@ -73,6 +121,13 @@ export const analyticsService = {
           reports: totalReports,
           evaluations: totalEvaluations,
           averageSatisfaction: Number((avgScore._avg.score || 0).toFixed(1)),
+        },
+        trends: {
+          reports: calculateTrend(currentReports, prevReports),
+          evaluations: calculateTrend(currentEvaluations, prevEvaluations),
+          students: calculateTrend(currentStudents, Number(totalStudents) - currentStudents), // Approximation
+          users: calculateTrend(currentUsers, Number(totalUsers) - currentUsers),
+          satisfaction: 5.2 // Mock constant for now
         },
         distributions: {
           reportsByType: reportsByType.map((r) => ({ type: r.type, count: r._count.id })),
@@ -388,7 +443,7 @@ export const analyticsService = {
       FROM analysis_reports r
       LEFT JOIN users u ON r."generatedById" = u.id
       WHERE r."schoolId" = ${schoolId}
-      ${periodicFilter !== null ? (periodicFilter === 'TRUE' ? Prisma.sql`AND (r.filters->>'periodic')::boolean = TRUE` : Prisma.sql`AND (r.filters->>'periodic')::boolean IS NOT TRUE`) : Prisma.empty}
+      ${periodicFilter === 'TRUE' ? Prisma.sql`AND (r.filters->>'periodic')::boolean = TRUE` : (periodicFilter === 'FALSE' ? Prisma.sql`AND ((r.filters->>'periodic')::boolean IS NOT TRUE)` : Prisma.empty)}
       ${searchFilter ? Prisma.sql`AND r.title ILIKE ${searchFilter}` : Prisma.empty}
       ORDER BY r."createdAt" DESC
       LIMIT ${limit}
@@ -398,7 +453,7 @@ export const analyticsService = {
     const totalRes = await prisma.$queryRaw<any[]>`
       SELECT COUNT(*)::int as count FROM analysis_reports r
       WHERE r."schoolId" = ${schoolId}
-      ${periodicFilter !== null ? (periodicFilter === 'TRUE' ? Prisma.sql`AND (r.filters->>'periodic')::boolean = TRUE` : Prisma.sql`AND (r.filters->>'periodic')::boolean IS NOT TRUE`) : Prisma.empty}
+      ${periodicFilter === 'TRUE' ? Prisma.sql`AND (r.filters->>'periodic')::boolean = TRUE` : (periodicFilter === 'FALSE' ? Prisma.sql`AND ((r.filters->>'periodic')::boolean IS NOT TRUE)` : Prisma.empty)}
       ${searchFilter ? Prisma.sql`AND r.title ILIKE ${searchFilter}` : Prisma.empty}
     `;
     const total = totalRes[0]?.count || 0;

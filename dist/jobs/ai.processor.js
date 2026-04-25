@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const bullmq_1 = require("bullmq");
 const queue_1 = require("../core/config/queue");
@@ -57,6 +90,24 @@ async function handleReportAnalysis(payload) {
         where: { id: report.id },
         data: { aiAnalysis: result },
     });
+    // 4. Proactive Decision: Create a PROPOSED decision ONLY if priority is HIGH/CRITICAL
+    if (result.priority === 'HIGH' || result.priority === 'CRITICAL') {
+        const systemUser = await prisma_1.prisma.user.findFirst({ where: { role: 'ADMIN', schoolId: report.schoolId } });
+        if (systemUser) {
+            await prisma_1.prisma.decision.create({
+                data: {
+                    reportId: report.id,
+                    schoolId: report.schoolId,
+                    deciderId: systemUser.id,
+                    title: `Action requise : ${report.title}`,
+                    rationale: result.summary,
+                    aiSuggestion: result.recommendation,
+                    priority: result.priority,
+                    status: 'PROPOSED',
+                },
+            });
+        }
+    }
     return result;
 }
 async function handleEvaluationScoring(payload) {
@@ -135,32 +186,73 @@ async function handleChatQuery(payload) {
     if (!user?.schoolId)
         throw new Error('Chat context missing schoolId');
     const schoolId = user.schoolId;
-    const [recentReports, recentEvals] = await Promise.all([
-        prisma_1.prisma.report.findMany({ where: { schoolId }, take: 10, select: { title: true, content: true } }),
-        prisma_1.prisma.evaluation.findMany({ where: { schoolId }, take: 10, select: { comment: true } }),
-    ]);
-    const prompt = `Contexte récent de l'école:
-  Signalements: ${JSON.stringify(recentReports)}
-  Evaluations: ${JSON.stringify(recentEvals)}
+    // 1. Intent Detection: Do we need heavy data?
+    const question = payload.question?.toLowerCase() || '';
+    const needsData = /(prof|critique|note|score|rapport|signalement|campus|stat|classe|satisfaction)/.test(question);
+    let contextSummary = '';
+    if (needsData) {
+        // Heavy path: Fetch Aggregated Data
+        const [reportStats, satisfactionStats, professorCritiques] = await Promise.all([
+            prisma_1.prisma.report.groupBy({ by: ['status'], _count: true, where: { schoolId } }),
+            prisma_1.prisma.evaluation.aggregate({ _avg: { score: true }, _count: true, where: { schoolId } }),
+            prisma_1.prisma.evaluation.groupBy({
+                by: ['professorId'],
+                _avg: { score: true },
+                _count: true,
+                where: { schoolId, score: { lte: 10 } },
+                orderBy: { _count: { professorId: 'desc' } },
+                take: 5
+            })
+        ]);
+        const topCritiquedProfIds = professorCritiques.map(p => p.professorId).filter(Boolean);
+        const profNames = await prisma_1.prisma.professor.findMany({
+            where: { id: { in: topCritiquedProfIds } },
+            select: { id: true, firstName: true, lastName: true }
+        });
+        const data = {
+            totalReports: reportStats.reduce((acc, curr) => acc + curr._count, 0),
+            avgSatisfaction: satisfactionStats._avg?.score || 0,
+            critiquedProfessors: professorCritiques.map(p => {
+                const name = profNames.find(n => n.id === p.professorId);
+                return `${name?.firstName} ${name?.lastName}: ${p._count} critiques (Score moy: ${p._avg?.score?.toFixed(1)})`;
+            })
+        };
+        contextSummary = `
+      DONNÉES ÉTABLISSEMENT :
+      - Satisfaction Moyenne: ${data.avgSatisfaction.toFixed(1)}/20
+      - Volume de Signalements: ${data.totalReports}
+      - Professeurs les plus critiqués: ${data.critiquedProfessors.join(' | ')}
+    `;
+    }
+    const prompt = `Tu es l'Assistant IA expert de cette école.
+  ${contextSummary ? `Voici les données actuelles : ${contextSummary}` : "L'utilisateur te salue ou pose une question générale."}
   
-  Question de l'utilisateur: ${payload.question}
+  Question: ${payload.question}
   
-  Réponds de manière concise et utile en JSON strict.
-  Format: {"summary":"Ta réponse ici","recommendation":"","confidence":0.95}`;
+  RÈGLES :
+  1. Si tu as des données, utilise-les pour répondre précisément.
+  2. Si tu n'as pas de données (car la question est simple), réponds poliment et invite à poser des questions sur les rapports ou les performances.
+  3. Réponds en JSON strict : {"summary":"...","recommendation":"","confidence":0.98}`;
     const raw = await callAI(prompt, schoolId);
     const processedAt = new Date().toISOString();
+    let validated;
     try {
-        const validated = parseAiJsonStrict(raw);
-        return { ...validated, processedAt };
+        validated = parseAiJsonStrict(raw);
     }
     catch (e) {
-        return {
-            summary: raw,
-            recommendation: '',
-            confidence: 0.5,
-            processedAt,
-        };
+        validated = { summary: raw, recommendation: '', confidence: 0.5 };
     }
+    // Save assistant message to history if conversationId is provided
+    if (payload.conversationId) {
+        try {
+            const { chatService } = await Promise.resolve().then(() => __importStar(require('../modules/ai/chat.service')));
+            await chatService.addMessage(payload.conversationId, 'assistant', validated.summary || '');
+        }
+        catch (err) {
+            logger_1.logger.warn('Could not save AI response to chat history', { err });
+        }
+    }
+    return { ...validated, processedAt };
 }
 // ─── BullMQ Worker ────────────────────────────────────────────────────────────
 const aiWorker = new bullmq_1.Worker(queue_1.QUEUE_NAMES.AI_ANALYSIS, async (job) => {
@@ -212,16 +304,12 @@ const aiWorker = new bullmq_1.Worker(queue_1.QUEUE_NAMES.AI_ANALYSIS, async (job
     connection: redis_1.redisConnection,
     concurrency: 3,
 });
-const notifications_service_1 = require("../modules/notifications/notifications.service");
 aiWorker.on('completed', (job) => logger_1.logger.info(`✅ AI job completed: ${job.id} [${job.data.type}]`));
 aiWorker.on('failed', async (job, err) => {
-    logger_1.logger.error(`❌ AI job failed: ${job?.id}`, { message: err.message });
-    // Notify internal profiles about AI failure
-    await notifications_service_1.notificationService.create({
-        title: `Échec du traitement IA [${job?.data.type}]`,
-        message: `Le traitement automatique a échoué: ${err.message}. ID Job: ${job?.id}`,
-        type: 'AI_FAILURE',
-    }).catch(e => logger_1.logger.error('Failed to create failure notification:', { error: e.message }));
+    logger_1.logger.error(`❌ AI job failed: ${job?.id} ${job?.data.type}`, { message: err.message.slice(0, 200) });
+    // NOTE: School-scoped admin notifications are handled directly by AiBalancer
+    // (quota-switch + total-failure events, throttled per 5 min).
+    // We do NOT duplicate them here to avoid notification spam.
 });
 aiWorker.on('error', (_err) => { });
 exports.default = aiWorker;

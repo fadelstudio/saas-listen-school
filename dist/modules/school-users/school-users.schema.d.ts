@@ -15,6 +15,8 @@ export declare const createSchoolUserSchema: z.ZodObject<{
     matricule: z.ZodOptional<z.ZodString>;
     numero: z.ZodOptional<z.ZodString>;
     phone: z.ZodOptional<z.ZodString>;
+    bio: z.ZodOptional<z.ZodString>;
+    address: z.ZodOptional<z.ZodString>;
     campusIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
     classId: z.ZodPipe<z.ZodTransform<{} | undefined, unknown>, z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
@@ -30,6 +32,13 @@ export declare const updateSchoolUserSchema: z.ZodObject<{
     isActive: z.ZodOptional<z.ZodBoolean>;
     classId: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>>;
     campusIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    firstName: z.ZodOptional<z.ZodString>;
+    lastName: z.ZodOptional<z.ZodString>;
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    numero: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    bio: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    address: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
 }, z.core.$strip>;
 export declare const schoolUserParamsSchema: z.ZodObject<{
     id: z.ZodString;

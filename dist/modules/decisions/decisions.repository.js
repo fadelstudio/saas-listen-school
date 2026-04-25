@@ -15,7 +15,7 @@ exports.decisionsRepository = {
                 priority: data.priority ?? client_1.Priority.MEDIUM,
                 responsible: data.responsible,
                 dueDate: data.dueDate ? new Date(data.dueDate) : null,
-                status: client_1.DecisionStatus.PENDING,
+                status: client_1.DecisionStatus.PROPOSED,
                 // Utilisation du champ direct ajouté dans la migration Prisma
                 schoolId: schoolId ?? null,
             },

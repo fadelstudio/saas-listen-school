@@ -8,6 +8,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const env_1 = require("../../core/config/env");
+/// <reference types="multer" />
 const prisma_1 = require("../../core/database/prisma");
 const AppError_1 = require("../../core/errors/AppError");
 const auth_repository_1 = require("./auth.repository");
@@ -54,6 +55,8 @@ function toSafeUser(user) {
         matricule: user.matricule,
         numero: user.numero,
         phone: user.phone,
+        bio: user.bio,
+        address: user.address,
         campusIds: user.campuses?.map((c) => c.id) || [],
         classId: user.classId,
         schoolId: user.schoolId,
@@ -78,9 +81,17 @@ async function generateTokens(user) {
     if (user.role !== client_1.Role.SUPERADMIN && !resolvedSchoolId) {
         throw new AppError_1.UnauthorizedError('Account is missing school assignment. Contact an administrator.');
     }
+    // Create a unique session ID for single session enforcement
+    const sessionId = crypto_1.default.randomBytes(16).toString('hex');
+    // Update user with the new session ID
+    await prisma_1.prisma.user.update({
+        where: { id: user.id },
+        data: { currentSessionId: sessionId }
+    });
     const payload = {
         userId: user.id,
         role: user.role,
+        sid: sessionId // 'sid' for session ID
     };
     if (resolvedSchoolId != null)
         payload.schoolId = resolvedSchoolId;
@@ -351,6 +362,8 @@ exports.authService = {
             ...(input.matricule !== undefined && { matricule }),
             ...(input.numero !== undefined && { numero: trimOrNull(input.numero) ?? null }),
             ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
+            ...(input.bio !== undefined && { bio: trimOrNull(input.bio) ?? null }),
+            ...(input.address !== undefined && { address: trimOrNull(input.address) ?? null }),
         };
         if (Object.keys(payload).length === 0) {
             return toSafeUserWithAvatar(user);

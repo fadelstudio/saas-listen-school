@@ -16,5 +16,15 @@ export declare const systemService: {
     }>;
     getSettings(schoolId: string, forceRefresh?: boolean): Promise<SystemSettingsResponse>;
     updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<SystemSettingsResponse>;
+    getAvailableModels(): Promise<{
+        provider: string;
+        models: {
+            value: string;
+            label: string;
+        }[];
+    }[]>;
+    updateLogo(schoolId: string, file: Express.Multer.File): Promise<{
+        url: string;
+    }>;
 };
 //# sourceMappingURL=system.service.d.ts.map

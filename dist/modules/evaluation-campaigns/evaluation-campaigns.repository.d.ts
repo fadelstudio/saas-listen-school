@@ -15,7 +15,7 @@ export declare const evaluationCampaignsRepository: {
                 createdAt: Date;
                 updatedAt: Date;
                 schoolId: string;
-            };
+            } | null;
             professor: {
                 email: string;
                 id: string;
@@ -29,7 +29,7 @@ export declare const evaluationCampaignsRepository: {
                 numero: string | null;
                 avatarPath: string | null;
                 userId: string | null;
-            };
+            } | null;
             _count: {
                 evaluations: number;
             };
@@ -48,8 +48,8 @@ export declare const evaluationCampaignsRepository: {
             classId: string | null;
             title: string;
             status: string;
-            professorId: string;
-            moduleId: string;
+            professorId: string | null;
+            moduleId: string | null;
             dueDate: Date;
             campusId: string | null;
             description: string | null;
@@ -80,7 +80,7 @@ export declare const evaluationCampaignsRepository: {
             createdAt: Date;
             updatedAt: Date;
             schoolId: string;
-        };
+        } | null;
         professor: {
             email: string;
             id: string;
@@ -94,7 +94,7 @@ export declare const evaluationCampaignsRepository: {
             numero: string | null;
             avatarPath: string | null;
             userId: string | null;
-        };
+        } | null;
         class: ({
             users: {
                 id: string;
@@ -136,8 +136,8 @@ export declare const evaluationCampaignsRepository: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -159,8 +159,8 @@ export declare const evaluationCampaignsRepository: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -173,8 +173,8 @@ export declare const evaluationCampaignsRepository: {
         classId: string | null;
         title: string;
         status: string;
-        professorId: string;
-        moduleId: string;
+        professorId: string | null;
+        moduleId: string | null;
         dueDate: Date;
         campusId: string | null;
         description: string | null;
@@ -203,7 +203,7 @@ export declare const evaluationCampaignsRepository: {
                 createdAt: Date;
                 updatedAt: Date;
                 schoolId: string;
-            };
+            } | null;
             professor: {
                 email: string;
                 id: string;
@@ -217,7 +217,7 @@ export declare const evaluationCampaignsRepository: {
                 numero: string | null;
                 avatarPath: string | null;
                 userId: string | null;
-            };
+            } | null;
             _count: {
                 evaluations: number;
             };
@@ -247,8 +247,8 @@ export declare const evaluationCampaignsRepository: {
             classId: string | null;
             title: string;
             status: string;
-            professorId: string;
-            moduleId: string;
+            professorId: string | null;
+            moduleId: string | null;
             dueDate: Date;
             campusId: string | null;
             description: string | null;
@@ -282,6 +282,7 @@ export declare const evaluationCampaignsRepository: {
             responsible: string | null;
             dueDate: Date | null;
             aiSuggestion: string | null;
+            analysisId: string | null;
         }) | null;
     } | null>;
 };

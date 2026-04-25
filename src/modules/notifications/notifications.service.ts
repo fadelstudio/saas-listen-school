@@ -1,12 +1,7 @@
-import { prisma } from '../../core/database/prisma';
+import { notificationsRepository } from './notifications.repository';
 import { NotFoundError } from '../../core/errors/AppError';
-
-export type NotificationType =
-  | 'AI_FAILURE'
-  | 'EVALUATION_CAMPAIGN'
-  | 'EVALUATION_CAMPAIGN_REMINDER'
-  | 'SYSTEM'
-  | 'BROADCAST';
+import { NotificationType, SendBroadcastInput, NotificationFilters } from './notifications.types';
+import { Role } from '@prisma/client';
 
 export const notificationService = {
   /**
@@ -16,47 +11,51 @@ export const notificationService = {
     title: string;
     message: string;
     type: NotificationType;
-    userId?: string;
-    campaignId?: string;
-    schoolId?: string;
+    userId?: string | null;
+    targetRoles?: Role[];
+    targetCampusIds?: string[];
+    targetClassIds?: string[];
+    targetUserIds?: string[];
+    campaignId?: string | null;
+    schoolId?: string | null;
+    url?: string | null;
   }) {
-    return prisma.notification.create({
-      data: {
-        title:      data.title,
-        message:    data.message,
-        type:       data.type,
-        userId:     data.userId     ?? null,
-        campaignId: data.campaignId ?? null,
-        schoolId:   data.schoolId   ?? null,
-      },
+    return notificationsRepository.create({
+      title: data.title,
+      message: data.message,
+      type: data.type,
+      userId: data.userId ?? null,
+      targetRoles: data.targetRoles,
+      targetCampusIds: data.targetCampusIds,
+      targetClassIds: data.targetClassIds,
+      targetUserIds: data.targetUserIds,
+      campaignId: data.campaignId ?? null,
+      schoolId: data.schoolId ?? null,
+      url: data.url ?? null,
     });
   },
 
   /**
    * Envoie une notification ciblée (Broadcast).
+   * Supporte maintenant les ciblages multiples via tableaux.
    */
-  async sendBroadcast(data: {
-    schoolId: string;
-    title: string;
-    message: string;
-    targetRole?: any;
-    targetCampusId?: string;
-    targetClassId?: string;
-    url?: string;
-    attachments?: any;
-  }) {
-    return prisma.notification.create({
-      data: {
-        schoolId:       data.schoolId,
-        title:          data.title,
-        message:        data.message,
-        type:           'BROADCAST',
-        targetRole:     data.targetRole     ?? null,
-        targetCampusId: data.targetCampusId ?? null,
-        targetClassId:  data.targetClassId  ?? null,
-        url:            data.url            ?? null,
-        attachments:    data.attachments    ?? null,
-      },
+  async sendBroadcast(schoolId: string, data: SendBroadcastInput) {
+    // Note: On pourrait ajouter ici une validation métier supplémentaire si besoin
+    // Par exemple : si targetClassIds est fourni, vérifier qu'un seul campus est sélectionné?
+    // Le user a dit : "si on seletion un seul campuse, on doit avoir le chois entre les classe de se campus"
+    // Dans le backend, on accepte simplement les tableaux fournis par le front.
+    
+    return notificationsRepository.create({
+      schoolId,
+      title: data.title,
+      message: data.message,
+      type: 'BROADCAST',
+      targetRoles: data.targetRoles,
+      targetCampusIds: data.targetCampusIds,
+      targetClassIds: data.targetClassIds,
+      targetUserIds: data.targetUserIds,
+      url: data.url,
+      attachments: data.attachments,
     });
   },
 
@@ -66,72 +65,45 @@ export const notificationService = {
   async getAllForUser(
     userId: string,
     schoolId: string,
-    userRole: any,
+    userRole: Role,
     campusIds: string[],
     classId: string | null,
-    opts?: {
+    opts: {
       isRead?: boolean;
       type?: NotificationType;
       skip?: number;
       limit?: number;
     }
   ) {
-    const where: any = {
-      schoolId,
-      OR: [
-        // Adressée directement
-        { userId },
-        // Broadcast ciblé
-        {
-          userId: null,
-          AND: [
-            // Filtre par Rôle
-            { OR: [{ targetRole: null }, { targetRole: userRole }] },
-            // Filtre par Campus (l'utilisateur peut avoir plusieurs campusIds)
-            { OR: [{ targetCampusId: null }, { targetCampusId: { in: campusIds } }] },
-            // Filtre par Classe
-            { OR: [{ targetClassId: null }, { targetClassId: classId }] },
-          ],
-        },
-        // Notifications système globales (SaaS)
-        { userId: null, schoolId: null },
-      ],
-      ...(typeof opts?.isRead === 'boolean' ? { isRead: opts.isRead } : {}),
-      ...(opts?.type ? { type: opts.type } : {}),
+    const filters: NotificationFilters = {
+      isRead: opts.isRead,
+      type: opts.type,
     };
 
-    const [items, total] = await Promise.all([
-      prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip:    opts?.skip,
-        take:    opts?.limit,
-      }),
-      prisma.notification.count({ where }),
-    ]);
-
-    return { items, total };
+    return notificationsRepository.findAllForUser(
+      userId,
+      schoolId,
+      userRole,
+      campusIds,
+      classId,
+      filters,
+      { skip: opts.skip, limit: opts.limit }
+    );
   },
 
   async markAsReadForUser(userId: string, id: string) {
-    const updated = await prisma.notification.updateMany({
-      where: {
-        id,
-        OR: [{ userId }, { userId: null }],
-      },
-      data: { isRead: true },
-    });
+    const updated = await notificationsRepository.markAsRead(id, userId);
 
     if (updated.count === 0) {
-      throw new NotFoundError('Notification');
+      throw new NotFoundError('Notification non trouvée ou déjà lue');
     }
   },
 
   async delete(id: string, schoolId: string) {
-    const notif = await prisma.notification.findUnique({ where: { id } });
+    const notif = await notificationsRepository.findById(id);
     if (!notif || notif.schoolId !== schoolId) {
       throw new NotFoundError('Notification');
     }
-    return prisma.notification.delete({ where: { id } });
+    return notificationsRepository.delete(id);
   }
 };

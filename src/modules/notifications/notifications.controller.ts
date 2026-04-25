@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { notificationService, type NotificationType } from './notifications.service';
+import { notificationService } from './notifications.service';
 import { buildPaginated, parsePagination } from '../../utils/pagination';
+import { Role } from '@prisma/client';
 
 export const notificationsController = {
   async getMyNotifications(req: Request, res: Response, next: NextFunction) {
@@ -17,12 +18,12 @@ export const notificationsController = {
           ? req.query.isRead === 'true'
           : undefined;
       const type =
-        typeof req.query.type === 'string' ? (req.query.type as NotificationType) : undefined;
+        typeof req.query.type === 'string' ? (req.query.type as any) : undefined;
 
       const { items, total } = await notificationService.getAllForUser(
         userId, 
         schoolId, 
-        userRole,
+        userRole as Role,
         campusIds,
         classId,
         {
@@ -43,18 +44,8 @@ export const notificationsController = {
   async sendBroadcast(req: Request, res: Response, next: NextFunction) {
     try {
       const schoolId = req.user!.schoolId!;
-      const { title, message, targetRole, targetCampusId, targetClassId, url, attachments } = req.body;
-
-      const notification = await notificationService.sendBroadcast({
-        schoolId,
-        title,
-        message,
-        targetRole,
-        targetCampusId,
-        targetClassId,
-        url,
-        attachments,
-      });
+      // req.body est déjà validé par le middleware validate(schema.sendBroadcast)
+      const notification = await notificationService.sendBroadcast(schoolId, req.body);
 
       res.sendSuccess('Broadcast envoyé avec succès', notification, 201);
     } catch (error) {
