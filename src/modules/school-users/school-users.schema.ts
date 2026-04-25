@@ -20,6 +20,8 @@ export const createSchoolUserSchema = z.object({
   matricule: z.string().min(1).max(50).optional(),
   numero: z.string().max(120).optional(),
   phone: z.string().max(40).optional(),
+  bio: z.string().max(1000).optional(),
+  address: z.string().max(255).optional(),
   /**
    * Optionnel. Pour MANAGER / AGENT / VIEWER : si omis ou vide → `campusId` null
    * (périmètre toute l’école, comme un admin école sans campus).
@@ -34,6 +36,13 @@ export const updateSchoolUserSchema = z.object({
   isActive: z.boolean().optional(),
   classId: z.union([idStringSchema, z.null()]).optional(),
   campusIds: z.array(idStringSchema).optional(),
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
+  matricule: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
+  numero: z.union([z.string().max(120), z.literal(''), z.null()]).optional(),
+  phone: z.union([z.string().max(40), z.literal(''), z.null()]).optional(),
+  bio: z.union([z.string().max(1000), z.literal(''), z.null()]).optional(),
+  address: z.union([z.string().max(255), z.literal(''), z.null()]).optional(),
 });
 
 export const schoolUserParamsSchema = z.object({

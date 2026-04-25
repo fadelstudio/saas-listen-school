@@ -85,6 +85,48 @@ export const analyticsService = {
     }
   },
 
+  async getTimeSeriesStats(schoolId: string, period: 'day' | 'week' | 'month' | 'year' = 'week', campusId?: string) {
+    const now = new Date();
+    let startDate = new Date();
+
+    if (period === 'day') startDate.setHours(0, 0, 0, 0);
+    else if (period === 'week') startDate.setDate(now.getDate() - 7);
+    else if (period === 'month') startDate.setMonth(now.getMonth() - 1);
+    else if (period === 'year') startDate.setFullYear(now.getFullYear() - 1);
+
+    // Grouping interval for SQL
+    let interval = 'day';
+    if (period === 'year') interval = 'month';
+
+    const stats = await prisma.$queryRaw<any[]>`
+      WITH date_series AS (
+        SELECT generate_series(
+          DATE_TRUNC(${interval}, ${startDate}::timestamp),
+          DATE_TRUNC(${interval}, ${now}::timestamp),
+          ${`1 ${interval}`}::interval
+        ) as date
+      )
+      SELECT 
+        ds.date,
+        COALESCE(SUM(CASE WHEN r.status = 'SUBMITTED' THEN 1 ELSE 0 END), 0) as submitted,
+        COALESCE(SUM(CASE WHEN r.status = 'REVIEWED' THEN 1 ELSE 0 END), 0) as in_progress,
+        COALESCE(SUM(CASE WHEN r.status = 'APPROVED' THEN 1 ELSE 0 END), 0) as resolved
+      FROM date_series ds
+      LEFT JOIN reports r ON DATE_TRUNC(${interval}, r."createdAt") = ds.date 
+        AND r."schoolId" = ${schoolId}
+        ${campusId ? Prisma.sql`AND r."classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId})` : Prisma.empty}
+      GROUP BY ds.date
+      ORDER BY ds.date ASC
+    `;
+
+    return stats.map(s => ({
+      date: s.date,
+      submitted: Number(s.submitted),
+      inProgress: Number(s.in_progress),
+      resolved: Number(s.resolved)
+    }));
+  },
+
   async generateGlobalAnalysis(input: GlobalAnalysisInput, userId: string, schoolId: string) {
     // 1. Gather Data based on filters
     const reportWhere: Prisma.ReportWhereInput = {

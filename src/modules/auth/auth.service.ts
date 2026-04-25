@@ -73,6 +73,8 @@ function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
     matricule: user.matricule,
     numero: user.numero,
     phone: user.phone,
+    bio: user.bio,
+    address: user.address,
     campusIds: user.campuses?.map((c: any) => c.id) || [],
     classId: user.classId,
     schoolId: user.schoolId,
@@ -111,9 +113,19 @@ async function generateTokens(user: TokenUser) {
     );
   }
 
+  // Create a unique session ID for single session enforcement
+  const sessionId = crypto.randomBytes(16).toString('hex');
+
+  // Update user with the new session ID
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { currentSessionId: sessionId }
+  });
+
   const payload: Record<string, unknown> = {
     userId: user.id,
     role: user.role,
+    sid: sessionId // 'sid' for session ID
   };
   if (resolvedSchoolId != null) payload.schoolId = resolvedSchoolId;
   if (user.campusIds.length > 0) payload.campusIds = user.campusIds;
@@ -431,6 +443,8 @@ export const authService = {
       ...(input.matricule !== undefined && { matricule }),
       ...(input.numero !== undefined && { numero: trimOrNull(input.numero) ?? null }),
       ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
+      ...(input.bio !== undefined && { bio: trimOrNull(input.bio) ?? null }),
+      ...(input.address !== undefined && { address: trimOrNull(input.address) ?? null }),
     };
 
     if (Object.keys(payload).length === 0) {

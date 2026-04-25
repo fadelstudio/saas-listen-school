@@ -39,6 +39,13 @@ router.get(
   analyticsController.getDashboardStats
 );
 
+router.get(
+  '/time-series',
+  authMiddleware,
+  requireRole(Role.ADMIN, Role.MANAGER, Role.SUPERADMIN),
+  analyticsController.getTimeSeriesStats
+);
+
 router.post(
   '/generate-periodic-report',
   authMiddleware,

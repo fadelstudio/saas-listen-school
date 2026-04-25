@@ -52,6 +52,8 @@ export const updateProfileSchema = z.object({
   matricule: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
   numero: z.union([z.string().max(120), z.literal(''), z.null()]).optional(),
   phone: z.union([z.string().max(40), z.literal(''), z.null()]).optional(),
+  bio: z.union([z.string().max(1000), z.literal(''), z.null()]).optional(),
+  address: z.union([z.string().max(255), z.literal(''), z.null()]).optional(),
 });
 
 export const verifyLoginOtpSchema = z.object({

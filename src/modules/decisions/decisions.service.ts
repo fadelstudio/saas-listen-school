@@ -4,6 +4,7 @@ import { NotFoundError, ForbiddenError } from '../../core/errors/AppError';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { jobQueue } from '../../core/config/queue';
 import type { CreateDecisionInput, UpdateDecisionInput, DecisionFilters } from './decisions.types';
+import { auditService } from '../audit/audit.service';
 
 export const decisionsService = {
   async create(input: CreateDecisionInput, userId: string, userRole: string, schoolId?: string | null) {
@@ -12,6 +13,17 @@ export const decisionsService = {
     }
 
     const decision = await decisionsRepository.create(input, userId, schoolId ?? null);
+
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'CREATE_DECISION',
+        entity: 'Decision',
+        entityId: decision.id,
+        details: { title: decision.title }
+      });
+    }
 
     // Automatically enqueue AI suggestion
     try {
@@ -44,28 +56,69 @@ export const decisionsService = {
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
-  async update(id: string, input: UpdateDecisionInput, userRole: string, schoolId?: string | null) {
+  async update(id: string, input: UpdateDecisionInput, userRole: string, schoolId?: string | null, userId?: string) {
     if (!['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('Only MANAGER or ADMIN can update decisions');
     }
     const exists = await decisionsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Decision');
-    return decisionsRepository.update(id, input, schoolId ?? null);
+    
+    const result = await decisionsRepository.update(id, input, schoolId ?? null);
+
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'UPDATE_DECISION',
+        entity: 'Decision',
+        entityId: id,
+        details: { updatedFields: Object.keys(input) }
+      });
+    }
+
+    return result;
   },
 
-  async updateStatus(id: string, status: DecisionStatus, userRole: string, schoolId?: string | null) {
+  async updateStatus(id: string, status: DecisionStatus, userRole: string, schoolId?: string | null, userId?: string) {
     if (!['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('Only MANAGER or ADMIN can change decision status');
     }
     const exists = await decisionsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Decision');
-    return decisionsRepository.updateStatus(id, status, schoolId ?? null);
+    
+    const result = await decisionsRepository.updateStatus(id, status, schoolId ?? null);
+
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'UPDATE_DECISION_STATUS',
+        entity: 'Decision',
+        entityId: id,
+        details: { newStatus: status }
+      });
+    }
+
+    return result;
   },
 
-  async delete(id: string, userRole: string, schoolId?: string | null) {
+  async delete(id: string, userRole: string, schoolId?: string | null, userId?: string) {
     if (userRole !== 'ADMIN') throw new ForbiddenError('Only ADMIN can delete decisions');
     const exists = await decisionsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Decision');
-    return decisionsRepository.delete(id, schoolId ?? null);
+    
+    const result = await decisionsRepository.delete(id, schoolId ?? null);
+
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'DELETE_DECISION',
+        entity: 'Decision',
+        entityId: id,
+      });
+    }
+
+    return result;
   },
 };

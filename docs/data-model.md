@@ -33,11 +33,13 @@ erDiagram
 Gère les comptes, les rôles et l'appartenance institutionnelle.
 - **Rôles** : `SUPERADMIN`, `ADMIN`, `MANAGER`, `AGENT`, `STUDENT`, `VIEWER`
 - **Champs clés** : `email`, `matricule`, `numero`, `phone`, `fcmToken`, `isActive`, `classId`
+- **Session Unique** : `currentSessionId` (UUID) - Enregistre l'ID de la session active. Si une nouvelle connexion génère un nouveau SID, l'ancien token devient invalide (Logout forcé).
 - **Relations** : `campuses` (Multi-campus N:M)
-- **Avatar** : `avatarPath` (chemin dans le bucket Supabase `attachments`) — l’API renvoie une URL signée côté client (`avatarUrl`), avec expiration (`SIGNED_URL_EXPIRES_IN`).
+- **Avatar** : `avatarPath` (chemin dans le bucket Supabase `attachments`) — l’API renvoie une URL signée côté client (`avatarUrl`).
 
-#### RefreshToken / PasswordResetToken / LoginOtpChallenge
-Gèrent la sécurité et la persistance des sessions.
+#### RefreshToken / PasswordResetToken / LoginOtpChallenge / AuditLog
+Gèrent la sécurité, la persistance des sessions et la traçabilité.
+- **AuditLog** : Enregistre chaque action sensible (`action`, `entity`, `entityId`, `details`, `ipAddress`).
 
 ---
 

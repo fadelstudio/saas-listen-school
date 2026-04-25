@@ -9,6 +9,111 @@ interface ConvContext {
   lastDataSummary?: string;
 }
 
+export interface ChartData {
+  type: 'bar' | 'line' | 'pie' | 'table';
+  title: string;
+  labels: string[];
+  datasets: Array<{
+    label: string;
+    data: number[];
+    color?: string;
+  }>;
+}
+
+// ─── Chart Detection ──────────────────────────────────────────────────────────
+
+/**
+ * Analyse les données brutes retournées par le SQL et produit un ChartData si applicable.
+ * Règles :
+ *  - Colonne "month" ou "day" ou "date" + colonne numérique → line chart
+ *  - Colonne *_name / *_title + 1-3 colonnes numériques → bar chart
+ *  - Colonne "status" / "type" / "band" / "role" / "period" + colonne count → bar ou pie
+ */
+function detectChartData(rows: any[], question: string): ChartData | null {
+  if (!Array.isArray(rows) || rows.length < 2) return null;
+
+  const keys = Object.keys(rows[0]);
+  if (keys.length < 2) return null;
+
+  const numericKeys = keys.filter(k => {
+    const low = k.toLowerCase();
+    // Exclure les IDs, les timestamps (at/At) et les dates
+    if (low.endsWith('id') || low.endsWith('at') || low.includes('date')) return false;
+    const v = rows[0][k];
+    return v !== null && typeof v !== 'boolean' && !isNaN(Number(v));
+  });
+
+  const labelKeys = keys.filter(k => !numericKeys.includes(k));
+  if (labelKeys.length === 0 || numericKeys.length === 0) return null;
+
+  const labelKey = labelKeys[0];
+  const labels = rows.map(r => String(r[labelKey] ?? ''));
+
+  // ── Time-series → line chart ──
+  const isTimeSeries =
+    labelKey.includes('month') || labelKey.includes('day') ||
+    labelKey.includes('date') || labelKey.includes('period') ||
+    /^\d{4}-\d{2}/.test(labels[0]);
+
+  if (isTimeSeries) {
+    const datasets = numericKeys.slice(0, 3).map(k => ({
+      label: k.replace(/_/g, ' '),
+      data: rows.map(r => Number(r[k]) || 0),
+    }));
+    return {
+      type: 'line',
+      title: buildChartTitle(question),
+      labels,
+      datasets,
+    };
+  }
+
+  // ── Status / type / band distribution → pie si <= 6 lignes, sinon bar ──
+  const isCategorical =
+    labelKey.includes('status') || labelKey.includes('type') ||
+    labelKey.includes('band') || labelKey.includes('role') ||
+    labelKey.includes('pct') || labelKey.includes('scope');
+
+  if (isCategorical) {
+    return {
+      type: rows.length <= 6 ? 'pie' : 'bar',
+      title: buildChartTitle(question),
+      labels,
+      datasets: [{
+        label: numericKeys[0].replace(/_/g, ' '),
+        data: rows.map(r => Number(r[numericKeys[0]]) || 0),
+      }],
+    };
+  }
+
+  // ── Ranking / comparaison → bar chart ──
+  const isRanking =
+    labelKey.includes('name') || labelKey.includes('title') ||
+    labelKey.includes('campus') || labelKey.includes('class') ||
+    labelKey.includes('module') || labelKey.includes('professor');
+
+  if (isRanking && rows.length >= 2) {
+    const datasets = numericKeys.slice(0, 3).map(k => ({
+      label: k.replace(/_/g, ' '),
+      data: rows.map(r => Number(r[k]) || 0),
+    }));
+    return {
+      type: 'bar',
+      title: buildChartTitle(question),
+      labels,
+      datasets,
+    };
+  }
+
+  return null;
+}
+
+function buildChartTitle(question: string): string {
+  // Capitalize first word, truncate
+  const clean = question.replace(/^salut[, ]+/i, '').replace(/^(tu peux|peux-tu)[, ]*/i, '');
+  return clean.charAt(0).toUpperCase() + clean.slice(1, 60) + (clean.length > 60 ? '…' : '');
+}
+
 // ─── History Formatter ────────────────────────────────────────────────────────
 
 function formatHistory(history: Array<{ role: string; content: string }>): string {
@@ -25,17 +130,16 @@ function buildSqlPrompt(schoolId: string, ctx: ConvContext): string {
   const contextBlock = ctx.lastSql
     ? `
 ══════════════════════════════════════════════════════════════
-CONTEXTE REQUÊTE PRÉCÉDENTE — POUR LES QUESTIONS DE SUIVI
+CONTEXTE REQUÊTE PRÉCÉDENTE
 ══════════════════════════════════════════════════════════════
 Question précédente : ${ctx.lastQuestion ?? '—'}
-Résumé données retournées : ${ctx.lastDataSummary ?? '—'}
+Résumé données : ${ctx.lastDataSummary ?? '—'}
 SQL précédent :
 \`\`\`sql
 ${ctx.lastSql}
 \`\`\`
-► Si la question fait référence à "ce professeur", "cette campagne", "ce module", "lui", "elle",
-  "même", "aussi", "son nom", "son titre", etc. → reprends les mêmes entités/filtres du SQL précédent.
-  Modifie uniquement ce qui change (période, champ, groupement).
+► Question de suivi ("ce prof", "cette classe", "son nom", "lui", "même", "aussi") → reprends les mêmes
+  entités/filtres du SQL précédent. Modifie seulement ce qui change.
 ══════════════════════════════════════════════════════════════
 ` : '';
 
@@ -47,9 +151,9 @@ ${contextBlock}
 ══════════════════════════════════════════════════════════════
 DÉCISION PREMIÈRE
 ══════════════════════════════════════════════════════════════
-• Question demande des DONNÉES (stats, listes, noms, scores, counts, tendances, bilans) → génère SQL
-• Question est une SALUTATION ou QUESTION GÉNÉRALE PURE ("bonjour", "merci", "que peux-tu faire") → retourne : NO_QUERY
-• En cas de doute → génère le SQL. Mieux vaut interroger la BD pour rien que de rater.
+• Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
+• Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
+• En cas de doute absolu → génère le SQL.
 
 ══════════════════════════════════════════════════════════════
 SCHÉMA
@@ -75,7 +179,7 @@ evaluations:          id, "professorId","moduleId","classId","campaignId","evalu
                       status:     'PENDING'|'IN_PROGRESS'|'COMPLETED'
                       RatingBand: 'VERY_POOR'|'POOR'|'FAIR'|'GOOD'|'EXCELLENT'
 evaluation_campaigns: id, title, description, status, scope, "dueDate","campusId","classId","moduleId","professorId", createdAt, updatedAt
-                      ⚠️ PAS de schoolId → filtrer via professors OU modules
+                      ⚠️ PAS de schoolId → JOIN professors OU modules
                       status: 'DRAFT'|'ACTIVE'|'CLOSED'|'ARCHIVED'
                       scope:  'CAMPUS'|'CLASS'|'MODULE'|'PROFESSOR'
 decisions:            id, title, rationale, status, priority, responsible, "dueDate","aiSuggestion",
@@ -92,52 +196,61 @@ RÈGLES ABSOLUES
 
 【1】FORMAT : \`\`\`sql ... \`\`\` OU exactement NO_QUERY
 
-【2】SCHOOLID — FILTRAGE OBLIGATOIRE :
+【2】SCHOOLID :
     campuses, modules, professors, users, reports, evaluations, decisions, notifications, analysis_reports
       → WHERE table."schoolId" = '${schoolId}'
-    classes (pas schoolId)
-      → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
-    evaluation_campaigns (pas schoolId)
-      → JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}'
-      → OU JOIN modules m ON ec."moduleId"=m.id WHERE m."schoolId"='${schoolId}'
+    classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
+    evaluation_campaigns → JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}'
 
-【3】CAMELCASE entre guillemets doubles :
-    "schoolId","firstName","lastName","createdAt","isActive","isAnonymous","dueDate","campaignId","classId"
+【3】CAMELCASE entre guillemets doubles toujours.
 
 【4】ENUMS → CAST(col AS TEXT) = 'VALEUR'
 
-【5】NOMS LISIBLES — TOUJOURS :
+【5】NOMS LISIBLES TOUJOURS :
     Professeur → CONCAT(p."firstName",' ',p."lastName") AS professor_name
-    Campagne   → ec.title AS campaign_title   ← JAMAIS OMETTRE
+    Campagne   → ec.title AS campaign_title
     Classe     → cl.name AS class_name
     Module     → m.name AS module_name
     Campus     → ca.name AS campus_name
     Auteur     → CONCAT(u."firstName",' ',u."lastName") AS author_name
-    Décideur   → CONCAT(u."firstName",' ',u."lastName") AS decider_name
 
 【6】AGRÉGATS :
     ROUND(AVG(e.score)::numeric,2) AS avg_score
-    COUNT(*) AS total
-    COUNT(*) FILTER (WHERE cond) AS filtered_count
+    COUNT(DISTINCT x.id) AS total   ← DISTINCT pour éviter doublons en multi-JOIN
     ROUND(100.0*COUNT(*) FILTER (WHERE cond)/NULLIF(COUNT(*),0),1) AS rate_pct
 
 【7】DATES :
-    "aujourd'hui"      → "createdAt"::date = CURRENT_DATE
-    "dernières 24h"    → "createdAt" >= NOW()-INTERVAL '1 day'
-    "cette semaine"    → "createdAt" >= DATE_TRUNC('week',NOW())
-    "ce mois"          → "createdAt" >= DATE_TRUNC('month',NOW())
-    "mois dernier"     → "createdAt" >= DATE_TRUNC('month',NOW()-INTERVAL '1 month') AND "createdAt" < DATE_TRUNC('month',NOW())
-    "ce semestre"      → "createdAt" >= NOW()-INTERVAL '6 months'
-    "cette année"      → "createdAt" >= DATE_TRUNC('year',NOW())
-    "plus ancien"      → ORDER BY "createdAt" ASC
-    "plus récent"      → ORDER BY "createdAt" DESC
-    Échéance proche    → "dueDate" BETWEEN NOW() AND NOW()+INTERVAL '7 days'
+    "aujourd'hui"         → "createdAt"::date = CURRENT_DATE
+    "dernières 24h"       → "createdAt" >= NOW()-INTERVAL '1 day'
+    "ces X derniers jours"→ "createdAt" >= NOW()-INTERVAL 'X days'  ← ex: 10 jours = INTERVAL '10 days'
+    "cette semaine"       → "createdAt" >= DATE_TRUNC('week',NOW())
+    "ce mois"             → "createdAt" >= DATE_TRUNC('month',NOW())
+    "mois dernier"        → "createdAt" >= DATE_TRUNC('month',NOW()-INTERVAL '1 month') AND "createdAt" < DATE_TRUNC('month',NOW())
+    "ce semestre"         → "createdAt" >= NOW()-INTERVAL '6 months'
+    "cette année"         → "createdAt" >= DATE_TRUNC('year',NOW())
+    Courbe/tendance par jour → GROUP BY "createdAt"::date, ORDER BY date ASC (pas DESC)
+    Courbe/tendance par mois → GROUP BY DATE_TRUNC('month',"createdAt"), ORDER BY month ASC
 
-【8】LIMITES :
-    top N / meilleur/pire → LIMIT 5
-    liste générale        → LIMIT 20
-    comptage pur          → pas de LIMIT
-    entité unique         → LIMIT 1
+【8】LIMITES — RÈGLE CRITIQUE :
+    ════════════════════════════════════════════════════════════
+    ❌ JAMAIS LIMIT 1 — même pour "la plus", "la moins", "quelle est la meilleure"
+    ════════════════════════════════════════════════════════════
+    "combat" / "classement" / "comparaison" / "toutes les classes/profs/modules"
+      → TOUTES les lignes disponibles, LIMIT 20 maximum
+    "top N" / "les X meilleurs/pires"
+      → LIMIT N (ex: top 5 = LIMIT 5, top 3 = LIMIT 3)
+    "le meilleur" / "le pire" seul sans comparaison demandée
+      → LIMIT 5 (pour les ex-aequo)
+    liste générale
+      → LIMIT 20
+    comptage pur (COUNT seulement)
+      → pas de LIMIT
+    courbe / tendance (GROUP BY date)
+      → pas de LIMIT ou LIMIT 90 (jours) / LIMIT 24 (mois)
+
+    ► Pour "combat" ou "quelle classe a le plus de X" :
+      Retourne TOUTES les classes avec leurs scores pour permettre la comparaison complète.
+      Le gagnant ressort naturellement en premier avec ORDER BY DESC.
 
 【9】ALIAS : r=reports, e=evaluations, ec=evaluation_campaigns, p=professors,
              cl=classes, m=modules, ca=campuses, d=decisions, u=users, al=academic_levels
@@ -152,12 +265,52 @@ RÈGLES ABSOLUES
     - table REPORTS : N'A PAS de colonne "campaignId" (liez via "classId" ou "professorId").
 
 ══════════════════════════════════════════════════════════════
-EXEMPLES COMPLETS PAR CATÉGORIE
+EXEMPLES PAR CATÉGORIE
 ══════════════════════════════════════════════════════════════
+
+--- COMBAT / CLASSEMENT TOUTES CLASSES ---
+
+-- "Combat" signalements + évaluations par classe → TOUTES les classes, pas LIMIT 1
+SELECT
+  cl.name AS class_name,
+  COUNT(DISTINCT r.id) AS total_reports,
+  COUNT(DISTINCT e.id) AS total_evaluations,
+  (COUNT(DISTINCT r.id) + COUNT(DISTINCT e.id)) AS total_activity
+FROM classes cl
+JOIN campuses ca ON cl."campusId"=ca.id
+LEFT JOIN reports r ON cl.id=r."classId" AND r."schoolId"='${schoolId}'
+LEFT JOIN evaluations e ON cl.id=e."classId" AND e."schoolId"='${schoolId}'
+WHERE ca."schoolId"='${schoolId}'
+GROUP BY cl.id,cl.name
+ORDER BY total_activity DESC
+LIMIT 20;
+
+--- COURBES / TENDANCES (time-series) ---
+
+-- Courbe signalements par jour sur N jours
+SELECT
+  r."createdAt"::date AS day,
+  COUNT(*) AS total_reports,
+  COUNT(*) FILTER (WHERE CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL')) AS critical_reports
+FROM reports r
+WHERE r."schoolId"='${schoolId}'
+  AND r."createdAt" >= NOW()-INTERVAL '10 days'
+GROUP BY r."createdAt"::date
+ORDER BY day ASC;
+
+-- Courbe évaluations par mois sur 12 mois
+SELECT
+  TO_CHAR(DATE_TRUNC('month',e."createdAt"),'YYYY-MM') AS month,
+  ROUND(AVG(e.score)::numeric,2) AS avg_score,
+  COUNT(e.id) AS total_evals
+FROM evaluations e
+WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
+  AND e."createdAt" >= NOW()-INTERVAL '12 months'
+GROUP BY DATE_TRUNC('month',e."createdAt")
+ORDER BY month ASC;
 
 --- CAMPAGNES ---
 
--- Plus ancienne / récente
 SELECT ec.id, ec.title AS campaign_title, ec.status, ec.scope, ec."dueDate", ec."createdAt",
   CONCAT(p."firstName",' ',p."lastName") AS professor_name,
   m.name AS module_name, cl.name AS class_name, ca.name AS campus_name
@@ -169,34 +322,9 @@ LEFT JOIN campuses ca ON ec."campusId"=ca.id
 WHERE p."schoolId"='${schoolId}'
 ORDER BY ec."createdAt" ASC LIMIT 5;
 
--- Campagnes actives avec taux de complétion
-SELECT ec.title AS campaign_title, ec.scope, ec."dueDate",
-  CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  m.name AS module_name, ca.name AS campus_name,
-  COUNT(e.id) AS total_evals,
-  COUNT(e.id) FILTER (WHERE CAST(e.status AS TEXT)='COMPLETED') AS completed,
-  ROUND(100.0*COUNT(e.id) FILTER (WHERE CAST(e.status AS TEXT)='COMPLETED')/NULLIF(COUNT(e.id),0),1) AS completion_pct
-FROM evaluation_campaigns ec
-JOIN professors p ON ec."professorId"=p.id
-LEFT JOIN modules m ON ec."moduleId"=m.id
-LEFT JOIN campuses ca ON ec."campusId"=ca.id
-LEFT JOIN evaluations e ON e."campaignId"=ec.id
-WHERE p."schoolId"='${schoolId}' AND ec.status='ACTIVE'
-GROUP BY ec.id,ec.title,ec.scope,ec."dueDate",p."firstName",p."lastName",m.name,ca.name
-ORDER BY ec."dueDate" ASC LIMIT 20;
-
--- Échéances cette semaine
-SELECT ec.title AS campaign_title, ec.status, ec."dueDate",
-  CONCAT(p."firstName",' ',p."lastName") AS professor_name
-FROM evaluation_campaigns ec
-JOIN professors p ON ec."professorId"=p.id
-WHERE p."schoolId"='${schoolId}'
-  AND ec."dueDate" BETWEEN NOW() AND NOW()+INTERVAL '7 days'
-ORDER BY ec."dueDate" ASC;
-
 --- PROFESSEURS ---
 
--- Meilleur/pire score
+-- Meilleurs/pires scores
 SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name,
   ROUND(AVG(e.score)::numeric,2) AS avg_score, COUNT(e.id) AS eval_count
 FROM evaluations e JOIN professors p ON e."professorId"=p.id
@@ -217,29 +345,11 @@ WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
 GROUP BY p.id,p."firstName",p."lastName"
 ORDER BY avg_score DESC LIMIT 20;
 
--- Plus de signalements
-SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  COUNT(r.id) AS report_count,
-  COUNT(r.id) FILTER (WHERE CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL')) AS critical_count
-FROM reports r JOIN professors p ON r."professorId"=p.id
-WHERE r."schoolId"='${schoolId}'
-GROUP BY p.id,p."firstName",p."lastName"
-ORDER BY report_count DESC LIMIT 5;
-
 -- Sans aucune évaluation
 SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name, p.email
 FROM professors p
 WHERE p."schoolId"='${schoolId}'
   AND NOT EXISTS (SELECT 1 FROM evaluations e WHERE e."professorId"=p.id AND e."schoolId"='${schoolId}');
-
--- Évolution mensuelle
-SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  TO_CHAR(DATE_TRUNC('month',e."createdAt"),'YYYY-MM') AS month,
-  ROUND(AVG(e.score)::numeric,2) AS avg_score, COUNT(e.id) AS count
-FROM evaluations e JOIN professors p ON e."professorId"=p.id
-WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-GROUP BY p.id,p."firstName",p."lastName",DATE_TRUNC('month',e."createdAt")
-ORDER BY p."lastName",month DESC LIMIT 30;
 
 --- SIGNALEMENTS ---
 
@@ -264,23 +374,9 @@ SELECT CAST(r.status AS TEXT) AS status, COUNT(*) AS count,
 FROM reports r WHERE r."schoolId"='${schoolId}'
 GROUP BY r.status ORDER BY count DESC;
 
--- Tendance mensuelle
-SELECT TO_CHAR(DATE_TRUNC('month',r."createdAt"),'YYYY-MM') AS month,
-  COUNT(*) AS total,
-  COUNT(*) FILTER (WHERE CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL')) AS critical_count,
-  COUNT(*) FILTER (WHERE r."isAnonymous"=TRUE) AS anonymous_count
-FROM reports r WHERE r."schoolId"='${schoolId}'
-GROUP BY DATE_TRUNC('month',r."createdAt")
-ORDER BY month DESC LIMIT 12;
-
--- Temps moyen de traitement
-SELECT ROUND(AVG(EXTRACT(EPOCH FROM (r."updatedAt"-r."createdAt"))/3600)::numeric,1) AS avg_hours
-FROM reports r WHERE r."schoolId"='${schoolId}'
-  AND CAST(r.status AS TEXT) IN ('APPROVED','REJECTED');
-
 --- ÉVALUATIONS ---
 
--- Bilan global
+-- Score moyen global
 SELECT ROUND(AVG(e.score)::numeric,2) AS global_avg, COUNT(e.id) AS total,
   COUNT(e.id) FILTER (WHERE CAST(e.status AS TEXT)='PENDING') AS pending,
   COUNT(e.id) FILTER (WHERE CAST(e.status AS TEXT)='COMPLETED') AS completed
@@ -304,15 +400,6 @@ SELECT
 FROM evaluations e WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
 GROUP BY 1 ORDER BY MIN(e.score);
 
--- Comparaison semestre actuel vs précédent
-SELECT
-  CASE WHEN e."createdAt">=NOW()-INTERVAL '6 months' THEN 'Semestre actuel' ELSE 'Semestre précédent' END AS period,
-  ROUND(AVG(e.score)::numeric,2) AS avg_score, COUNT(e.id) AS count
-FROM evaluations e
-WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-  AND e."createdAt">=NOW()-INTERVAL '12 months'
-GROUP BY 1 ORDER BY 1;
-
 --- DÉCISIONS ---
 
 -- En retard
@@ -327,7 +414,6 @@ ORDER BY d."dueDate" ASC LIMIT 20;
 
 --- BILAN GLOBAL ---
 
--- Dashboard complet une requête
 SELECT
   (SELECT COUNT(*) FROM reports r WHERE r."schoolId"='${schoolId}') AS total_reports,
   (SELECT COUNT(*) FROM reports r WHERE r."schoolId"='${schoolId}' AND CAST(r.status AS TEXT) NOT IN ('APPROVED','REJECTED')) AS open_reports,
@@ -339,19 +425,6 @@ SELECT
   (SELECT COUNT(*) FROM users WHERE "schoolId"='${schoolId}' AND CAST(role AS TEXT)='STUDENT' AND "isActive"=TRUE) AS active_students,
   (SELECT COUNT(*) FROM professors WHERE "schoolId"='${schoolId}') AS total_professors,
   (SELECT COUNT(*) FROM notifications WHERE "schoolId"='${schoolId}' AND "isRead"=FALSE) AS unread_notifications;
-
--- Comparaison ce mois vs mois précédent
-SELECT period,reports,critical FROM (
-  SELECT 'Ce mois' AS period, COUNT(r.id) AS reports,
-    COUNT(r.id) FILTER (WHERE CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL')) AS critical
-  FROM reports r WHERE r."schoolId"='${schoolId}' AND r."createdAt">=DATE_TRUNC('month',NOW())
-  UNION ALL
-  SELECT 'Mois précédent', COUNT(r.id),
-    COUNT(r.id) FILTER (WHERE CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL'))
-  FROM reports r WHERE r."schoolId"='${schoolId}'
-    AND r."createdAt">=DATE_TRUNC('month',NOW()-INTERVAL '1 month')
-    AND r."createdAt"<DATE_TRUNC('month',NOW())
-) t;
 
 ══════════════════════════════════════════════════════════════
 `.trim();
@@ -365,7 +438,8 @@ function buildResponsePrompt(
   historyBlock: string,
   question: string,
   schoolName: string,
-  isGeneral: boolean
+  isGeneral: boolean,
+  hasChart: boolean
 ): string {
   if (isGeneral) {
     return `${systemIdentity}
@@ -373,12 +447,16 @@ function buildResponsePrompt(
 ${historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : ''}
 QUESTION : ${question}
 
-Réponds en français, de manière chaleureuse et professionnelle.
-- Salutation / remerciement → 1-2 phrases max. Ne te présente pas si déjà fait dans l'historique.
-- "Que peux-tu faire ?" → liste tes capacités : statistiques, campagnes d'évaluation, signalements,
-  classements professeurs, scores par classe/campus/module, tendances, bilans, décisions, notifications.
+Réponds en français, de manière chaleureuse, courte et directe.
+- Salutation ou merci → réponds par une seule phrase amicale.
+- Question hors-sujet ou blague → réponds directement, sans introduire tes fonctions.
+- Si et SEULEMENT SI l'utilisateur demande "Qui es-tu ?" ou "Que peux-tu faire ?" → liste brièvement tes capacités liées au projet (stats, signalements, évaluations, tendances).
 - Tu t'appelles MyIA et tu représentes "${schoolName}".`;
   }
+
+  const chartNote = hasChart
+    ? '\n9. GRAPHIQUE : Un graphique a été généré automatiquement pour cette réponse. Mentionne-le brièvement ("Voici aussi le graphique correspondant" ou similaire) mais ne décris pas les données visuelles en détail — laisse le graphique parler.'
+    : '';
 
   return `${systemIdentity}
 
@@ -394,18 +472,20 @@ RÈGLES DE RÉPONSE
 1. DONNÉES UNIQUEMENT : Utilise exclusivement le JSON ci-dessus. Jamais d'invention.
 2. NOMS LISIBLES : Affiche campaign_title, professor_name, class_name, module_name, campus_name.
    Jamais d'UUID ni d'identifiants techniques.
-3. TON ASSERTIF : Jamais "D'après les données", "il me semble", "je pense". Affirme avec certitude.
-4. EX-AEQUO : Si plusieurs éléments ont la même valeur → cite-les TOUS avec "à égalité".
-5. VIDE : Si JSON vide ou "Aucun résultat" → "Aucune donnée disponible pour cette demande."
-6. ERREUR TECHNIQUE : "Je ne peux pas récupérer cette information pour le moment."
-7. FORMAT :
-   - Question simple     → 2-4 phrases directes avec les chiffres clés
-   - Liste d'éléments   → puces propres avec valeurs clés
-   - Bilan complet      → métriques structurées, lisibles
-   - Tendance/évolution → direction (hausse/baisse) + chiffres avant/après
-8. SUITE DE CONVERSATION : Si question courte de suivi → réfère-toi à l'historique.
-9. IDENTITÉ : Ne te présente pas si l'historique montre que tu l'as déjà fait.
-10. Jamais de SQL, de noms de tables ni d'UUIDs dans la réponse.
+3. TON ASSERTIF : Jamais "D'après les données", "il me semble". Affirme avec certitude.
+4. CLASSEMENT COMPLET : Si les données contiennent plusieurs lignes (classement, combat, comparaison),
+   CITE-LES TOUTES dans l'ordre. Ne dis jamais "les données ne concernent qu'une seule X" si le JSON
+   en contient plusieurs.
+5. EX-AEQUO : Si même valeur → "à égalité".
+6. VIDE : SI ET SEULEMENT SI le JSON est vide ou dit "Aucun résultat" → réponds "Aucune donnée disponible.".
+   SINON, tu dois obligatoirement décrire les données présentes.
+7. ERREUR : "erreur technique" → "Je ne peux pas récupérer cette information pour le moment."
+8. FORMAT :
+   - Classement/combat → liste à puces numérotée avec rang et valeurs clés
+   - Tendance/courbe → décris la direction (hausse/baisse/stable) + valeurs extrêmes
+   - Bilan complet → métriques structurées
+   - Question simple → 2-4 phrases directes${chartNote}
+10. Jamais de SQL, d'UUIDs, de noms de tables dans la réponse.
 11. Établissement : "${schoolName}".`;
 }
 
@@ -417,23 +497,24 @@ async function executeSqlWithRetry(
   schoolId: string,
   aiBalancer: any,
   sqlSystemPrompt: string
-): Promise<{ data: string; executedSql: string }> {
+): Promise<{ data: string; executedSql: string; rawRows: any[] }> {
   const upper = sql.toUpperCase();
   const safe = upper.startsWith('SELECT') && !upper.includes('DROP ') &&
     !upper.includes('DELETE ') && !upper.includes('UPDATE ') &&
     !upper.includes('INSERT ') && !upper.includes('TRUNCATE ') && !upper.includes('ALTER ');
 
-  if (!safe) return { data: 'Requête bloquée (SELECT uniquement).', executedSql: '' };
+  if (!safe) return { data: 'Requête bloquée (SELECT uniquement).', executedSql: '', rawRows: [] };
 
-  const serialize = (result: any) => {
-    const s = JSON.stringify(result, (_k, v) => typeof v === 'bigint' ? v.toString() : v);
+  const serialize = (rows: any[]) => {
+    const s = JSON.stringify(rows, (_k, v) => typeof v === 'bigint' ? v.toString() : v);
     const t = s.length > 8000 ? s.substring(0, 8000) + '… (tronqué)' : s;
     return t === '[]' ? 'Aucun résultat trouvé.' : t;
   };
 
   try {
     console.log('⚡ SQL attempt 1:', sql);
-    return { data: serialize(await prisma.$queryRawUnsafe(sql)), executedSql: sql };
+    const rows = await prisma.$queryRawUnsafe(sql) as any[];
+    return { data: serialize(rows), executedSql: sql, rawRows: rows };
   } catch (e1: any) {
     console.error('❌ SQL Error (1):', e1.message);
     try {
@@ -444,12 +525,12 @@ SQL en erreur :
 \`\`\`sql
 ${sql}
 \`\`\`
-Corrections requises :
+Corrections OBLIGATOIRES :
 - evaluation_campaigns → JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}'
 - classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
-- Guillemets doubles sur toutes les colonnes camelCase
+- Guillemets doubles sur toutes colonnes camelCase
 - CAST(col AS TEXT) sur tous les enums
-- ec.title AS campaign_title obligatoire pour les campagnes
+- JAMAIS LIMIT 1 pour les classements/comparaisons/combats
 - ORDER BY expressions → pas d'alias du SELECT dans les calculs
 - REPORTS n'a PAS de "userId" → utilise "authorId"
 - REPORTS n'a PAS de "campaignId" → pas de jointure directe avec evaluation_campaigns
@@ -462,18 +543,19 @@ Génère uniquement la requête corrigée.`, schoolId);
         const retrySql = (m[1] || m[0]).replace(/```/g, '').trim();
         const ru = retrySql.toUpperCase();
         if (ru.startsWith('SELECT') && !ru.includes('DROP ') && !ru.includes('DELETE ') && !ru.includes('UPDATE ')) {
-          console.log('⚡ SQL attempt 2 (corrected):', retrySql);
-          return { data: serialize(await prisma.$queryRawUnsafe(retrySql)), executedSql: retrySql };
+          console.log('⚡ SQL attempt 2:', retrySql);
+          const rows = await prisma.$queryRawUnsafe(retrySql) as any[];
+          return { data: serialize(rows), executedSql: retrySql, rawRows: rows };
         }
       }
     } catch (e2: any) {
       console.error('❌ SQL Error (2):', e2.message);
     }
-    return { data: 'Impossible de récupérer cette information (erreur technique interne).', executedSql: '' };
+    return { data: 'Impossible de récupérer cette information (erreur technique interne).', executedSql: '', rawRows: [] };
   }
 }
 
-// ─── Chat Service ─────────────────────────────────────────────────────────────
+// ─── Schema helpers ───────────────────────────────────────────────────────────
 
 export const chatService = {
 
@@ -625,7 +707,7 @@ export const chatService = {
       `;
     } catch { /* none */ }
 
-    // SQL context (persisted in DB)
+    // SQL context
     const ctx = await this.loadSqlContext(convId as string);
 
     // Save user message
@@ -637,16 +719,20 @@ export const chatService = {
 
     let answer = '';
     let isGeneral = false;
+    let chartData: ChartData | null = null;
 
     try {
-      // ── Étape 1 : SQL (toujours) — l'IA décide elle-même NO_QUERY ────────────
+      // ── Étape 1 : SQL ──────────────────────────────────────────────────────
       const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx);
       const sqlUserPrompt = [
         historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : '',
         `QUESTION : ${question}`,
         '',
-        '→ Si salutation/question générale pure : NO_QUERY',
-        '→ Sinon : SQL complet avec tous les noms lisibles et ec.title AS campaign_title pour les campagnes.',
+        '→ SALUTATION / HORS-SUJET / BLAGUE ("bonjour", "merci", "qui es-tu", "raconte une blague") : retourne EXACTEMENT "NO_QUERY"',
+        '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements, profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles. JAMAIS LIMIT 1.',
+        '→ Pour combat/classement/comparaison : retourne TOUTES les lignes (LIMIT 20).',
+        '→ Pour courbe/tendance : GROUP BY date ORDER BY date ASC sans LIMIT ou LIMIT 90.',
+        '→ Pour evaluation_campaigns : ec.title AS campaign_title OBLIGATOIRE.',
       ].filter(Boolean).join('\n');
 
       const sqlRes = await aiBalancer.callAI(`${sqlSystemPrompt}\n\n${sqlUserPrompt}`, schoolId);
@@ -667,6 +753,11 @@ export const chatService = {
           dbDataStr = result.data;
           executedSql = result.executedSql;
 
+          // ── Chart detection ──────────────────────────────────────────────
+          if (result.rawRows.length >= 2) {
+            chartData = detectChartData(result.rawRows, question);
+          }
+
           if (executedSql) {
             await this.saveSqlContext(convId as string, {
               lastSql: executedSql,
@@ -675,12 +766,14 @@ export const chatService = {
             });
           }
         } else {
-          isGeneral = true; // No SQL pattern found → general
+          isGeneral = true;
         }
       }
 
-      // ── Étape 2 : Réponse naturelle ───────────────────────────────────────────
-      const finalPrompt = buildResponsePrompt(systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral);
+      // ── Étape 2 : Réponse naturelle ───────────────────────────────────────
+      const finalPrompt = buildResponsePrompt(
+        systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, chartData !== null
+      );
       const finalRes = await aiBalancer.callAI(finalPrompt, schoolId);
       answer = finalRes.content.trim();
 
@@ -691,6 +784,13 @@ export const chatService = {
 
     await this.addMessage(convId as string, 'assistant', answer);
 
-    return { answer, conversationId: convId as string, usedDB: !isGeneral, schoolName };
+    return {
+      answer,
+      conversationId: convId as string,
+      usedDB: !isGeneral,
+      schoolName,
+      // chartData est null si pas de graphique applicable
+      chartData,
+    };
   },
 };

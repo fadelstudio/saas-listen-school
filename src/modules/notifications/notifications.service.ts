@@ -5,13 +5,12 @@ export type NotificationType =
   | 'AI_FAILURE'
   | 'EVALUATION_CAMPAIGN'
   | 'EVALUATION_CAMPAIGN_REMINDER'
-  | 'SYSTEM';
+  | 'SYSTEM'
+  | 'BROADCAST';
 
 export const notificationService = {
   /**
-   * Crée une notification.
-   * - userId : null = notification globale (visible par tous les utilisateurs de l'école)
-   * - schoolId : permet d'isoler les notifications globales par école
+   * Crée une notification individuelle ou globale simple.
    */
   async create(data: {
     title: string;
@@ -28,23 +27,48 @@ export const notificationService = {
         type:       data.type,
         userId:     data.userId     ?? null,
         campaignId: data.campaignId ?? null,
-        // schoolId stocké si disponible pour isoler les notifications globales
-        // Si le champ n'existe pas encore en DB, cette ligne sera ignorée gracieusement
-        ...(data.schoolId ? { schoolId: data.schoolId } : {}),
-      } as any,
+        schoolId:   data.schoolId   ?? null,
+      },
     });
   },
 
   /**
-   * Récupère les notifications pour un utilisateur donné, isolées par école.
-   * Retourne :
-   *  - Les notifications adressées directement à l'utilisateur (userId = userId)
-   *  - Les notifications globales de l'école (userId = null AND schoolId = schoolId)
-   *  - Les notifications globales système pures (userId = null AND schoolId = null)
+   * Envoie une notification ciblée (Broadcast).
+   */
+  async sendBroadcast(data: {
+    schoolId: string;
+    title: string;
+    message: string;
+    targetRole?: any;
+    targetCampusId?: string;
+    targetClassId?: string;
+    url?: string;
+    attachments?: any;
+  }) {
+    return prisma.notification.create({
+      data: {
+        schoolId:       data.schoolId,
+        title:          data.title,
+        message:        data.message,
+        type:           'BROADCAST',
+        targetRole:     data.targetRole     ?? null,
+        targetCampusId: data.targetCampusId ?? null,
+        targetClassId:  data.targetClassId  ?? null,
+        url:            data.url            ?? null,
+        attachments:    data.attachments    ?? null,
+      },
+    });
+  },
+
+  /**
+   * Récupère les notifications pour un utilisateur donné, incluant les ciblages.
    */
   async getAllForUser(
     userId: string,
     schoolId: string,
+    userRole: any,
+    campusIds: string[],
+    classId: string | null,
     opts?: {
       isRead?: boolean;
       type?: NotificationType;
@@ -53,12 +77,23 @@ export const notificationService = {
     }
   ) {
     const where: any = {
+      schoolId,
       OR: [
-        // Notifications personnelles
+        // Adressée directement
         { userId },
-        // Notifications globales de cette école
-        { userId: null, schoolId },
-        // Notifications globales système (SuperAdmin broadcast)
+        // Broadcast ciblé
+        {
+          userId: null,
+          AND: [
+            // Filtre par Rôle
+            { OR: [{ targetRole: null }, { targetRole: userRole }] },
+            // Filtre par Campus (l'utilisateur peut avoir plusieurs campusIds)
+            { OR: [{ targetCampusId: null }, { targetCampusId: { in: campusIds } }] },
+            // Filtre par Classe
+            { OR: [{ targetClassId: null }, { targetClassId: classId }] },
+          ],
+        },
+        // Notifications système globales (SaaS)
         { userId: null, schoolId: null },
       ],
       ...(typeof opts?.isRead === 'boolean' ? { isRead: opts.isRead } : {}),
@@ -91,4 +126,12 @@ export const notificationService = {
       throw new NotFoundError('Notification');
     }
   },
+
+  async delete(id: string, schoolId: string) {
+    const notif = await prisma.notification.findUnique({ where: { id } });
+    if (!notif || notif.schoolId !== schoolId) {
+      throw new NotFoundError('Notification');
+    }
+    return prisma.notification.delete({ where: { id } });
+  }
 };

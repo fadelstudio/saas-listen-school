@@ -35,6 +35,7 @@ const envSchema = z.object({
   // Supabase
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),
   SUPABASE_KEY: z.string().min(1, "SUPABASE_KEY is required"),
+  SUPABASE_BUCKET: z.string().default("attachments"),
 
   // Redis
   REDIS_URL: z.string().min(1).optional(),

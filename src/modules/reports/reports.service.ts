@@ -6,6 +6,7 @@ import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { jobQueue } from '../../core/config/queue';
 import type { CreateReportInput, UpdateReportInput, ReportFilters } from './reports.types';
 import { prisma } from '../../core/database/prisma';
+import { auditService } from '../audit/audit.service';
 
 export const reportsService = {
   async create(input: CreateReportInput, userId?: string, schoolId?: string | null) {
@@ -52,6 +53,17 @@ export const reportsService = {
     }
 
     const report = await reportsRepository.create(finalInput, userId, resolvedSchoolId);
+
+    if (resolvedSchoolId) {
+      await auditService.log({
+        schoolId: resolvedSchoolId,
+        userId,
+        action: 'CREATE_REPORT',
+        entity: 'Report',
+        entityId: report.id,
+        details: { title: report.title, type: report.type }
+      });
+    }
 
     // 3. Automatic AI Trigger
     try {
@@ -119,25 +131,65 @@ export const reportsService = {
       throw new ForbiddenError('You do not have permission to update this report');
     }
 
-    return reportsRepository.update(id, input, schoolId ?? null);
+    const updated = await reportsRepository.update(id, input, schoolId ?? null);
+    
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'UPDATE_REPORT',
+        entity: 'Report',
+        entityId: id,
+        details: { updatedFields: Object.keys(input) }
+      });
+    }
+    
+    return updated;
   },
 
-  async updateStatus(id: string, status: ReportStatus, userRole: string, schoolId?: string | null) {
+  async updateStatus(id: string, status: ReportStatus, userRole: string, schoolId?: string | null, userId?: string) {
     if (!['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('Only MANAGER or ADMIN can change report status');
     }
     const exists = await reportsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Report');
-    return reportsRepository.updateStatus(id, status, schoolId ?? null);
+    
+    const result = await reportsRepository.updateStatus(id, status, schoolId ?? null);
+
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'UPDATE_REPORT_STATUS',
+        entity: 'Report',
+        entityId: id,
+        details: { newStatus: status }
+      });
+    }
+
+    return result;
   },
 
-  async delete(id: string, userRole: string, schoolId?: string | null) {
+  async delete(id: string, userRole: string, schoolId?: string | null, userId?: string) {
     if (userRole !== 'ADMIN') {
       throw new ForbiddenError('Only ADMIN can delete reports');
     }
     const exists = await reportsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Report');
-    return reportsRepository.delete(id, schoolId ?? null);
+    
+    const result = await reportsRepository.delete(id, schoolId ?? null);
+
+    if (schoolId) {
+      await auditService.log({
+        schoolId,
+        userId,
+        action: 'DELETE_REPORT',
+        entity: 'Report',
+        entityId: id,
+      });
+    }
+
+    return result;
   },
 
   async triggerAiAnalysis(id: string, userRole: string, schoolId?: string | null) {

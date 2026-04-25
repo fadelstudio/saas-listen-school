@@ -14,6 +14,18 @@ export const analyticsController = {
     }
   },
 
+  async getTimeSeriesStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const campusId = req.query.campusId as string;
+      const period = (req.query.period as any) || 'week';
+      const stats = await analyticsService.getTimeSeriesStats(req.schoolId, period, campusId);
+      res.sendSuccess('Time series stats fetched', stats);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async generateGlobalAnalysis(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');

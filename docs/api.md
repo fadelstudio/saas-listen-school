@@ -84,14 +84,29 @@ Actions correctives prises par l'administration.
 
 ---
 
-## ⚙️ Système & SaaS (`/system`, `/saas`)
+---
 
-Configuration et gestion multi-école.
+## 📈 Analytics (`/analytics`)
 
-- `GET /system/settings` : Réglages actuels (IA, Auth, Toggles).
-- `PATCH /system/settings` : Mise à jour configuration.
-- `GET /saas/schools` : Liste des écoles (SuperAdmin).
-- `POST /saas/setup` : Initialisation d'une nouvelle instance.
+Données agrégées pour le pilotage.
+
+| Méthode | Path | Description | Auth |
+|---------|------|-------------|------|
+| GET | `/dashboard` | Compteurs et distributions (Manager+) | Oui |
+| GET | `/time-series` | Stats temporelles (Soumis, En cours, Résolus) | Oui |
+| POST | `/global-analysis` | Générer un rapport d'analyse IA | Oui |
+| GET | `/reports` | Liste des rapports d'analyse générés | Oui |
+| GET | `/reports/:id` | Détail d'un rapport et décisions suggérées | Oui |
+
+---
+
+## 🔍 Audit & Traçabilité (`/audit`)
+
+Logs d'audit système pour les administrateurs.
+
+| Méthode | Path | Description | Auth |
+|---------|------|-------------|------|
+| GET | `/logs` | Liste paginée des actions système | Admin+ |
 
 ---
 
@@ -99,9 +114,10 @@ Configuration et gestion multi-école.
 
 - **Campuses** : `/campuses` (CRUD)
 - **Classes** : `/classes` (CRUD)
-- **Professors** : `/professors` (CRUD) + `POST/DELETE /professors/:id/avatar` (photo fiche ; réponses avec `avatarUrl`, `userId`, `isLinkedToUser`)
-- **School users** : `/school-users` (création/listes/admin) — réponses avec `avatarUrl`, `campusIds`, `campusScopeLabel` ; `POST /school-users/:id/reset-password-default`
+- **Professors** : `/professors` (CRUD) + `POST/DELETE /professors/:id/avatar`
+- **School users** : `/school-users` (création/listes/admin)
 - **Academic Modules** : `/academic-modules` (CRUD)
 - **Levels** : `/levels` (CRUD)
 - **Uploads** : `/uploads` (Gestion fichiers)
 - **Notifications** : `/notifications` (Suivi temps réel)
+- **Bulk Import** : `/bulk-import` (Import Excel/CSV)

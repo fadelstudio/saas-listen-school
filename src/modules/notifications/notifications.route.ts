@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { notificationsController } from './notifications.controller';
-import { authMiddleware } from '../../core/middleware/auth.middleware';
+import { authMiddleware, requireRole } from '../../core/middleware/auth.middleware';
 
 const router = Router();
 
@@ -60,5 +60,51 @@ router.get('/', notificationsController.getMyNotifications);
  *         description: Statut mis à jour avec succès
  */
 router.patch('/:id/read', notificationsController.markAsRead);
+
+/**
+ * @swagger
+ * /api/notifications/broadcast:
+ *   post:
+ *     summary: "Envoyer un message groupé (Admin/Manager)"
+ *     tags: [Notifications]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, message]
+ *             properties:
+ *               title: { type: string }
+ *               message: { type: string }
+ *               targetRole: { type: string, enum: [ADMIN, MANAGER, AGENT, STUDENT, PROFESSOR] }
+ *               targetCampusId: { type: string, format: uuid }
+ *               targetClassId: { type: string, format: uuid }
+ *               url: { type: string }
+ *               attachments: { type: array, items: { type: object } }
+ *     responses:
+ *       201:
+ *         description: Broadcast envoyé
+ */
+router.post('/broadcast', authMiddleware, requireRole('ADMIN', 'MANAGER'), notificationsController.sendBroadcast);
+
+/**
+ * @swagger
+ * /api/notifications/{id}:
+ *   delete:
+ *     summary: "Supprimer une notification"
+ *     tags: [Notifications]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Succès
+ */
+router.delete('/:id', authMiddleware, requireRole('ADMIN', 'MANAGER'), notificationsController.deleteNotification);
 
 export { router as notificationsRouter };
