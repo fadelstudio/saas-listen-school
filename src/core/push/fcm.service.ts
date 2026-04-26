@@ -74,8 +74,18 @@ function initFirebase(): boolean {
           return false;
         }
 
-        // On s'assure que la clé privée a de VRAIS retours à la ligne (et pas des caractères \n)
-        privateKey = privateKey.replace(/\\n/g, '\n');
+        // On nettoie la clé et on reconstruit un PEM parfait ("God Mode 2.0")
+        privateKey = privateKey.replace(/\\+n/g, '\n').replace(/\\r/g, '').replace(/\\"/g, '');
+
+        const pemMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----/s);
+        if (pemMatch) {
+            // Extraction du contenu Base64 en retirant TOUS les espaces/sauts de ligne
+            const base64 = pemMatch[1].replace(/\s+/g, '');
+            // Découpage en blocs de 64 caractères (standard PEM)
+            const formattedBase64 = base64.match(/.{1,64}/g)?.join('\n') || base64;
+            // Reconstruction de la clé
+            privateKey = `-----BEGIN PRIVATE KEY-----\n${formattedBase64}\n-----END PRIVATE KEY-----\n`;
+        }
 
         serviceAccount = {
           projectId,
