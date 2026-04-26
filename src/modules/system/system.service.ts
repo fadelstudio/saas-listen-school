@@ -17,7 +17,7 @@ export const systemService = {
   async getPublicSettings(schoolId: string) {
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
-      select: { name: true, slug: true },
+      select: { name: true, slug: true, logoUrl: true },
     });
     if (!school) {
       throw new NotFoundError('School');
@@ -38,6 +38,7 @@ export const systemService = {
     const base = {
       schoolSlug: school.slug,
       schoolName: settings?.schoolName ?? school.name,
+      logoUrl: school.logoUrl,
       aiEnabled: settings?.aiEnabled ?? true,
       authOtpRequired: settings?.authOtpRequired ?? false,
       authReportsRequired: settings?.authReportsRequired ?? false,
