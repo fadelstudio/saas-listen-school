@@ -8,6 +8,7 @@ const pagination_1 = require("../../utils/pagination");
 const queue_1 = require("../../core/config/queue");
 const prisma_1 = require("../../core/database/prisma");
 const audit_service_1 = require("../audit/audit.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 exports.reportsService = {
     async create(input, userId, schoolId) {
         let finalInput = { ...input };
@@ -52,6 +53,15 @@ exports.reportsService = {
                 entityId: report.id,
                 details: { title: report.title, type: report.type }
             });
+        }
+        // 4. Notify School Managers/Admins
+        if (resolvedSchoolId) {
+            notifications_service_1.notificationService.sendBroadcast(resolvedSchoolId, {
+                title: 'Nouveau signalement',
+                message: `Un nouveau signalement "${report.title}" a été reçu.`,
+                targetRoles: ['ADMIN', 'MANAGER'],
+                url: `/dashboard/reports/${report.id}`,
+            }).catch(err => console.warn('[Notification] Failed to notify managers', err));
         }
         // 3. Automatic AI Trigger
         try {
@@ -140,6 +150,20 @@ exports.reportsService = {
                 entityId: id,
                 details: { newStatus: status }
             });
+        }
+        // Notify author of status change
+        const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
+        if (report) {
+            const uti = report.deviceMetadata?.uti;
+            notifications_service_1.notificationService.create({
+                title: '📢 Mise à jour de votre signalement',
+                message: `Le statut de votre signalement "${report.title}" vient de passer à : ${status}.`,
+                type: 'REPORT_STATUS_CHANGED',
+                userId: report.authorId,
+                targetDeviceUti: uti,
+                schoolId: report.schoolId,
+                url: `/dashboard/reports/${report.id}`,
+            }).catch(err => console.warn('[Notification] Failed to notify author', err));
         }
         return result;
     },

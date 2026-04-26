@@ -37,14 +37,14 @@ export declare const evaluationsRepository: {
             levelId: string;
             campusId: string;
         };
+        campaign: {
+            id: string;
+            title: string;
+        } | null;
         evaluator: {
             id: string;
             firstName: string;
             lastName: string;
-        } | null;
-        campaign: {
-            id: string;
-            title: string;
         } | null;
     } & {
         id: string;
@@ -135,15 +135,15 @@ export declare const evaluationsRepository: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
+        campaign: {
+            id: string;
+            title: string;
+        } | null;
         evaluator: {
             email: string;
             id: string;
             firstName: string;
             lastName: string;
-        } | null;
-        campaign: {
-            id: string;
-            title: string;
         } | null;
     } & {
         id: string;
@@ -188,14 +188,14 @@ export declare const evaluationsRepository: {
                 name: string;
                 id: string;
             };
+            campaign: {
+                id: string;
+                title: string;
+            } | null;
             evaluator: {
                 id: string;
                 firstName: string;
                 lastName: string;
-            } | null;
-            campaign: {
-                id: string;
-                title: string;
             } | null;
         } & {
             id: string;

@@ -27,6 +27,7 @@ import {
 import { Role, User } from '@prisma/client';
 import { sendTransactionalEmail } from '../../core/email/mail.service';
 import { uploadsService } from '../uploads/uploads.service';
+import { notificationService } from '../notifications/notifications.service';
 
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
@@ -189,7 +190,7 @@ export const authService = {
       ) {
         throw new UnauthorizedError(
           `Wrong school context: this account is for school "${globalUser.school.slug}". ` +
-            `Call the API with header x-school-slug: ${globalUser.school.slug} (or open /${globalUser.school.slug}/api/... in non-strict mode).`,
+          `Call the API with header x-school-slug: ${globalUser.school.slug} (or open /${globalUser.school.slug}/api/... in non-strict mode).`,
         );
       }
       throw new UnauthorizedError('Invalid credentials');
@@ -217,6 +218,19 @@ export const authService = {
       campusIds: user.campuses?.map((c: any) => c.id) || [],
       classId: user.classId,
     });
+
+    // ── WELCOME NOTIFICATION (désactivable via NOTIFY_ON_LOGIN=false) ──
+    if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+      notificationService.create({
+        title: 'Connexion réussie',
+        message: `Bienvenue, ${user.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+        type: 'LOGIN_WELCOME',
+        userId: user.id,
+        schoolId: user.schoolId,
+      }).catch(err => console.warn('[Notification] login welcome failed', err));
+    }
+
+
     return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
   },
 
@@ -276,13 +290,13 @@ export const authService = {
     const expected = hashOtp(input.otp.trim());
     if (expected !== challenge.otpHash) {
       const updated = await authRepository.incrementLoginOtpAttempts(challenge.id);
-      
+
       if (updated.attempts >= OTP_MAX_ATTEMPTS) {
         await authRepository.deleteLoginOtpChallenge(challenge.id);
         await authRepository.setActive(challenge.userId, false); // Block account
         throw new BadRequestError('Too many OTP attempts. Your account has been deactivated for security reasons. Contact support.');
       }
-      
+
       throw new UnauthorizedError(`Invalid OTP code (${OTP_MAX_ATTEMPTS - updated.attempts} attempts remaining)`);
     }
 
@@ -388,7 +402,7 @@ export const authService = {
   },
 
   async logout(token: string): Promise<void> {
-    await authRepository.deleteRefreshToken(token).catch(() => {});
+    await authRepository.deleteRefreshToken(token).catch(() => { });
   },
 
   async getMe(userId: string): Promise<SafeUser> {
@@ -460,7 +474,7 @@ export const authService = {
     if (!user) throw new NotFoundError('User');
     const { path } = await uploadsService.uploadProfileImage(file, `avatars/users/${userId}`);
     if (user.avatarPath && user.avatarPath !== path) {
-      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => {});
+      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => { });
     }
     const updated = await authRepository.updateAvatarPath(userId, path);
     return toSafeUserWithAvatar(updated);
@@ -470,7 +484,7 @@ export const authService = {
     const user = await authRepository.findById(userId);
     if (!user) throw new NotFoundError('User');
     if (user.avatarPath) {
-      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => {});
+      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => { });
     }
     const updated = await authRepository.updateAvatarPath(userId, null);
     return toSafeUserWithAvatar(updated);

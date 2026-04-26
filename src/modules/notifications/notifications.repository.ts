@@ -14,6 +14,7 @@ export const notificationsRepository = {
     targetCampusIds?: string[];
     targetClassIds?: string[];
     targetUserIds?: string[];
+    targetDeviceUti?: string | null;
     url?: string | null;
     attachments?: any;
   }) {
@@ -29,6 +30,7 @@ export const notificationsRepository = {
         targetCampusIds: data.targetCampusIds ?? [],
         targetClassIds: data.targetClassIds ?? [],
         targetUserIds: data.targetUserIds ?? [],
+        targetDeviceUti: data.targetDeviceUti,
         url: data.url,
         attachments: data.attachments,
       },
@@ -55,30 +57,27 @@ export const notificationsRepository = {
         {
           userId: null,
           AND: [
-            // Filtre par Rôle
-            { 
+            {
               OR: [
-                { targetRoles: { isEmpty: true } }, 
+                { targetRoles: { isEmpty: true } },
                 { targetRoles: { has: userRole } }
-              ] 
+              ]
             },
-            // Filtre par Campus
-            { 
+            {
               OR: [
-                { targetCampusIds: { isEmpty: true } }, 
+                { targetCampusIds: { isEmpty: true } },
                 { targetCampusIds: { hasSome: campusIds } }
-              ] 
+              ]
             },
-            // Filtre par Classe
-            { 
+            {
               OR: [
-                { targetClassIds: { isEmpty: true } }, 
+                { targetClassIds: { isEmpty: true } },
                 { targetClassIds: classId ? { has: classId } : undefined }
               ].filter(Boolean) as Prisma.NotificationWhereInput[]
             },
           ],
         },
-        // Notifications système globales (SaaS)
+        // Notifications système globales (SaaS SuperAdmin)
         { userId: null, schoolId: null },
       ],
       ...(typeof filters.isRead === 'boolean' ? { isRead: filters.isRead } : {}),
@@ -98,16 +97,47 @@ export const notificationsRepository = {
     return { items, total };
   },
 
+  /**
+   * Récupère les notifications pour un invité identifié par son UTI.
+   */
+  async findAllForGuest(
+    uti: string,
+    pagination: { skip?: number; limit?: number }
+  ) {
+    const where: Prisma.NotificationWhereInput = {
+      targetDeviceUti: uti,
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip ?? 0,
+        take: pagination.limit ?? 20,
+      }),
+      prisma.notification.count({ where }),
+    ]);
+
+    return { items, total };
+  },
+
   async markAsRead(id: string, userId: string) {
     return prisma.notification.updateMany({
       where: {
         id,
         OR: [
-          { userId }, 
+          { userId },
           { userId: null, targetUserIds: { has: userId } },
-          { userId: null, targetUserIds: { isEmpty: true } } // Broadcasts
+          { userId: null, targetUserIds: { isEmpty: true } }
         ],
       },
+      data: { isRead: true },
+    });
+  },
+
+  async markAsReadForGuest(id: string, uti: string) {
+    return prisma.notification.updateMany({
+      where: { id, targetDeviceUti: uti },
       data: { isRead: true },
     });
   },

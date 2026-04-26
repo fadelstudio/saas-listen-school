@@ -6,6 +6,8 @@ const AppError_1 = require("../../core/errors/AppError");
 const pagination_1 = require("../../utils/pagination");
 const queue_1 = require("../../core/config/queue");
 const audit_service_1 = require("../audit/audit.service");
+const notifications_service_1 = require("../notifications/notifications.service");
+const reports_repository_1 = require("../reports/reports.repository");
 exports.decisionsService = {
     async create(input, userId, userRole, schoolId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
@@ -31,6 +33,22 @@ exports.decisionsService = {
         }
         catch (error) {
             console.warn('⚠️ Could not enqueue AI suggestion (Redis down?):', error);
+        }
+        // ── NOTIFY REPORT AUTHOR ──
+        if (decision.reportId) {
+            const report = await reports_repository_1.reportsRepository.findById(decision.reportId, schoolId ?? null);
+            if (report) {
+                const uti = report.deviceMetadata?.uti;
+                notifications_service_1.notificationService.create({
+                    title: '✅ Décision prise sur votre signalement',
+                    message: `Une décision officielle a été publiée concernant votre signalement "${report.title}". Consultez-la pour en savoir plus.`,
+                    type: 'DECISION_TAKEN',
+                    userId: report.authorId,
+                    targetDeviceUti: uti,
+                    schoolId: decision.schoolId,
+                    url: `/dashboard/decisions/${decision.id}`,
+                }).catch(err => console.warn('[Notification] Failed to notify author of decision', err));
+            }
         }
         return decision;
     },
@@ -88,6 +106,23 @@ exports.decisionsService = {
                 entityId: id,
                 details: { newStatus: status }
             });
+        }
+        // ── Notify student about decision status change ──
+        const decisionFull = await decisions_repository_1.decisionsRepository.findById(id, schoolId ?? null);
+        if (decisionFull?.reportId) {
+            const report = await reports_repository_1.reportsRepository.findById(decisionFull.reportId, schoolId ?? null);
+            if (report) {
+                const uti = report.deviceMetadata?.uti;
+                notifications_service_1.notificationService.create({
+                    title: '📋 Mise à jour de votre décision',
+                    message: `La décision liée à votre signalement "${report.title}" est passée au statut : ${status}.`,
+                    type: 'DECISION_TAKEN',
+                    userId: report.authorId,
+                    targetDeviceUti: uti,
+                    schoolId: report.schoolId,
+                    url: `/dashboard/decisions/${id}`,
+                }).catch(err => console.warn('[Notification] Failed to notify about decision status', err));
+            }
         }
         return result;
     },

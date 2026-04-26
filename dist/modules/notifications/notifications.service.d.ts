@@ -2,7 +2,8 @@ import { NotificationType, SendBroadcastInput } from './notifications.types';
 import { Role } from '@prisma/client';
 export declare const notificationService: {
     /**
-     * Crée une notification individuelle ou globale simple.
+     * Crée une notification en base ET envoie un push FCM si un token est disponible.
+     * Gère tous les cas : utilisateur connecté, invité (UTI), broadcast.
      */
     create(data: {
         title: string;
@@ -13,6 +14,7 @@ export declare const notificationService: {
         targetCampusIds?: string[];
         targetClassIds?: string[];
         targetUserIds?: string[];
+        targetDeviceUti?: string | null;
         campaignId?: string | null;
         schoolId?: string | null;
         url?: string | null;
@@ -35,10 +37,26 @@ export declare const notificationService: {
         targetRole: import("@prisma/client").$Enums.Role | null;
         targetCampusId: string | null;
         targetClassId: string | null;
-    }>;
+        targetDeviceUti: string | null;
+    } | null>;
     /**
-     * Envoie une notification ciblée (Broadcast).
-     * Supporte maintenant les ciblages multiples via tableaux.
+     * Dispatch FCM en fire-and-forget selon la cible.
+     */
+    _dispatchPush(data: {
+        title: string;
+        message: string;
+        type: NotificationType;
+        userId?: string | null;
+        targetRoles?: Role[];
+        targetCampusIds?: string[];
+        targetClassIds?: string[];
+        targetUserIds?: string[];
+        targetDeviceUti?: string | null;
+        schoolId?: string | null;
+        url?: string | null;
+    }, notifId: string): Promise<void>;
+    /**
+     * Envoie un broadcast ciblé (Admin+).
      */
     sendBroadcast(schoolId: string, data: SendBroadcastInput): Promise<{
         type: string;
@@ -59,9 +77,10 @@ export declare const notificationService: {
         targetRole: import("@prisma/client").$Enums.Role | null;
         targetCampusId: string | null;
         targetClassId: string | null;
+        targetDeviceUti: string | null;
     }>;
     /**
-     * Récupère les notifications pour un utilisateur donné, incluant les ciblages.
+     * Récupère les notifications pour un utilisateur connecté.
      */
     getAllForUser(userId: string, schoolId: string, userRole: Role, campusIds: string[], classId: string | null, opts: {
         isRead?: boolean;
@@ -88,6 +107,37 @@ export declare const notificationService: {
             targetRole: import("@prisma/client").$Enums.Role | null;
             targetCampusId: string | null;
             targetClassId: string | null;
+            targetDeviceUti: string | null;
+        }[];
+        total: number;
+    }>;
+    /**
+     * Récupère les notifications pour un invité via son UTI (Unique Tracking Identifier).
+     */
+    getAllForGuest(uti: string, opts: {
+        skip?: number;
+        limit?: number;
+    }): Promise<{
+        items: {
+            type: string;
+            message: string;
+            url: string | null;
+            attachments: import("@prisma/client/runtime/client").JsonValue | null;
+            id: string;
+            createdAt: Date;
+            schoolId: string | null;
+            title: string;
+            campaignId: string | null;
+            isRead: boolean;
+            userId: string | null;
+            targetRoles: import("@prisma/client").$Enums.Role[];
+            targetCampusIds: string[];
+            targetClassIds: string[];
+            targetUserIds: string[];
+            targetRole: import("@prisma/client").$Enums.Role | null;
+            targetCampusId: string | null;
+            targetClassId: string | null;
+            targetDeviceUti: string | null;
         }[];
         total: number;
     }>;
@@ -111,6 +161,12 @@ export declare const notificationService: {
         targetRole: import("@prisma/client").$Enums.Role | null;
         targetCampusId: string | null;
         targetClassId: string | null;
+        targetDeviceUti: string | null;
     }>;
+    /**
+     * Met à jour le token FCM d'un utilisateur (appelé après login/register).
+     * Fait aussi la fusion invité → compte si un UTI est fourni.
+     */
+    updateFcmToken(userId: string, fcmToken: string, uti?: string): Promise<void>;
 };
 //# sourceMappingURL=notifications.service.d.ts.map

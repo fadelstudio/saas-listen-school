@@ -7,6 +7,7 @@ import { jobQueue } from '../../core/config/queue';
 import type { CreateReportInput, UpdateReportInput, ReportFilters } from './reports.types';
 import { prisma } from '../../core/database/prisma';
 import { auditService } from '../audit/audit.service';
+import { notificationService } from '../notifications/notifications.service';
 
 export const reportsService = {
   async create(input: CreateReportInput, userId?: string, schoolId?: string | null) {
@@ -63,6 +64,16 @@ export const reportsService = {
         entityId: report.id,
         details: { title: report.title, type: report.type }
       });
+    }
+
+    // 4. Notify School Managers/Admins
+    if (resolvedSchoolId) {
+      notificationService.sendBroadcast(resolvedSchoolId, {
+        title: 'Nouveau signalement',
+        message: `Un nouveau signalement "${report.title}" a été reçu.`,
+        targetRoles: ['ADMIN', 'MANAGER'],
+        url: `/dashboard/reports/${report.id}`,
+      }).catch(err => console.warn('[Notification] Failed to notify managers', err));
     }
 
     // 3. Automatic AI Trigger
@@ -165,6 +176,21 @@ export const reportsService = {
         entityId: id,
         details: { newStatus: status }
       });
+    }
+
+    // Notify author of status change
+    const report = await reportsRepository.findById(id, schoolId ?? null);
+    if (report) {
+      const uti = (report.deviceMetadata as any)?.uti;
+      notificationService.create({
+        title: '📢 Mise à jour de votre signalement',
+        message: `Le statut de votre signalement "${report.title}" vient de passer à : ${status}.`,
+        type: 'REPORT_STATUS_CHANGED',
+        userId: report.authorId,
+        targetDeviceUti: uti,
+        schoolId: report.schoolId,
+        url: `/dashboard/reports/${report.id}`,
+      }).catch(err => console.warn('[Notification] Failed to notify author', err));
     }
 
     return result;

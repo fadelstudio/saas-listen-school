@@ -113,8 +113,8 @@ export const fcmService = {
         },
         webpush: {
           notification: {
-            icon: '/icon-192x192.png',
-            badge: '/badge-72x72.png',
+            icon: '/images/logo-icon.svg',
+            badge: '/images/favicon.ico',
           },
         },
       });

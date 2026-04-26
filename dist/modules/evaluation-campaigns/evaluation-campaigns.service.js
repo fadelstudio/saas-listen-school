@@ -145,9 +145,19 @@ exports.evaluationCampaignsService = {
         return campaign;
     },
     async close(id, schoolId) {
+        const campaign = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findById(id, schoolId);
+        if (!campaign)
+            throw new AppError_1.NotFoundError('EvaluationCampaign');
         const updated = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
         if (!updated)
             throw new AppError_1.NotFoundError('EvaluationCampaign');
+        // Notify admins & managers that the campaign is closed and data is ready
+        notifications_service_1.notificationService.sendBroadcast(schoolId, {
+            title: '📊 Campagne clôturée — données disponibles',
+            message: `La campagne "${campaign.title}" est maintenant fermée. Les données sont disponibles pour analyse et prise de décision.`,
+            targetRoles: ['ADMIN', 'MANAGER'],
+            url: `/dashboard/evaluation-campaigns/${id}`,
+        }).catch(e => logger_1.logger.warn('[Notification] Campaign close notify failed', { error: e }));
         return updated;
     },
     async getAnalytics(id, schoolId) {
@@ -250,6 +260,13 @@ exports.evaluationCampaignsService = {
             },
             include: { decider: { select: { firstName: true, lastName: true } } }
         });
+        // 5. Notify admins that the AI report is ready
+        notifications_service_1.notificationService.sendBroadcast(schoolId, {
+            title: '🤖 Rapport IA généré — action requise',
+            message: `L'analyse IA de la campagne "${campaign.title}" est prête. Une décision proposée a été générée automatiquement. Vérifiez et validez.`,
+            targetRoles: ['ADMIN', 'MANAGER'],
+            url: `/dashboard/decisions/${decision.id}`,
+        }).catch(e => logger_1.logger.warn('[Notification] Analytics ready notify failed', { error: e }));
         return decision;
     }
 };

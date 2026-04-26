@@ -104,4 +104,50 @@ router.post('/broadcast', (0, auth_middleware_1.requireRole)('ADMIN', 'MANAGER')
  *         description: Succès
  */
 router.delete('/:id', (0, auth_middleware_1.requireRole)('ADMIN', 'MANAGER'), (0, validate_middleware_1.validate)({ params: notifications_schema_1.notificationsSchema.params }), notifications_controller_1.notificationsController.deleteNotification);
+/**
+ * @swagger
+ * /api/notifications/fcm-token:
+ *   post:
+ *     summary: "Mettre à jour le token FCM (Push mobile/web)"
+ *     description: "Appelé après login ou au démarrage de l'app. Si un UTI (guest ID) est fourni, fusionne l'historique invité avec le compte."
+ *     tags: [Notifications]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fcmToken]
+ *             properties:
+ *               fcmToken: { type: string, description: "Token Firebase Cloud Messaging" }
+ *               uti: { type: string, description: "UTI invité à fusionner (optionnel)" }
+ *     responses:
+ *       200:
+ *         description: Token mis à jour
+ */
+router.post('/fcm-token', notifications_controller_1.notificationsController.updateFcmToken);
+/**
+ * @swagger
+ * /api/notifications/guest:
+ *   get:
+ *     summary: "Notifications pour un invité (sans compte)"
+ *     description: "Récupère les notifications liées à un UTI. Public mais nécessite un UTI valide."
+ *     tags: [Notifications]
+ *     parameters:
+ *       - in: query
+ *         name: uti
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Notifications de l'invité
+ */
+router.get('/guest', notifications_controller_1.notificationsController.getGuestNotifications);
 //# sourceMappingURL=notifications.route.js.map

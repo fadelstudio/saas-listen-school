@@ -2,6 +2,7 @@ import { prisma } from '../../core/database/prisma';
 import { Prisma } from '@prisma/client';
 import { BadRequestError } from '../../core/errors/AppError';
 import { GlobalAnalysisInput } from './analytics.schema';
+import { notificationService } from '../notifications/notifications.service';
 
 
 export const analyticsService = {
@@ -338,6 +339,14 @@ export const analyticsService = {
         }
       }
     }
+
+    // 6. Notify Admins/Managers that the analytical report is ready
+    notificationService.sendBroadcast(schoolId, {
+      title: input.periodic ? '📈 Rapport de pilotage disponible' : '🔍 Analyse globale terminée',
+      message: `Le rapport "${input.title}" a été généré avec succès. ${decisionsCreatedCount} décisions ont été suggérées.`,
+      targetRoles: ['ADMIN', 'MANAGER'],
+      url: `/dashboard/analytics/reports/${report.id}`,
+    }).catch(err => console.warn('[Notification] Global analysis notify failed', err));
 
     return { 
       report, 

@@ -16,6 +16,7 @@ exports.notificationsRepository = {
                 targetCampusIds: data.targetCampusIds ?? [],
                 targetClassIds: data.targetClassIds ?? [],
                 targetUserIds: data.targetUserIds ?? [],
+                targetDeviceUti: data.targetDeviceUti,
                 url: data.url,
                 attachments: data.attachments,
             },
@@ -33,21 +34,18 @@ exports.notificationsRepository = {
                 {
                     userId: null,
                     AND: [
-                        // Filtre par Rôle
                         {
                             OR: [
                                 { targetRoles: { isEmpty: true } },
                                 { targetRoles: { has: userRole } }
                             ]
                         },
-                        // Filtre par Campus
                         {
                             OR: [
                                 { targetCampusIds: { isEmpty: true } },
                                 { targetCampusIds: { hasSome: campusIds } }
                             ]
                         },
-                        // Filtre par Classe
                         {
                             OR: [
                                 { targetClassIds: { isEmpty: true } },
@@ -56,7 +54,7 @@ exports.notificationsRepository = {
                         },
                     ],
                 },
-                // Notifications système globales (SaaS)
+                // Notifications système globales (SaaS SuperAdmin)
                 { userId: null, schoolId: null },
             ],
             ...(typeof filters.isRead === 'boolean' ? { isRead: filters.isRead } : {}),
@@ -73,6 +71,24 @@ exports.notificationsRepository = {
         ]);
         return { items, total };
     },
+    /**
+     * Récupère les notifications pour un invité identifié par son UTI.
+     */
+    async findAllForGuest(uti, pagination) {
+        const where = {
+            targetDeviceUti: uti,
+        };
+        const [items, total] = await Promise.all([
+            prisma_1.prisma.notification.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip: pagination.skip ?? 0,
+                take: pagination.limit ?? 20,
+            }),
+            prisma_1.prisma.notification.count({ where }),
+        ]);
+        return { items, total };
+    },
     async markAsRead(id, userId) {
         return prisma_1.prisma.notification.updateMany({
             where: {
@@ -80,9 +96,15 @@ exports.notificationsRepository = {
                 OR: [
                     { userId },
                     { userId: null, targetUserIds: { has: userId } },
-                    { userId: null, targetUserIds: { isEmpty: true } } // Broadcasts
+                    { userId: null, targetUserIds: { isEmpty: true } }
                 ],
             },
+            data: { isRead: true },
+        });
+    },
+    async markAsReadForGuest(id, uti) {
+        return prisma_1.prisma.notification.updateMany({
+            where: { id, targetDeviceUti: uti },
             data: { isRead: true },
         });
     },

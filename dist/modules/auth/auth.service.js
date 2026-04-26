@@ -15,6 +15,7 @@ const auth_repository_1 = require("./auth.repository");
 const client_1 = require("@prisma/client");
 const mail_service_1 = require("../../core/email/mail.service");
 const uploads_service_1 = require("../uploads/uploads.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -165,6 +166,16 @@ exports.authService = {
             campusIds: user.campuses?.map((c) => c.id) || [],
             classId: user.classId,
         });
+        // ── WELCOME NOTIFICATION (désactivable via NOTIFY_ON_LOGIN=false) ──
+        if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+            notifications_service_1.notificationService.create({
+                title: 'Connexion réussie',
+                message: `Bienvenue, ${user.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+                type: 'LOGIN_WELCOME',
+                userId: user.id,
+                schoolId: user.schoolId,
+            }).catch(err => console.warn('[Notification] login welcome failed', err));
+        }
         return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
     },
     async sendNewRegisterOtp(user) {

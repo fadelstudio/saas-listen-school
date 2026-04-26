@@ -616,6 +616,10 @@ model Notification {
   schoolId   String?
   isRead     Boolean @default(false)
 
+  /// UTI = Unique Tracking Identifier (device UUID) — pour cibler les invités sans compte
+  /// Stocké par l'app mobile/web lors d'une soumission anonyme.
+  targetDeviceUti String?
+
   createdAt DateTime @default(now())
 
   user     User?               @relation(fields: [userId], references: [id])
@@ -630,6 +634,7 @@ model Notification {
   @@index([campaignId, createdAt])
   @@index([targetCampusId])
   @@index([targetClassId])
+  @@index([targetDeviceUti, createdAt])
   @@map("notifications")
 }
 

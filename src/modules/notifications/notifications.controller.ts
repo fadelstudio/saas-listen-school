@@ -74,4 +74,39 @@ export const notificationsController = {
       next(error);
     }
   },
+
+  async updateFcmToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.userId;
+      const { fcmToken, uti } = req.body;
+      if (!fcmToken || typeof fcmToken !== 'string') {
+        res.status(400).json({ success: false, message: 'fcmToken requis' });
+        return;
+      }
+      await notificationService.updateFcmToken(userId, fcmToken, uti);
+      res.sendSuccess('Token FCM mis à jour', null);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getGuestNotifications(req: Request, res: Response, next: NextFunction) {
+    try {
+      const uti = req.query.uti as string;
+      if (!uti) {
+        res.status(400).json({ success: false, message: 'uti requis' });
+        return;
+      }
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const skip = (page - 1) * limit;
+
+      const { items, total } = await notificationService.getAllForGuest(uti, { skip, limit });
+      res.sendSuccess('Notifications invité récupérées', items, 200, {
+        page, limit, total, totalPages: Math.ceil(total / limit)
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

@@ -37,6 +37,7 @@ exports.analyticsService = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const client_1 = require("@prisma/client");
 const AppError_1 = require("../../core/errors/AppError");
+const notifications_service_1 = require("../notifications/notifications.service");
 exports.analyticsService = {
     async getDashboardStats(schoolId, campusId) {
         const now = new Date();
@@ -349,6 +350,13 @@ exports.analyticsService = {
                 }
             }
         }
+        // 6. Notify Admins/Managers that the analytical report is ready
+        notifications_service_1.notificationService.sendBroadcast(schoolId, {
+            title: input.periodic ? '📈 Rapport de pilotage disponible' : '🔍 Analyse globale terminée',
+            message: `Le rapport "${input.title}" a été généré avec succès. ${decisionsCreatedCount} décisions ont été suggérées.`,
+            targetRoles: ['ADMIN', 'MANAGER'],
+            url: `/dashboard/analytics/reports/${report.id}`,
+        }).catch(err => console.warn('[Notification] Global analysis notify failed', err));
         return {
             report,
             decisionsCreatedCount,
@@ -442,7 +450,7 @@ exports.analyticsService = {
       FROM analysis_reports r
       LEFT JOIN users u ON r."generatedById" = u.id
       WHERE r."schoolId" = ${schoolId}
-      ${periodicFilter !== null ? (periodicFilter === 'TRUE' ? client_1.Prisma.sql `AND (r.filters->>'periodic')::boolean = TRUE` : client_1.Prisma.sql `AND (r.filters->>'periodic')::boolean IS NOT TRUE`) : client_1.Prisma.empty}
+      ${periodicFilter === 'TRUE' ? client_1.Prisma.sql `AND (r.filters->>'periodic')::boolean = TRUE` : (periodicFilter === 'FALSE' ? client_1.Prisma.sql `AND ((r.filters->>'periodic')::boolean IS NOT TRUE)` : client_1.Prisma.empty)}
       ${searchFilter ? client_1.Prisma.sql `AND r.title ILIKE ${searchFilter}` : client_1.Prisma.empty}
       ORDER BY r."createdAt" DESC
       LIMIT ${limit}
@@ -451,7 +459,7 @@ exports.analyticsService = {
         const totalRes = await prisma_1.prisma.$queryRaw `
       SELECT COUNT(*)::int as count FROM analysis_reports r
       WHERE r."schoolId" = ${schoolId}
-      ${periodicFilter !== null ? (periodicFilter === 'TRUE' ? client_1.Prisma.sql `AND (r.filters->>'periodic')::boolean = TRUE` : client_1.Prisma.sql `AND (r.filters->>'periodic')::boolean IS NOT TRUE`) : client_1.Prisma.empty}
+      ${periodicFilter === 'TRUE' ? client_1.Prisma.sql `AND (r.filters->>'periodic')::boolean = TRUE` : (periodicFilter === 'FALSE' ? client_1.Prisma.sql `AND ((r.filters->>'periodic')::boolean IS NOT TRUE)` : client_1.Prisma.empty)}
       ${searchFilter ? client_1.Prisma.sql `AND r.title ILIKE ${searchFilter}` : client_1.Prisma.empty}
     `;
         const total = totalRes[0]?.count || 0;

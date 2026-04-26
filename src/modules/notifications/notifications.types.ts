@@ -5,7 +5,13 @@ export type NotificationType =
   | 'EVALUATION_CAMPAIGN'
   | 'EVALUATION_CAMPAIGN_REMINDER'
   | 'SYSTEM'
-  | 'BROADCAST';
+  | 'BROADCAST'
+  | 'DECISION_TAKEN'
+  | 'NEW_REPORT'
+  | 'REPORT_STATUS_CHANGED'
+  | 'CAMPAIGN_CLOSED'
+  | 'ANALYTICS_READY'
+  | 'LOGIN_WELCOME';
 
 export interface SendBroadcastInput {
   title: string;
