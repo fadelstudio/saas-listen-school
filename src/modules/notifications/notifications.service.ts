@@ -49,7 +49,8 @@ async function resolveTokensForBroadcast(data: {
   }
 
   const users = await prisma.user.findMany({ where, select: { fcmToken: true } });
-  return users.map(u => u.fcmToken!).filter(Boolean);
+  const tokens = users.map(u => u.fcmToken!).filter(Boolean);
+  return [...new Set(tokens)];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,7 +156,7 @@ export const notificationService = {
         where: { id: { in: data.targetUserIds }, fcmToken: { not: null } },
         select: { fcmToken: true },
       });
-      const tokens = users.map(u => u.fcmToken!).filter(Boolean);
+      const tokens = [...new Set(users.map(u => u.fcmToken!).filter(Boolean))];
       if (tokens.length > 0) {
         await fcmService.sendToMultipleDevices({
           tokens,
