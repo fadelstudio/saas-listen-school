@@ -35,42 +35,57 @@ function initFirebase(): boolean {
     if (jsonEnv) {
       try {
         let cleanJson = jsonEnv.trim();
-
-        // REPARATION 1 : Si le JSON est entouré de guillemets (erreur Railway classique)
         if (cleanJson.startsWith('"') && cleanJson.endsWith('"')) {
           cleanJson = cleanJson.substring(1, cleanJson.length - 1);
         }
-
-        // REPARATION 2 : Si les guillemets internes sont échappés (\")
         cleanJson = cleanJson.replace(/\\"/g, '"');
 
-        // REPARATION 3 : Si les retours à la ligne sont échappés (\\n)
-        cleanJson = cleanJson.replace(/\\n/g, '\n');
+        let projectId = '';
+        let clientEmail = '';
+        let privateKey = '';
 
-        const parsed = JSON.parse(cleanJson);
-        // La clé brute du JSON Google est en snake_case (private_key, project_id)
-        // Mais le type SDK ServiceAccount attend du camelCase (privateKey, projectId)
-        const raw = parsed as any;
+        try {
+          // Tentative 1 : Parsing propre (après un peu de nettoyage)
+          // On évite le replace(/\n/g) massif ici pour ne pas casser la clé
+          const cleanForParse = cleanJson.replace(/\n/g, '\\n'); 
+          const parsed = JSON.parse(cleanForParse);
+          projectId = parsed.project_id || parsed.projectId || '';
+          clientEmail = parsed.client_email || parsed.clientEmail || '';
+          privateKey = parsed.private_key || parsed.privateKey || '';
+        } catch (parseErr) {
+          // Tentative 2 : "God Mode" (Regex). Si JSON.parse crashe (ex: Bad control character)
+          // on va chercher directement les chaînes avec une regex.
+          logger.warn('[FCM] JSON.parse a échoué, passage en mode Regex (God Mode)...');
+          
+          const extract = (key: string) => {
+            const regex = new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`);
+            const match = jsonEnv.match(regex);
+            return match ? match[1] : null;
+          };
 
-        // Note: raw.private_key a déjà été traité par le replace global plus haut s'il était échappé
-        serviceAccount = {
-          projectId: raw.project_id,
-          clientEmail: raw.client_email,
-          privateKey: raw.private_key,
-        };
+          projectId = extract('project_id') || extract('projectId') || '';
+          clientEmail = extract('client_email') || extract('clientEmail') || '';
+          privateKey = extract('private_key') || extract('privateKey') || '';
+        }
 
-        logger.info('[FCM] JSON parsé et clé privée formatée avec succès.');
-
-        if (!serviceAccount.privateKey || !serviceAccount.projectId) {
-          logger.error('[FCM] Erreur : privateKey ou projectId manquant dans le JSON !');
+        if (!projectId || !clientEmail || !privateKey) {
+          logger.error('[FCM] Impossible d\'extraire les clés via JSON ou Regex.');
           _disabled = true;
           return false;
         }
-      } catch (parseErr: any) {
-        logger.error('[FCM] Erreur FATALE de parsing JSON. Vérifie les guillemets sur Railway.', {
-          error: parseErr.message,
-          inputStart: jsonEnv.substring(0, 30) + '...',
-        });
+
+        // On s'assure que la clé privée a de VRAIS retours à la ligne (et pas des caractères \n)
+        privateKey = privateKey.replace(/\\n/g, '\n');
+
+        serviceAccount = {
+          projectId,
+          clientEmail,
+          privateKey,
+        };
+
+        logger.info('[FCM] JSON parsé et clé privée formatée avec succès (God Mode).');
+      } catch (err: any) {
+        logger.error('[FCM] Erreur FATALE.', { error: err.message });
         _disabled = true;
         return false;
       }
