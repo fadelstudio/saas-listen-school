@@ -33,23 +33,49 @@ function initFirebase(): boolean {
     let serviceAccount: admin.ServiceAccount;
 
     if (jsonEnv) {
-      serviceAccount = JSON.parse(jsonEnv) as admin.ServiceAccount;
+      try {
+        const parsed = JSON.parse(jsonEnv);
+        serviceAccount = parsed as admin.ServiceAccount;
+        logger.info('[FCM] JSON parsé avec succès. Clés présentes : ' + Object.keys(parsed).join(', '));
+        
+        if (!serviceAccount.private_key || !serviceAccount.project_id) {
+          logger.error('[FCM] Erreur : private_key ou project_id manquant dans le JSON !');
+          _disabled = true;
+          return false;
+        }
+      } catch (parseErr: any) {
+        logger.error('[FCM] Erreur FATALE de parsing JSON. Vérifie les guillemets sur Railway.', { 
+          error: parseErr.message,
+          inputStart: jsonEnv.substring(0, 30) + "..." 
+        });
+        _disabled = true;
+        return false;
+      }
     } else {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       serviceAccount = require(pathEnv!) as admin.ServiceAccount;
     }
 
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    }
+    try {
+      if (!admin.apps.length) {
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+      }
 
-    _messaging = admin.messaging();
-    logger.info('[FCM] Firebase Admin SDK initialisé avec succès.');
-    return true;
-  } catch (err) {
-    logger.error('[FCM] Échec de l\'initialisation Firebase. Le push FCM est désactivé.', { error: err });
+      _messaging = admin.messaging();
+      logger.info('[FCM] Firebase Admin SDK initialisé avec succès.');
+      return true;
+    } catch (authErr: any) {
+      logger.error('[FCM] Erreur d\'authentification Google (clé invalide ?).', { 
+        message: authErr.message,
+        code: authErr.code 
+      });
+      _disabled = true;
+      return false;
+    }
+  } catch (err: any) {
+    logger.error('[FCM] Erreur inattendue lors de l\'initialisation.', { error: err.message });
     _disabled = true;
     return false;
   }
