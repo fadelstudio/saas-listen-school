@@ -138,7 +138,7 @@ export const fcmService = {
   async sendToMultipleDevices(payload: FcmBatchPayload): Promise<number> {
     if (!this.isEnabled() || !_messaging) return 0;
 
-    const validTokens = payload.tokens.filter(t => t?.trim().length > 0);
+    const validTokens = [...new Set(payload.tokens.filter(t => t?.trim().length > 0))];
     if (validTokens.length === 0) return 0;
 
     // Firebase multicast max 500 tokens par appel
