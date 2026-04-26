@@ -35,18 +35,32 @@ function initFirebase(): boolean {
     if (jsonEnv) {
       try {
         const parsed = JSON.parse(jsonEnv);
-        serviceAccount = parsed as admin.ServiceAccount;
-        logger.info('[FCM] JSON parsé avec succès. Clés présentes : ' + Object.keys(parsed).join(', '));
-        
-        if (!serviceAccount.private_key || !serviceAccount.project_id) {
-          logger.error('[FCM] Erreur : private_key ou project_id manquant dans le JSON !');
+        // La clé brute du JSON Google est en snake_case (private_key, project_id)
+        // Mais le type SDK ServiceAccount attend du camelCase (privateKey, projectId)
+        // On convertit ou on utilise le format attendu par cert()
+        const raw = parsed as any;
+
+        if (raw.private_key && typeof raw.private_key === 'string') {
+          raw.private_key = raw.private_key.replace(/\\n/g, '\n');
+        }
+
+        serviceAccount = {
+          projectId: raw.project_id,
+          clientEmail: raw.client_email,
+          privateKey: raw.private_key,
+        };
+
+        logger.info('[FCM] JSON parsé et clé privée formatée avec succès.');
+
+        if (!serviceAccount.privateKey || !serviceAccount.projectId) {
+          logger.error('[FCM] Erreur : privateKey ou projectId manquant dans le JSON !');
           _disabled = true;
           return false;
         }
       } catch (parseErr: any) {
-        logger.error('[FCM] Erreur FATALE de parsing JSON. Vérifie les guillemets sur Railway.', { 
+        logger.error('[FCM] Erreur FATALE de parsing JSON. Vérifie les guillemets sur Railway.', {
           error: parseErr.message,
-          inputStart: jsonEnv.substring(0, 30) + "..." 
+          inputStart: jsonEnv.substring(0, 30) + '...',
         });
         _disabled = true;
         return false;
