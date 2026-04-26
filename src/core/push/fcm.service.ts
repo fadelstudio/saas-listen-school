@@ -34,16 +34,25 @@ function initFirebase(): boolean {
 
     if (jsonEnv) {
       try {
-        const parsed = JSON.parse(jsonEnv);
-        // La clé brute du JSON Google est en snake_case (private_key, project_id)
-        // Mais le type SDK ServiceAccount attend du camelCase (privateKey, projectId)
-        // On convertit ou on utilise le format attendu par cert()
-        const raw = parsed as any;
+        let cleanJson = jsonEnv.trim();
 
-        if (raw.private_key && typeof raw.private_key === 'string') {
-          raw.private_key = raw.private_key.replace(/\\n/g, '\n');
+        // REPARATION 1 : Si le JSON est entouré de guillemets (erreur Railway classique)
+        if (cleanJson.startsWith('"') && cleanJson.endsWith('"')) {
+          cleanJson = cleanJson.substring(1, cleanJson.length - 1);
         }
 
+        // REPARATION 2 : Si les guillemets internes sont échappés (\")
+        cleanJson = cleanJson.replace(/\\"/g, '"');
+
+        // REPARATION 3 : Si les retours à la ligne sont échappés (\\n)
+        cleanJson = cleanJson.replace(/\\n/g, '\n');
+
+        const parsed = JSON.parse(cleanJson);
+        // La clé brute du JSON Google est en snake_case (private_key, project_id)
+        // Mais le type SDK ServiceAccount attend du camelCase (privateKey, projectId)
+        const raw = parsed as any;
+
+        // Note: raw.private_key a déjà été traité par le replace global plus haut s'il était échappé
         serviceAccount = {
           projectId: raw.project_id,
           clientEmail: raw.client_email,
