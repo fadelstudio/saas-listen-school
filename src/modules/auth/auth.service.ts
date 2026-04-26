@@ -68,6 +68,7 @@ function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
+    sex: (user as any).sex || 'UNDEFINED',
     role: user.role,
     isActive: user.isActive,
     emailVerified: user.emailVerified,
@@ -459,6 +460,7 @@ export const authService = {
       ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
       ...(input.bio !== undefined && { bio: trimOrNull(input.bio) ?? null }),
       ...(input.address !== undefined && { address: trimOrNull(input.address) ?? null }),
+      ...(input.sex !== undefined && { sex: input.sex }),
     };
 
     if (Object.keys(payload).length === 0) {

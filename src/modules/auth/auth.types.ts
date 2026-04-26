@@ -19,6 +19,8 @@ export interface RegisterInput {
   password: string;
   firstName: string;
   lastName: string;
+  sex?: 'UNDEFINED' | 'MALE' | 'FEMALE';
+  matricule?: string | null;
   campusId?: string;
   classId?: string;
 }
@@ -42,6 +44,7 @@ export interface UpdateProfileInput {
   phone?: string | null;
   bio?: string | null;
   address?: string | null;
+  sex?: 'UNDEFINED' | 'MALE' | 'FEMALE';
 }
 
 // ─── Outputs ──────────────────────────────────────────────────────────────────
@@ -67,6 +70,7 @@ export interface SafeUser {
   email: string;
   firstName: string;
   lastName: string;
+  sex?: 'UNDEFINED' | 'MALE' | 'FEMALE';
   role: Role;
   isActive: boolean;
   emailVerified: boolean;

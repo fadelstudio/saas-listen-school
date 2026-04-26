@@ -12,6 +12,8 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number'),
   firstName: z.string().min(1, 'First name is required').max(50),
   lastName: z.string().min(1, 'Last name is required').max(50),
+  sex: z.enum(['UNDEFINED', 'MALE', 'FEMALE']).default('UNDEFINED'),
+  matricule: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
   campusId: idStringSchema.optional(),
   classId: idStringSchema.optional(),
 });
@@ -54,6 +56,7 @@ export const updateProfileSchema = z.object({
   phone: z.union([z.string().max(40), z.literal(''), z.null()]).optional(),
   bio: z.union([z.string().max(1000), z.literal(''), z.null()]).optional(),
   address: z.union([z.string().max(255), z.literal(''), z.null()]).optional(),
+  sex: z.enum(['UNDEFINED', 'MALE', 'FEMALE']).optional(),
 });
 
 export const verifyLoginOtpSchema = z.object({

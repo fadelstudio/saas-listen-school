@@ -26,10 +26,22 @@ export const systemService = {
     
     if (!school) throw new NotFoundError('School');
 
+    let finalLogoUrl = school.logoUrl;
+    if (finalLogoUrl && finalLogoUrl.includes('/object/sign/')) {
+      try {
+        const urlObj = new URL(finalLogoUrl);
+        urlObj.pathname = urlObj.pathname.replace('/object/sign/', '/object/public/');
+        urlObj.search = '';
+        finalLogoUrl = urlObj.toString();
+      } catch (e) {
+        // Ignore invalid URLs
+      }
+    }
+
     return {
       schoolSlug: school.slug,
       schoolName: settings.schoolName || school.name,
-      logoUrl: school.logoUrl,
+      logoUrl: finalLogoUrl,
       aiEnabled: settings.aiEnabled,
       authOtpRequired: settings.authOtpRequired,
       authReportsRequired: settings.authReportsRequired,
@@ -91,13 +103,25 @@ export const systemService = {
       throw lastError || new Error('All storage buckets failed. Please check Supabase configuration.');
     }
     
+    let finalUrl = result.url;
+    if (finalUrl && finalUrl.includes('/object/sign/')) {
+      try {
+        const urlObj = new URL(finalUrl);
+        urlObj.pathname = urlObj.pathname.replace('/object/sign/', '/object/public/');
+        urlObj.search = '';
+        finalUrl = urlObj.toString();
+      } catch (e) {
+        // Fallback
+      }
+    }
+
     await prisma.school.update({
       where: { id: schoolId },
-      data: { logoUrl: result.url }
+      data: { logoUrl: finalUrl }
     });
 
     settingsCache.delete(schoolId);
 
-    return { url: result.url };
+    return { url: finalUrl };
   }
 };

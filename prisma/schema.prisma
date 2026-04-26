@@ -23,6 +23,12 @@ enum Role {
   PROFESSOR
 }
 
+enum Sex {
+  UNDEFINED
+  MALE
+  FEMALE
+}
+
 enum ReportStatus {
   DRAFT
   SUBMITTED
@@ -249,6 +255,7 @@ model User {
   address         String?
   /// Chemin fichier dans le bucket Supabase `attachments` (URL signée exposée en API en `avatarUrl`)
   avatarPath      String?
+  sex             Sex       @default(UNDEFINED)
   role            Role      @default(STUDENT)
   isActive        Boolean   @default(true)
   fcmToken        String?
