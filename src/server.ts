@@ -2,6 +2,7 @@ import "./core/config/env"; // Validate env vars at startup — MUST be first
 import type { Server } from "http";
 import app from "./app";
 import { env } from "./core/config/env";
+import { fcmService } from "./core/push/fcm.service";
 import { validateTenantEnvOnStartup } from "./core/config/validateTenantEnv";
 import { purgeStaleUnverifiedRegistrations } from "./jobs/purgePendingRegistrations.job";
 
@@ -9,6 +10,14 @@ const PURGE_INTERVAL_MS = 15 * 60 * 1000;
 
 void validateTenantEnvOnStartup()
   .then(async () => {
+    // Force l'initialisation de FCM au démarrage pour voir les erreurs
+    console.log("🔍 Vérification de la configuration FCM...");
+    if (fcmService.isEnabled()) {
+      console.log("✅ FCM est prêt.");
+    } else {
+      console.warn("⚠️ FCM est désactivé ou mal configuré (Vérifie FIREBASE_SERVICE_ACCOUNT_JSON)");
+    }
+
     const runPurge = (): void => {
       void purgeStaleUnverifiedRegistrations()
         .then((n) => {
