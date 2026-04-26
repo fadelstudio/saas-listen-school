@@ -8,12 +8,14 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const env_1 = require("../../core/config/env");
+/// <reference types="multer" />
 const prisma_1 = require("../../core/database/prisma");
 const AppError_1 = require("../../core/errors/AppError");
 const auth_repository_1 = require("./auth.repository");
 const client_1 = require("@prisma/client");
 const mail_service_1 = require("../../core/email/mail.service");
 const uploads_service_1 = require("../uploads/uploads.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -54,6 +56,8 @@ function toSafeUser(user) {
         matricule: user.matricule,
         numero: user.numero,
         phone: user.phone,
+        bio: user.bio,
+        address: user.address,
         campusIds: user.campuses?.map((c) => c.id) || [],
         classId: user.classId,
         schoolId: user.schoolId,
@@ -78,9 +82,17 @@ async function generateTokens(user) {
     if (user.role !== client_1.Role.SUPERADMIN && !resolvedSchoolId) {
         throw new AppError_1.UnauthorizedError('Account is missing school assignment. Contact an administrator.');
     }
+    // Create a unique session ID for single session enforcement
+    const sessionId = crypto_1.default.randomBytes(16).toString('hex');
+    // Update user with the new session ID
+    await prisma_1.prisma.user.update({
+        where: { id: user.id },
+        data: { currentSessionId: sessionId }
+    });
     const payload = {
         userId: user.id,
         role: user.role,
+        sid: sessionId // 'sid' for session ID
     };
     if (resolvedSchoolId != null)
         payload.schoolId = resolvedSchoolId;
@@ -154,6 +166,16 @@ exports.authService = {
             campusIds: user.campuses?.map((c) => c.id) || [],
             classId: user.classId,
         });
+        // ── WELCOME NOTIFICATION (désactivable via NOTIFY_ON_LOGIN=false) ──
+        if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+            notifications_service_1.notificationService.create({
+                title: 'Connexion réussie',
+                message: `Bienvenue, ${user.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+                type: 'LOGIN_WELCOME',
+                userId: user.id,
+                schoolId: user.schoolId,
+            }).catch(err => console.warn('[Notification] login welcome failed', err));
+        }
         return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
     },
     async sendNewRegisterOtp(user) {
@@ -351,6 +373,8 @@ exports.authService = {
             ...(input.matricule !== undefined && { matricule }),
             ...(input.numero !== undefined && { numero: trimOrNull(input.numero) ?? null }),
             ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
+            ...(input.bio !== undefined && { bio: trimOrNull(input.bio) ?? null }),
+            ...(input.address !== undefined && { address: trimOrNull(input.address) ?? null }),
         };
         if (Object.keys(payload).length === 0) {
             return toSafeUserWithAvatar(user);

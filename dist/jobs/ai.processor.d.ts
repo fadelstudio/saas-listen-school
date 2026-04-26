@@ -6,6 +6,7 @@ export interface AiAnalysisPayload {
     decisionId?: string;
     question?: string;
     userId?: string;
+    conversationId?: string;
     startDate?: string;
     endDate?: string;
 }

@@ -13,6 +13,7 @@ declare const envSchema: z.ZodObject<{
     PENDING_REGISTRATION_TTL_MINUTES: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     SUPABASE_URL: z.ZodString;
     SUPABASE_KEY: z.ZodString;
+    SUPABASE_BUCKET: z.ZodDefault<z.ZodString>;
     REDIS_URL: z.ZodOptional<z.ZodString>;
     REDIS_HOST: z.ZodDefault<z.ZodString>;
     REDIS_PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
@@ -20,6 +21,7 @@ declare const envSchema: z.ZodObject<{
     GROQ_API_KEY: z.ZodString;
     MAX_FILE_SIZE_MB: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     SIGNED_URL_EXPIRES_IN: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
+    ANALYTICS_REPORT_INTERVAL_DAYS: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     PUBLIC_APP_URL: z.ZodDefault<z.ZodString>;
     MAIL_PROVIDER: z.ZodDefault<z.ZodEnum<{
         console: "console";

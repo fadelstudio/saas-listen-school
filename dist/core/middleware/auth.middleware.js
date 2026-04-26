@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.authorize = exports.authenticate = void 0;
 exports.authMiddleware = authMiddleware;
 exports.requireRole = requireRole;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -17,6 +18,16 @@ async function authMiddleware(req, _res, next) {
     const token = authHeader.slice(7);
     try {
         const payload = jsonwebtoken_1.default.verify(token, env_1.env.JWT_SECRET);
+        // Single Session Enforcement
+        if (payload.sid) {
+            const user = await prisma_1.prisma.user.findUnique({
+                where: { id: payload.userId },
+                select: { currentSessionId: true }
+            });
+            if (user && user.currentSessionId !== payload.sid) {
+                throw new AppError_1.UnauthorizedError("Session expirée : une autre connexion a été détectée sur cet appareil.");
+            }
+        }
         if (payload.role !== "SUPERADMIN" && !payload.schoolId) {
             const user = await prisma_1.prisma.user.findUnique({
                 where: { id: payload.userId },
@@ -40,7 +51,9 @@ async function authMiddleware(req, _res, next) {
         req.user = payload;
         next();
     }
-    catch {
+    catch (err) {
+        if (err instanceof AppError_1.UnauthorizedError || err instanceof AppError_1.ForbiddenError)
+            throw err;
         throw new AppError_1.UnauthorizedError("Invalid or expired token");
     }
 }
@@ -59,4 +72,6 @@ function requireRole(...roles) {
         next();
     };
 }
+exports.authenticate = authMiddleware;
+exports.authorize = requireRole;
 //# sourceMappingURL=auth.middleware.js.map

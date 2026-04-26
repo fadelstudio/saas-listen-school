@@ -35,151 +35,241 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiBalancer = exports.AiBalancer = void 0;
 const system_service_1 = require("../../modules/system/system.service");
+const ModelDiscovery_1 = require("./ModelDiscovery");
+// ─────────────────────────────────────────────────────────────────────────────
+// Error classifiers
+// ─────────────────────────────────────────────────────────────────────────────
+function isQuotaErr(err) {
+    const m = (err instanceof Error ? err.message : String(err)).toLowerCase();
+    return m.includes('429') || m.includes('resource_exhausted') || m.includes('quota') ||
+        m.includes('rate limit') || m.includes('ratelimit') || m.includes('token limit');
+}
+function isNotFoundErr(err) {
+    const m = (err instanceof Error ? err.message : String(err)).toLowerCase();
+    return m.includes('404') || m.includes('not found') || m.includes('not supported');
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// AiBalancer
+// ─────────────────────────────────────────────────────────────────────────────
 class AiBalancer {
     constructor() {
         this.currentActiveId = null;
         this.failures = new Map();
-        this.COOLDOWN_MS = 60000; // 1 minute cooldown for failed models
+        // Notification throttle — 1 event per type per school per 5 min
+        this.lastNotif = new Map();
+        this.NOTIF_THROTTLE = 300000;
+        this.COOLDOWN = 60000;
+        this.QUOTA_COOLDOWN = 300000;
     }
     static getInstance() {
-        if (!AiBalancer.instance) {
-            AiBalancer.instance = new AiBalancer();
+        if (!AiBalancer._instance)
+            AiBalancer._instance = new AiBalancer();
+        return AiBalancer._instance;
+    }
+    async getStatus(schoolId) {
+        const { redisConnection } = await Promise.resolve().then(() => __importStar(require('../../core/config/redis')));
+        const cached = await redisConnection.get('ai_balancer:current_active_id').catch(() => null);
+        const active = cached || this.currentActiveId;
+        if (active)
+            return { currentActiveId: active };
+        try {
+            const { systemService } = await Promise.resolve().then(() => __importStar(require('../../modules/system/system.service')));
+            const settings = await systemService.getSettings(schoolId);
+            if (!settings.aiEnabled)
+                return { currentActiveId: null };
+            const adminConfigs = this.loadAdminConfigs(settings);
+            const resolved = await this.buildCascade(adminConfigs);
+            if (resolved.length > 0)
+                return { currentActiveId: resolved[0].id };
         }
-        return AiBalancer.instance;
+        catch (e) { }
+        return { currentActiveId: null };
     }
-    /** Returns info about the last successful provider used */
-    getStatus() {
-        return { currentActiveId: this.currentActiveId };
-    }
+    // ── Main entry point ──────────────────────────────────────────────────────
     async callAI(prompt, schoolId) {
         const settings = await system_service_1.systemService.getSettings(schoolId);
-        if (!settings.aiEnabled) {
-            throw new Error('AI is currently disabled by system settings');
-        }
-        const configs = settings.aiConfigs || [];
-        if (configs.length === 0) {
-            if (process.env.GEMINI_API_KEY) {
-                configs.push({ id: 'env-gemini', name: 'Gemini Pro (Env)', provider: 'GEMINI', model: 'gemini-pro', apiKey: process.env.GEMINI_API_KEY, priority: 1, isFree: true });
-            }
-            if (process.env.GROQ_API_KEY) {
-                configs.push({ id: 'env-groq', name: 'Groq Llama (Env)', provider: 'GROQ', model: 'llama3-70b-8192', apiKey: process.env.GROQ_API_KEY, priority: 2, isFree: true });
-            }
-            if (configs.length === 0) {
-                throw new Error('No AI configurations found in system settings or .env');
-            }
-        }
-        // Sort by priority (asc)
-        const sortedConfigs = [...configs].sort((a, b) => a.priority - b.priority);
-        // 1. Check for manual override
-        if (settings.aiOverrideConfigId) {
-            const override = configs.find(c => c.id === settings.aiOverrideConfigId);
-            if (override) {
+        if (!settings.aiEnabled)
+            throw new Error('AI disabled by system settings');
+        const adminConfigs = this.loadAdminConfigs(settings);
+        // Build cascade: dynamically discover top-5 models per provider
+        const resolved = await this.buildCascade(adminConfigs);
+        if (resolved.length === 0)
+            throw new Error('No AI config found. Add a provider in system settings.');
+        // ── Fast-path: skip cascade rebuild, try last successful model first ──────
+        // On success this avoids iterating the full cascade (lower latency).
+        if (this.currentActiveId) {
+            const fast = resolved.find(r => r.id === this.currentActiveId);
+            const state = fast ? this.failures.get(fast.id) : undefined;
+            const cd = state?.isQuota ? this.QUOTA_COOLDOWN : this.COOLDOWN;
+            if (fast && !state?.permanent && (!state || Date.now() - state.lastFail >= cd)) {
                 try {
-                    const content = await this.executeCall(override, prompt);
-                    this.currentActiveId = override.id;
-                    return { content, provider: override.provider, model: override.model };
+                    console.log(`⚡ Fast-path: ${fast.name} (${fast.model})`);
+                    const content = await this.call(fast, prompt);
+                    const { redisConnection } = await Promise.resolve().then(() => __importStar(require('../../core/config/redis')));
+                    await redisConnection.set('ai_balancer:current_active_id', fast.id, 'EX', 3600).catch(() => { });
+                    return { content, provider: fast.provider, model: fast.model };
                 }
                 catch (err) {
-                    console.error(`❌ Manual override AI failed (${override.name}):`, err);
-                    // If override fails, we continue to fallback logic? 
-                    // Usually, override means "force this", but let's fall back for resilience.
+                    const quota = isQuotaErr(err);
+                    const notFound = isNotFoundErr(err);
+                    this.failures.set(fast.id, { lastFail: Date.now(), count: 1, isQuota: quota, permanent: notFound });
+                    this.currentActiveId = null;
+                    console.warn(`⚡ Fast-path failed (${fast.model}), cascading:`, err instanceof Error ? err.message.slice(0, 80) : err);
                 }
             }
         }
+        // Manual override
+        if (settings.aiOverrideConfigId) {
+            const ov = resolved.find(r => r.adminId === settings.aiOverrideConfigId);
+            if (ov && !this.failures.get(ov.id)?.permanent) {
+                try {
+                    const content = await this.call(ov, prompt);
+                    this.currentActiveId = ov.id;
+                    const { redisConnection } = await Promise.resolve().then(() => __importStar(require('../../core/config/redis')));
+                    await redisConnection.set('ai_balancer:current_active_id', ov.id, 'EX', 3600).catch(() => { });
+                    return { content, provider: ov.provider, model: ov.model };
+                }
+                catch (err) {
+                    console.error(`❌ Override failed (${ov.name}):`, err);
+                }
+            }
+        }
+        const failedLabels = [];
         let lastError = null;
-        // 2. Iterate through providers
-        for (const config of sortedConfigs) {
-            // Check cooldown
-            const failInfo = this.failures.get(config.id);
-            if (failInfo && Date.now() - failInfo.lastFail < this.COOLDOWN_MS) {
-                // If it's a free model, we try it anyway as a last resort, or if it's the only one left
-                if (!config.isFree)
+        let allSkipped = true;
+        for (const cfg of resolved) {
+            const state = this.failures.get(cfg.id);
+            if (state?.permanent) {
+                console.log(`🚫 Skip ${cfg.name} — 404 permanent`);
+                continue;
+            }
+            if (state) {
+                const cd = state.isQuota ? this.QUOTA_COOLDOWN : this.COOLDOWN;
+                if (Date.now() - state.lastFail < cd) {
+                    const s = Math.round((state.lastFail + cd - Date.now()) / 1000);
+                    console.log(`⏭️  Skip ${cfg.name} — cooldown ~${s}s`);
                     continue;
+                }
             }
             try {
-                console.log(`🤖 AI Balancer: Trying ${config.name} (${config.model})...`);
-                const content = await this.executeCall(config, prompt);
-                // Success!
-                this.currentActiveId = config.id;
-                this.failures.delete(config.id); // Reset failure on success
-                return { content, provider: config.provider, model: config.model };
+                console.log(`🤖 [${cfg.provider}] Trying ${cfg.name} (${cfg.model})…`);
+                const content = await this.call(cfg, prompt);
+                allSkipped = false;
+                this.currentActiveId = cfg.id;
+                const { redisConnection } = await Promise.resolve().then(() => __importStar(require('../../core/config/redis')));
+                await redisConnection.set('ai_balancer:current_active_id', cfg.id, 'EX', 3600).catch(() => { });
+                this.failures.delete(cfg.id);
+                return { content, provider: cfg.provider, model: cfg.model };
             }
             catch (err) {
+                allSkipped = false;
                 lastError = err;
-                this.failures.set(config.id, {
-                    lastFail: Date.now(),
-                    count: (failInfo?.count || 0) + 1
+                const quota = isQuotaErr(err);
+                const notFound = isNotFoundErr(err);
+                this.failures.set(cfg.id, {
+                    lastFail: Date.now(), count: (state?.count || 0) + 1,
+                    isQuota: quota, permanent: notFound,
                 });
-                console.warn(`⚠️ AI Balancer: ${config.name} failed:`, err instanceof Error ? err.message : err);
+                const icon = notFound ? '🚫' : quota ? '⚠️' : '❌';
+                console.warn(`${icon} ${cfg.name}: ${err instanceof Error ? err.message.slice(0, 120) : err}`);
+                if (quota || notFound)
+                    failedLabels.push(`${cfg.model}(${quota ? 'quota' : '404'})`);
+                if (quota) {
+                    const next = resolved.find(r => {
+                        if (r.id === cfg.id)
+                            return false;
+                        const s = this.failures.get(r.id);
+                        return !s || (!s.permanent && Date.now() - s.lastFail >= (s.isQuota ? this.QUOTA_COOLDOWN : this.COOLDOWN));
+                    });
+                    await this.notifyOnce(schoolId, 'quota-switch', () => this.sendAdminNotif(schoolId, '⚡ Basculement IA — Quota atteint', `**${cfg.name}** (${cfg.model}) a atteint sa limite. ` +
+                        `Bascule vers : **${next ? next.name : 'aucun — service dégradé'}**. ` +
+                        `Erreur : ${err instanceof Error ? err.message.slice(0, 100) : err}`)).catch(console.error);
+                }
             }
         }
-        const lastMessage = lastError instanceof Error ? lastError.message : 'Unknown';
-        // Notify admins that AI failed
-        try {
-            const { prisma } = await Promise.resolve().then(() => __importStar(require('../../core/database/prisma')));
-            const admins = await prisma.user.findMany({
-                where: { role: 'ADMIN', schoolId }
-            });
-            for (const admin of admins) {
-                await prisma.notification.create({
-                    data: {
-                        title: '⚠️ Alerte IA - Échec de tous les fournisseurs',
-                        message: `Tous les modèles d'Intelligence Artificielle ont échoué (${configs.length} testés). Dernière erreur : ${lastMessage}. Le système fonctionne en mode dégradé sans IA.`,
-                        type: 'SYSTEM_ALERT',
-                        userId: admin.id,
-                        schoolId
-                    }
-                });
-            }
+        if (allSkipped) {
+            const soonest = this.soonestRetry(resolved);
+            throw new Error(`AI Balancer: tous les modèles en cooldown. Retry dans ~${Math.max(0, Math.round(soonest / 1000))}s`);
         }
-        catch (notifErr) {
-            console.error('⚠️ Failed to send AI failure notification', notifErr);
-        }
-        throw new Error(`AI Balancer: All ${configs.length} providers failed. Last error: ${lastMessage}`);
+        const msg = lastError instanceof Error ? lastError.message : 'Unknown';
+        await this.notifyOnce(schoolId, 'total-failure', () => this.sendAdminNotif(schoolId, '🚨 Panne IA — Tous les fournisseurs ont échoué', `${resolved.length} modèles essayés. Échecs : ${failedLabels.join(', ') || '—'}. ` +
+            `Dernière erreur : ${msg}. Vérifiez vos clés API et quotas.`)).catch(console.error);
+        throw new Error(`AI Balancer: tous les providers ont échoué. Dernière erreur: ${msg}`);
     }
-    async executeCall(config, prompt) {
-        if (config.provider.includes('GEMINI')) {
-            return this.callGemini(config.apiKey, config.model, prompt);
+    // ── Config loader ─────────────────────────────────────────────────────────
+    loadAdminConfigs(settings) {
+        const db = settings.aiConfigs || [];
+        const dbProviders = new Set(db.map(c => c.provider));
+        const maxPriority = db.reduce((mx, c) => Math.max(mx, c.priority ?? 0), 0);
+        // Always append env providers not already covered by a DB config.
+        // This ensures GROQ_API_KEY is always in the cascade even when DB has Gemini.
+        const envExtra = [];
+        if (!dbProviders.has('GEMINI') && process.env.GEMINI_API_KEY)
+            envExtra.push({ id: 'env-gemini', name: 'Gemini (env)', provider: 'GEMINI', apiKey: process.env.GEMINI_API_KEY, preferredModel: 'gemini-2.5-flash', priority: maxPriority + 1 });
+        if (!dbProviders.has('GROQ') && process.env.GROQ_API_KEY)
+            envExtra.push({ id: 'env-groq', name: 'Groq (env)', provider: 'GROQ', apiKey: process.env.GROQ_API_KEY, priority: maxPriority + 2 });
+        return [...db, ...envExtra].sort((a, b) => a.priority - b.priority);
+    }
+    // ── Dynamic cascade builder ───────────────────────────────────────────────
+    /**
+     * For each admin config, queries the provider's model-list API (cached 1h)
+     * and returns the top-5 text models. PreferredModel is injected at position 0.
+     * Global sort: adminPriority * 100 + modelRank → all P1 models before P2 models.
+     */
+    async buildCascade(adminConfigs) {
+        const resolved = [];
+        for (const admin of adminConfigs) {
+            // Get top-5 discovered models for this provider + key
+            const discovered = await ModelDiscovery_1.modelDiscovery.getTopModels(admin.provider, admin.apiKey, 5);
+            // Build ordered list: preferredModel at top (even if not in discovered)
+            const ordered = [...discovered];
+            if (admin.preferredModel) {
+                const idx = ordered.findIndex(m => m.id === admin.preferredModel);
+                if (idx > 0) {
+                    // Move to front
+                    const [item] = ordered.splice(idx, 1);
+                    ordered.unshift(item);
+                }
+                else if (idx === -1) {
+                    // Not in discovered list — prepend manually
+                    ordered.unshift({ id: admin.preferredModel, name: admin.preferredModel, score: 999 });
+                }
+            }
+            ordered.forEach((m, rank) => {
+                resolved.push({
+                    id: `${admin.id}::${m.id}`,
+                    name: `${admin.name} › ${m.name}`,
+                    provider: admin.provider,
+                    apiKey: admin.apiKey,
+                    model: m.id,
+                    priority: admin.priority * 100 + rank,
+                    adminId: admin.id,
+                });
+            });
         }
-        else if (config.provider.includes('GROQ')) {
-            return this.callGroq(config.apiKey, config.model, prompt);
+        return resolved.sort((a, b) => a.priority - b.priority);
+    }
+    // ── HTTP dispatchers ──────────────────────────────────────────────────────
+    async call(cfg, prompt) {
+        switch (cfg.provider) {
+            case 'GEMINI': return this.callGemini(cfg.apiKey, cfg.model, prompt);
+            case 'GROQ': return this.callGroq(cfg.apiKey, cfg.model, prompt);
+            case 'OPENAI': return this.callOpenAI(cfg.apiKey, cfg.model, prompt);
+            case 'ANTHROPIC': return this.callAnthropic(cfg.apiKey, cfg.model, prompt);
         }
-        else if (config.provider.includes('OPENAI')) {
-            return this.callOpenAI(config.apiKey, config.model, prompt);
-        }
-        throw new Error(`Unsupported AI provider: ${config.provider}`);
     }
     async callGemini(key, model, prompt) {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        });
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
         if (!res.ok)
-            throw new Error(`Gemini error: ${res.status}`);
-        const data = (await res.json());
-        // Minimal runtime narrowing (avoid unsafe casts)
-        if (typeof data === 'object' &&
-            data !== null &&
-            'candidates' in data &&
-            Array.isArray(data.candidates)) {
-            const candidates = data.candidates;
-            const first = candidates[0];
-            if (typeof first !== 'object' || first === null)
-                return '';
-            const content = first.content;
-            if (typeof content !== 'object' || content === null)
-                return '';
-            const parts = content.parts;
-            if (!Array.isArray(parts))
-                return '';
-            const firstPart = parts[0];
-            if (typeof firstPart !== 'object' || firstPart === null)
-                return '';
-            const text = firstPart.text;
-            return typeof text === 'string' ? text : '';
+            throw new Error(`Gemini error: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`);
+        const d = (await res.json());
+        if ('error' in d) {
+            const e = d['error'];
+            throw new Error(`Gemini API: ${e.status ?? ''} ${e.message ?? ''}`);
         }
-        return '';
+        const parts = (d['candidates']?.[0]?.['content']?.['parts']);
+        return typeof parts?.[0]?.['text'] === 'string' ? parts[0]['text'] : '';
     }
     async callGroq(key, model, prompt) {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -188,22 +278,9 @@ class AiBalancer {
             body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }] }),
         });
         if (!res.ok)
-            throw new Error(`Groq error: ${res.status}`);
-        const data = (await res.json());
-        if (typeof data === 'object' &&
-            data !== null &&
-            'choices' in data &&
-            Array.isArray(data.choices)) {
-            const first = data.choices[0];
-            if (typeof first !== 'object' || first === null)
-                return '';
-            const message = first.message;
-            if (typeof message !== 'object' || message === null)
-                return '';
-            const content = message.content;
-            return typeof content === 'string' ? content : '';
-        }
-        return '';
+            throw new Error(`Groq error: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`);
+        const d = (await res.json());
+        return String((d['choices']?.[0]?.['message']?.['content']) ?? '');
     }
     async callOpenAI(key, model, prompt) {
         const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -212,22 +289,57 @@ class AiBalancer {
             body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }] }),
         });
         if (!res.ok)
-            throw new Error(`OpenAI error: ${res.status}`);
-        const data = (await res.json());
-        if (typeof data === 'object' &&
-            data !== null &&
-            'choices' in data &&
-            Array.isArray(data.choices)) {
-            const first = data.choices[0];
-            if (typeof first !== 'object' || first === null)
-                return '';
-            const message = first.message;
-            if (typeof message !== 'object' || message === null)
-                return '';
-            const content = message.content;
-            return typeof content === 'string' ? content : '';
+            throw new Error(`OpenAI error: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`);
+        const d = (await res.json());
+        return String((d['choices']?.[0]?.['message']?.['content']) ?? '');
+    }
+    async callAnthropic(key, model, prompt) {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'x-api-key': key, 'anthropic-version': '2023-06-01',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ model, max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
+        });
+        if (!res.ok)
+            throw new Error(`Anthropic error: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`);
+        const d = (await res.json());
+        const content = d['content'];
+        return content?.find(b => b.type === 'text')?.text ?? '';
+    }
+    // ── Notifications (throttled) ─────────────────────────────────────────────
+    async notifyOnce(schoolId, event, fn) {
+        const key = `${schoolId}:${event}`;
+        const last = this.lastNotif.get(key) ?? 0;
+        if (Date.now() - last < this.NOTIF_THROTTLE) {
+            console.log(`🔕 Notif throttled (${event})`);
+            return;
         }
-        return '';
+        await fn();
+        this.lastNotif.set(key, Date.now());
+    }
+    async sendAdminNotif(schoolId, title, message) {
+        const { prisma } = await Promise.resolve().then(() => __importStar(require('../../core/database/prisma')));
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN', schoolId }, select: { id: true } });
+        for (const a of admins) {
+            await prisma.notification.create({ data: { title, message, type: 'AI_FAILURE', userId: a.id, schoolId } });
+        }
+        console.log(`📬 [${title.slice(0, 35)}] → ${admins.length} admin(s)`);
+    }
+    // ── Utils ─────────────────────────────────────────────────────────────────
+    soonestRetry(resolved) {
+        let min = Infinity;
+        for (const r of resolved) {
+            const s = this.failures.get(r.id);
+            if (!s || s.permanent)
+                continue;
+            const cd = s.isQuota ? this.QUOTA_COOLDOWN : this.COOLDOWN;
+            const eta = s.lastFail + cd - Date.now();
+            if (eta < min)
+                min = eta;
+        }
+        return min === Infinity ? 0 : min;
     }
 }
 exports.AiBalancer = AiBalancer;

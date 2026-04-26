@@ -26,10 +26,10 @@ export declare const updateDecisionSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const updateDecisionStatusSchema: z.ZodObject<{
     status: z.ZodEnum<{
-        PENDING: "PENDING";
         APPROVED: "APPROVED";
         REJECTED: "REJECTED";
-        DEFERRED: "DEFERRED";
+        IN_PROGRESS: "IN_PROGRESS";
+        PROPOSED: "PROPOSED";
         DONE: "DONE";
     }>;
 }, z.core.$strip>;
@@ -45,10 +45,10 @@ export declare const decisionQuerySchema: z.ZodObject<{
         desc: "desc";
     }>>;
     status: z.ZodOptional<z.ZodEnum<{
-        PENDING: "PENDING";
         APPROVED: "APPROVED";
         REJECTED: "REJECTED";
-        DEFERRED: "DEFERRED";
+        IN_PROGRESS: "IN_PROGRESS";
+        PROPOSED: "PROPOSED";
         DONE: "DONE";
     }>>;
     priority: z.ZodOptional<z.ZodEnum<{

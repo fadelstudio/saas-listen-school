@@ -10,6 +10,7 @@ export const globalAnalysisSchema = z.object({
   endDate:      z.string().datetime().optional(),
   includeReports: z.boolean().default(true),
   includeEvaluations: z.boolean().default(true),
+  periodic: z.boolean().optional(),
 });
 
 export type GlobalAnalysisInput = z.infer<typeof globalAnalysisSchema>;

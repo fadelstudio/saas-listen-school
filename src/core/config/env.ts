@@ -35,6 +35,7 @@ const envSchema = z.object({
   // Supabase
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),
   SUPABASE_KEY: z.string().min(1, "SUPABASE_KEY is required"),
+  SUPABASE_BUCKET: z.string().default("attachments"),
 
   // Redis
   REDIS_URL: z.string().min(1).optional(),
@@ -48,6 +49,9 @@ const envSchema = z.object({
   // Uploads
   MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
   SIGNED_URL_EXPIRES_IN: z.coerce.number().int().positive().default(60 * 60), // seconds
+
+  // Analytics
+  ANALYTICS_REPORT_INTERVAL_DAYS: z.coerce.number().int().positive().default(30),
 
   // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

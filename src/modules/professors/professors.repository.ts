@@ -40,6 +40,7 @@ export const professorsRepository = {
         include: {
           user: { select: { id: true, avatarPath: true } },
           _count: { select: { evaluations: true } },
+          modules: { select: { moduleId: true } },
         },
       }),
       prisma.professor.count({ where }),

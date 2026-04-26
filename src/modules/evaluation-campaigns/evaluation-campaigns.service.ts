@@ -90,20 +90,16 @@ export const evaluationCampaignsService = {
         studentIds = users.map((u) => u.id);
       }
 
-      await Promise.all(
-        studentIds.map((userId: string) =>
-          notificationService.create({
-            title: `Nouvelle évaluation demandée: ${campaign.title}`,
-            message: detailedCampaign.module 
-              ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
-              : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
-            type: 'EVALUATION_CAMPAIGN',
-            userId,
-            campaignId: campaign.id,
-            schoolId,
-          }),
-        ),
-      ).catch((e) => logger.error('Failed to send campaign notifications', { error: e }));
+      await notificationService.create({
+        title: `Nouvelle évaluation demandée: ${campaign.title}`,
+        message: detailedCampaign.module 
+          ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
+          : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
+        type: 'EVALUATION_CAMPAIGN',
+        targetUserIds: studentIds,
+        campaignId: campaign.id,
+        schoolId,
+      }).catch((e) => logger.error('Failed to send campaign notifications (bulk)', { error: e }));
     }
 
     return campaign;
@@ -129,8 +125,20 @@ export const evaluationCampaignsService = {
   },
 
   async close(id: string, schoolId: string) {
+    const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
+    if (!campaign) throw new NotFoundError('EvaluationCampaign');
+
     const updated = await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
     if (!updated) throw new NotFoundError('EvaluationCampaign');
+
+    // Notify admins & managers that the campaign is closed and data is ready
+    notificationService.sendBroadcast(schoolId, {
+      title: '📊 Campagne clôturée — données disponibles',
+      message: `La campagne "${(campaign as any).title}" est maintenant fermée. Les données sont disponibles pour analyse et prise de décision.`,
+      targetRoles: ['ADMIN', 'MANAGER'],
+      url: `/dashboard/evaluation-campaigns/${id}`,
+    }).catch(e => logger.warn('[Notification] Campaign close notify failed', { error: e }));
+
     return updated;
   },
 
@@ -178,20 +186,16 @@ export const evaluationCampaignsService = {
     const doneIds = new Set(doneEvaluations.map(e => e.evaluatorId).filter(Boolean));
     const missingIds = allStudentIds.filter(id => !doneIds.has(id));
 
-    await Promise.all(
-      missingIds.map((userId: string) =>
-        notificationService.create({
-          title: `Rappel: Évaluation requise pour ${campaign.title}`,
-          message: campaign.module 
-              ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
-              : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
-          type: 'EVALUATION_CAMPAIGN_REMINDER',
-          userId,
-          campaignId: campaign.id,
-          schoolId,
-        })
-      )
-    ).catch((e) => logger.error('Failed to send campaign reminders', { error: e }));
+    await notificationService.create({
+      title: `Rappel: Évaluation requise pour ${campaign.title}`,
+      message: campaign.module 
+          ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
+          : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
+      type: 'EVALUATION_CAMPAIGN_REMINDER',
+      targetUserIds: missingIds,
+      campaignId: campaign.id,
+      schoolId,
+    }).catch((e) => logger.error('Failed to send campaign reminders (bulk)', { error: e }));
   },
 
   async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {
@@ -251,6 +255,14 @@ export const evaluationCampaignsService = {
       } as any,
       include: { decider: { select: { firstName: true, lastName: true } } }
     });
+
+    // 5. Notify admins that the AI report is ready
+    notificationService.sendBroadcast(schoolId, {
+      title: '🤖 Rapport IA  généré — action requise',
+      message: `L'analyse IA de la campagne "${campaign.title}" est prête. Une décision proposée a été générée automatiquement. Vérifiez et validez.`,
+      targetRoles: ['ADMIN', 'MANAGER'],
+      url: `/dashboard/decisions/${decision.id}`,
+    }).catch(e => logger.warn('[Notification] Analytics ready notify failed', { error: e }));
 
     return decision;
   }

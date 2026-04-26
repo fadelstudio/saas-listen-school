@@ -41,14 +41,16 @@ export declare const aiService: {
         jobId: string;
         reason: string;
     }>;
-    chat(input: ChatInput, userId: string): Promise<{
+    chat(input: ChatInput, userId: string, schoolId: string): Promise<{
         queued: boolean;
         jobId: string | undefined;
+        conversationId: string | undefined;
         message: string;
         reason?: undefined;
     } | {
         queued: boolean;
         jobId: string;
+        conversationId: string | undefined;
         reason: string;
         message?: undefined;
     }>;

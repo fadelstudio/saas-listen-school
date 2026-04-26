@@ -105,14 +105,49 @@ Flux recommandé (Front):
 
 **Cycle de vie (backend)** : avec OTP requis, le compte est créé tout de suite (`emailVerified=false`) ; le **login mot de passe est refusé** tant que l’email n’est pas vérifié via `verify-otp`. Les comptes élèves **STUDENT** non vérifiés au-delà de `PENDING_REGISTRATION_TTL_MINUTES` (défaut 30) sans refresh token sont **supprimés automatiquement** (job périodique), ainsi que les comptes désactivés après trop de tentatives OTP.
 
-### Reset mot de passe
+### Session Unique (Single Device Enforcement)
+L'API implémente désormais une politique de **session unique** par utilisateur.
+- Lors du login, un `sessionId` (sid) unique est généré et inclus dans le payload du JWT.
+- Ce SID est stocké en base de données (`currentSessionId`).
+- Si l'utilisateur se connecte sur un autre appareil, un nouveau SID écrase l'ancien.
+- Toute requête avec l'ancien token sera rejetée avec une erreur **401 (Session expirée)**.
+- **Front-end**: En cas d'erreur 401 avec le message "Session expirée", rediriger immédiatement vers le login.
 
+### Reset mot de passe
 - `POST /api/v1/auth/forgot-password` `{ "email": "..." }` — réponse générique (pas d’énumération).
 - `POST /api/v1/auth/reset-password` `{ token, newPassword, confirmPassword }` — révoque les refresh tokens existants.
 
 ### Refresh
+- `POST /api/v1/auth/refresh` avec `refreshToken` — génère un nouveau `sessionId`.
 
-- `POST /api/v1/auth/refresh` avec `refreshToken`
+---
+
+## 📈 Analytics & Pilotage (`/analytics`)
+
+Indispensable pour le dashboard administrateur.
+
+### 1) Statistiques globales
+`GET /api/v1/analytics/dashboard?campusId=...`
+- Retourne les compteurs (`users`, `reports`, `evaluations`) et les distributions par type/statut.
+
+### 2) Séries temporelles (Graphiques dynamiques)
+`GET /api/v1/analytics/time-series?period=day|week|month|year&campusId=...`
+- Retourne les données groupées par date pour les graphiques de signalements (Soumis, En cours, Résolus).
+- **Front-end**: Utiliser pour dynamiser le composant "Analyse des Signalements".
+
+### 3) Analyses Globales IA
+`POST /api/v1/analytics/global-analysis`
+- Prend des filtres complexes (`startDate`, `endDate`, `includeReports`, etc.) et génère un rapport narratif via l'IA avec des propositions de décisions automatiques.
+
+---
+
+## 🔍 Audit Système (`/audit`)
+
+Réservé aux `ADMIN` et `SUPERADMIN`. Permet de tracer qui a fait quoi.
+- `GET /api/v1/audit/logs?page=1&limit=50&action=...&entity=...`
+- Chaque action (`CREATE_USER`, `DELETE_REPORT`, etc.) est enregistrée avec l'IP et le User-Agent de l'auteur.
+
+---
 
 ## Utilisateurs école (ADMIN campus)
 

@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { env } from '../../core/config/env';
+/// <reference types="multer" />
 import { prisma } from '../../core/database/prisma';
 import {
   ConflictError,
@@ -26,6 +27,7 @@ import {
 import { Role, User } from '@prisma/client';
 import { sendTransactionalEmail } from '../../core/email/mail.service';
 import { uploadsService } from '../uploads/uploads.service';
+import { notificationService } from '../notifications/notifications.service';
 
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '15m';
@@ -72,6 +74,8 @@ function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
     matricule: user.matricule,
     numero: user.numero,
     phone: user.phone,
+    bio: user.bio,
+    address: user.address,
     campusIds: user.campuses?.map((c: any) => c.id) || [],
     classId: user.classId,
     schoolId: user.schoolId,
@@ -110,9 +114,19 @@ async function generateTokens(user: TokenUser) {
     );
   }
 
+  // Create a unique session ID for single session enforcement
+  const sessionId = crypto.randomBytes(16).toString('hex');
+
+  // Update user with the new session ID
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { currentSessionId: sessionId }
+  });
+
   const payload: Record<string, unknown> = {
     userId: user.id,
     role: user.role,
+    sid: sessionId // 'sid' for session ID
   };
   if (resolvedSchoolId != null) payload.schoolId = resolvedSchoolId;
   if (user.campusIds.length > 0) payload.campusIds = user.campusIds;
@@ -176,7 +190,7 @@ export const authService = {
       ) {
         throw new UnauthorizedError(
           `Wrong school context: this account is for school "${globalUser.school.slug}". ` +
-            `Call the API with header x-school-slug: ${globalUser.school.slug} (or open /${globalUser.school.slug}/api/... in non-strict mode).`,
+          `Call the API with header x-school-slug: ${globalUser.school.slug} (or open /${globalUser.school.slug}/api/... in non-strict mode).`,
         );
       }
       throw new UnauthorizedError('Invalid credentials');
@@ -204,6 +218,19 @@ export const authService = {
       campusIds: user.campuses?.map((c: any) => c.id) || [],
       classId: user.classId,
     });
+
+    // ── WELCOME NOTIFICATION (désactivable via NOTIFY_ON_LOGIN=false) ──
+    if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+      notificationService.create({
+        title: 'Connexion réussie',
+        message: `Bienvenue, ${user.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+        type: 'LOGIN_WELCOME',
+        userId: user.id,
+        schoolId: user.schoolId,
+      }).catch(err => console.warn('[Notification] login welcome failed', err));
+    }
+
+
     return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
   },
 
@@ -263,13 +290,13 @@ export const authService = {
     const expected = hashOtp(input.otp.trim());
     if (expected !== challenge.otpHash) {
       const updated = await authRepository.incrementLoginOtpAttempts(challenge.id);
-      
+
       if (updated.attempts >= OTP_MAX_ATTEMPTS) {
         await authRepository.deleteLoginOtpChallenge(challenge.id);
         await authRepository.setActive(challenge.userId, false); // Block account
         throw new BadRequestError('Too many OTP attempts. Your account has been deactivated for security reasons. Contact support.');
       }
-      
+
       throw new UnauthorizedError(`Invalid OTP code (${OTP_MAX_ATTEMPTS - updated.attempts} attempts remaining)`);
     }
 
@@ -375,7 +402,7 @@ export const authService = {
   },
 
   async logout(token: string): Promise<void> {
-    await authRepository.deleteRefreshToken(token).catch(() => {});
+    await authRepository.deleteRefreshToken(token).catch(() => { });
   },
 
   async getMe(userId: string): Promise<SafeUser> {
@@ -430,6 +457,8 @@ export const authService = {
       ...(input.matricule !== undefined && { matricule }),
       ...(input.numero !== undefined && { numero: trimOrNull(input.numero) ?? null }),
       ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
+      ...(input.bio !== undefined && { bio: trimOrNull(input.bio) ?? null }),
+      ...(input.address !== undefined && { address: trimOrNull(input.address) ?? null }),
     };
 
     if (Object.keys(payload).length === 0) {
@@ -445,7 +474,7 @@ export const authService = {
     if (!user) throw new NotFoundError('User');
     const { path } = await uploadsService.uploadProfileImage(file, `avatars/users/${userId}`);
     if (user.avatarPath && user.avatarPath !== path) {
-      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => {});
+      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => { });
     }
     const updated = await authRepository.updateAvatarPath(userId, path);
     return toSafeUserWithAvatar(updated);
@@ -455,7 +484,7 @@ export const authService = {
     const user = await authRepository.findById(userId);
     if (!user) throw new NotFoundError('User');
     if (user.avatarPath) {
-      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => {});
+      await uploadsService.removeObjectAtPath(user.avatarPath).catch(() => { });
     }
     const updated = await authRepository.updateAvatarPath(userId, null);
     return toSafeUserWithAvatar(updated);

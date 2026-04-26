@@ -47,6 +47,8 @@ exports.updateProfileSchema = zod_1.z.object({
     matricule: zod_1.z.union([zod_1.z.string().max(50), zod_1.z.literal(''), zod_1.z.null()]).optional(),
     numero: zod_1.z.union([zod_1.z.string().max(120), zod_1.z.literal(''), zod_1.z.null()]).optional(),
     phone: zod_1.z.union([zod_1.z.string().max(40), zod_1.z.literal(''), zod_1.z.null()]).optional(),
+    bio: zod_1.z.union([zod_1.z.string().max(1000), zod_1.z.literal(''), zod_1.z.null()]).optional(),
+    address: zod_1.z.union([zod_1.z.string().max(255), zod_1.z.literal(''), zod_1.z.null()]).optional(),
 });
 exports.verifyLoginOtpSchema = zod_1.z.object({
     challengeId: idSchema_1.idStringSchema,

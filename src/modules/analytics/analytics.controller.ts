@@ -3,12 +3,24 @@ import { analyticsService } from './analytics.service';
 import { BadRequestError } from '../../core/errors/AppError';
 
 export const analyticsController = {
-  async getDashboard(req: Request, res: Response, next: NextFunction) {
+  async getDashboardStats(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campusId = req.query.campusId as string | undefined;
+      const campusId = req.query.campusId as string;
       const stats = await analyticsService.getDashboardStats(req.schoolId, campusId);
-      res.sendSuccess('Dashboard analytics fetched', stats);
+      res.sendSuccess('Analytics dashboard stats fetched', stats);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getTimeSeriesStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const campusId = req.query.campusId as string;
+      const period = (req.query.period as any) || 'week';
+      const stats = await analyticsService.getTimeSeriesStats(req.schoolId, period, campusId);
+      res.sendSuccess('Time series stats fetched', stats);
     } catch (error) {
       next(error);
     }
@@ -22,7 +34,44 @@ export const analyticsController = {
         req.user!.userId,
         req.schoolId
       );
-      res.sendSuccess('Global analysis triggered and report generated', result);
+      res.sendSuccess('Global analysis report generated successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const limit = req.query.limit ? parseInt(req.query.limit as any) : undefined;
+      const page = req.query.page ? parseInt(req.query.page as any) : undefined;
+      const periodic = req.query.periodic === 'true' ? true : (req.query.periodic === 'false' ? false : undefined);
+      const q = req.query.q as string;
+      const result = await analyticsService.getReports(req.schoolId, { limit, page, periodic, q });
+      res.sendSuccess('Analysis reports fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getReportById(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const report = await analyticsService.getReportById(req.params.id as string, req.schoolId);
+      res.sendSuccess('Analysis report details fetched', report);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async generatePeriodicReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await analyticsService.generatePeriodicReport(
+        req.schoolId,
+        req.user!.userId
+      );
+      res.sendSuccess('Periodic analysis report generated successfully', result);
     } catch (error) {
       next(error);
     }

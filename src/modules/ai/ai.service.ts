@@ -46,23 +46,35 @@ export const aiService = {
     }
   },
 
-  async chat(input: ChatInput, userId: string) {
+  async chat(input: ChatInput, userId: string, schoolId: string) {
+    const { chatService } = await import('./chat.service');
+    let conversationId = input.conversationId;
+
+    if (!conversationId) {
+      const conv = await chatService.createConversation(schoolId, userId, input.question);
+      conversationId = conv.id;
+    }
+
+    // Save user message
+    await chatService.addMessage(conversationId as string, 'user', input.question);
+
     try {
       const bullJob = await jobQueue.add('ai-analysis', {
         type:     'chat-query',
         question: input.question,
         userId,
+        conversationId, // Pass this to the worker
       });
-      return { queued: true, jobId: bullJob.id, message: 'Chat query queued — poll /api/ai/jobs/:jobId/result' };
+      return { queued: true, jobId: bullJob.id, conversationId, message: 'Chat query queued' };
     } catch (error) {
       logger.warn('Could not enqueue AI chat (Redis down?)', { error });
       const dbJob = await aiRepository.createJob({
         jobType: 'chat-query',
         status: AiJobStatus.FAILED,
-        payload: { type: 'chat-query', question: input.question, userId } as unknown as Prisma.InputJsonObject,
+        payload: { type: 'chat-query', question: input.question, userId, conversationId } as unknown as Prisma.InputJsonObject,
         errorMessage: 'REDIS_UNAVAILABLE',
       });
-      return { queued: false, jobId: dbJob.id, reason: 'REDIS_UNAVAILABLE' };
+      return { queued: false, jobId: dbJob.id, conversationId, reason: 'REDIS_UNAVAILABLE' };
     }
   },
 

@@ -38,11 +38,13 @@ enum EvaluationStatus {
 }
 
 enum DecisionStatus {
-  PROPOSED    // Proposé par l'IA, en attente de validation
-  APPROVED    // Validé par l'admin, à exécuter
-  REJECTED    // Rejeté par l'admin
+  PENDING // Legacy/Fallback status
+  PROPOSED // Proposé par l'IA, en attente de validation
+  APPROVED // Validé par l'admin, à exécuter
+  REJECTED // Rejeté par l'admin
   IN_PROGRESS // En cours d'exécution
-  DONE        // Terminé
+  DONE // Terminé
+  DEFERRED // Reporté
 }
 
 enum AiJobStatus {
@@ -78,13 +80,13 @@ enum RatingBand {
 }
 
 model School {
-  id          String   @id @default(uuid())
-  name        String   @unique // e.g. "AFI L'UE"
-  slug        String   @unique // e.g. "afi"
-  domain      String?  @unique // e.g. "afi-ue.sn"
-  logoUrl     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "AFI L'UE"
+  slug      String   @unique // e.g. "afi"
+  domain    String?  @unique // e.g. "afi-ue.sn"
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   campuses       Campus[]
   users          User[]
@@ -93,12 +95,14 @@ model School {
   modules        Module[]
 
   // Data separation
-  reports     Report[]
-  evaluations Evaluation[]
-  decisions   Decision[]
+  reports         Report[]
+  evaluations     Evaluation[]
+  decisions       Decision[]
   analysisReports AnalysisReport[]
-  professors  Professor[]
-  notifications Notification[]
+  professors      Professor[]
+  notifications   Notification[]
+  aiConversations AiConversation[]
+  auditLogs       AuditLog[]
 
   @@map("schools")
 }
@@ -119,30 +123,32 @@ model Campus {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  school      School        @relation(fields: [schoolId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
 
-  classes     Class[]
-  users       User[]
+  classes             Class[]
+  users               User[]
   evaluationCampaigns EvaluationCampaign[]
+  notifications       Notification[]
 
   @@map("campuses")
 }
 
 model Class {
   id        String   @id @default(uuid())
-  name      String   // e.g. "L3 Info", "M1 Marketing"
+  name      String // e.g. "L3 Info", "M1 Marketing"
   levelId   String
   campusId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campus      Campus        @relation(fields: [campusId], references: [id])
-  academicLevel AcademicLevel @relation(fields: [levelId],  references: [id])
-  users       User[]
-  reports     Report[]
-  evaluations Evaluation[]
-  classModules ClassModule[]
+  campus              Campus               @relation(fields: [campusId], references: [id])
+  academicLevel       AcademicLevel        @relation(fields: [levelId], references: [id])
+  users               User[]
+  reports             Report[]
+  evaluations         Evaluation[]
+  classModules        ClassModule[]
   evaluationCampaigns EvaluationCampaign[]
+  notifications       Notification[]
 
   @@map("classes")
 }
@@ -155,8 +161,8 @@ model AcademicLevel {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  classes   Class[]
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes Class[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -171,10 +177,10 @@ model Module {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  classModules         ClassModule[]
-  reports              Report[]
-  evaluations          Evaluation[]
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classModules        ClassModule[]
+  reports             Report[]
+  evaluations         Evaluation[]
   evaluationCampaigns EvaluationCampaign[]
 
   @@unique([schoolId, name])
@@ -189,35 +195,35 @@ model ClassModule {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  class       Class       @relation(fields: [classId], references: [id])
-  module      Module      @relation(fields: [moduleId], references: [id])
-  professors  Professor[] // Professors for THIS specific class instance of the module
+  class      Class       @relation(fields: [classId], references: [id])
+  module     Module      @relation(fields: [moduleId], references: [id])
+  professors Professor[] // Professors for THIS specific class instance of the module
 
   @@unique([classId, moduleId])
   @@map("class_modules")
 }
 
 model Professor {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  email     String   @unique
-  userId    String?  @unique // Link to User if they have login access
-  matricule String?
+  id         String   @id @default(uuid())
+  firstName  String
+  lastName   String
+  email      String   @unique
+  userId     String?  @unique // Link to User if they have login access
+  matricule  String?
   /// Numéro interne / identifiant métier (optionnel)
-  numero    String?
-  phone     String?
+  numero     String?
+  phone      String?
   /// Photo de la fiche enseignant (si pas de compte lié, ou en secours du compte User)
   avatarPath String?
   schoolId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  school      School?      @relation(fields: [schoolId], references: [id])
-  user        User?        @relation(fields: [userId], references: [id])
-  modules     ClassModule[] // Linked to specific class assignments
-  reports     Report[]
-  evaluations Evaluation[]
+  school              School?              @relation(fields: [schoolId], references: [id])
+  user                User?                @relation(fields: [userId], references: [id])
+  modules             ClassModule[] // Linked to specific class assignments
+  reports             Report[]
+  evaluations         Evaluation[]
   evaluationCampaigns EvaluationCampaign[]
 
   @@map("professors")
@@ -228,45 +234,78 @@ model Professor {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  matricule    String?  @unique
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  matricule       String?   @unique
   /// Numéro interne / dossier (optionnel, distinct du matricule si besoin)
-  numero       String?
-  phone        String?
+  numero          String?
+  phone           String?
+  /// Court texte de présentation
+  bio             String?   @db.Text
+  /// Adresse physique
+  address         String?
   /// Chemin fichier dans le bucket Supabase `attachments` (URL signée exposée en API en `avatarUrl`)
-  avatarPath   String?
-  role         Role     @default(STUDENT)
-  isActive     Boolean  @default(true)
-  fcmToken      String?
+  avatarPath      String?
+  role            Role      @default(STUDENT)
+  isActive        Boolean   @default(true)
+  fcmToken        String?
   emailVerified   Boolean   @default(true)
   emailVerifiedAt DateTime?
 
+  /// Pour le système de session unique
+  currentSessionId String?
+
   // Relations
-  schoolId     String?
-  classId      String?
+  schoolId String?
+  classId  String?
   
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   school    School?    @relation(fields: [schoolId], references: [id])
   campuses  Campus[]
-  class     Class?     @relation(fields: [classId],  references: [id])
+  class     Class?     @relation(fields: [classId], references: [id])
   professor Professor?
 
-  reports     Report[]
-  evaluations Evaluation[]
-  decisions   Decision[]
-  notifications Notification[]
-  refreshTokens RefreshToken[]
-  analysisReports AnalysisReport[]
+  reports             Report[]
+  evaluations         Evaluation[]
+  decisions           Decision[]
+  notifications       Notification[]
+  refreshTokens       RefreshToken[]
+  analysisReports     AnalysisReport[]
   passwordResetTokens PasswordResetToken[]
   loginOtpChallenges  LoginOtpChallenge[]
+  aiConversations     AiConversation[]
+  auditLogs           AuditLog[]
 
   @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  schoolId  String
+  userId    String?
+  action    String   // e.g., "CREATE_REPORT", "UPDATE_DECISION"
+  entity    String   // e.g., "Report", "Decision"
+  entityId  String?
+  details   Json?    // Données techniques
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  school School  @relation(fields: [schoolId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([schoolId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
 }
 
 model PasswordResetToken {
@@ -303,8 +342,8 @@ model RefreshToken {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
@@ -322,29 +361,29 @@ model Report {
   status      ReportStatus @default(DRAFT)
   isAnonymous Boolean      @default(false)
   category    String?
-  
+
   // Linkage
   schoolId    String?
   authorId    String?
   classId     String?
   professorId String?
   moduleId    String?
-  
+
   // Data
-  attachments    Json?        // Array of URLs/Objects
-  deviceMetadata Json?        // IP, Device info for anonymous tracking
-  aiAnalysis     Json?        // Full structured AI result
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  attachments    Json? // Array of URLs/Objects
+  deviceMetadata Json? // IP, Device info for anonymous tracking
+  aiAnalysis     Json? // Full structured AI result
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  school      School?      @relation(fields: [schoolId],    references: [id])
-  author      User?        @relation(fields: [authorId],    references: [id])
-  class       Class?       @relation(fields: [classId],     references: [id])
-  professor   Professor?   @relation(fields: [professorId], references: [id])
-  module      Module?      @relation(fields: [moduleId],    references: [id])
-  
+  school    School?    @relation(fields: [schoolId], references: [id])
+  author    User?      @relation(fields: [authorId], references: [id])
+  class     Class?     @relation(fields: [classId], references: [id])
+  professor Professor? @relation(fields: [professorId], references: [id])
+  module    Module?    @relation(fields: [moduleId], references: [id])
+
   evaluations Evaluation[]
   aiJobs      AiJob[]
   decision    Decision?
@@ -357,19 +396,19 @@ model Report {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Evaluation {
-  id          String           @id @default(uuid())
+  id          String  @id @default(uuid())
   schoolId    String?
   reportId    String?
   evaluatorId String?
   professorId String
   moduleId    String
   classId     String
-  
+
   status      EvaluationStatus @default(PENDING)
   isAnonymous Boolean          @default(false)
-  
+
   /// Final mark /20 — computed when all five RatingBand fields are set.
-  score       Float?
+  score Float?
 
   comprehensionRating RatingBand?
   explanationRating   RatingBand?
@@ -377,26 +416,26 @@ model Evaluation {
   availabilityRating  RatingBand?
   rhythmRating        RatingBand?
 
-  comment     String?
-  aiScore     Float?           // AI-generated global score
-  
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  comment String?
+  aiScore Float? // AI-generated global score
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  school      School?          @relation(fields: [schoolId],    references: [id])
-  report      Report?          @relation(fields: [reportId],    references: [id])
-  evaluator   User?            @relation(fields: [evaluatorId], references: [id])
-  professor   Professor        @relation(fields: [professorId], references: [id])
-  module      Module           @relation(fields: [moduleId],    references: [id])
-  class       Class            @relation(fields: [classId],     references: [id])
-  
-  decision    Decision?
-  aiJobs      AiJob[]
-  
+  school    School?   @relation(fields: [schoolId], references: [id])
+  report    Report?   @relation(fields: [reportId], references: [id])
+  evaluator User?     @relation(fields: [evaluatorId], references: [id])
+  professor Professor @relation(fields: [professorId], references: [id])
+  module    Module    @relation(fields: [moduleId], references: [id])
+  class     Class     @relation(fields: [classId], references: [id])
+
+  decision Decision?
+  aiJobs   AiJob[]
+
   // Link to campaign if triggered by one
-  campaignId  String?
-  campaign    EvaluationCampaign? @relation(fields: [campaignId], references: [id])
+  campaignId String?
+  campaign   EvaluationCampaign? @relation(fields: [campaignId], references: [id])
 
   @@map("evaluations")
 }
@@ -414,29 +453,29 @@ model Decision {
   rationale    String?
   status       DecisionStatus @default(PROPOSED)
   priority     Priority       @default(MEDIUM)
-  responsible  String?        // Name or Department
+  responsible  String? // Name or Department
   dueDate      DateTime?
-  
-  aiSuggestion String?        // AI-generated decision suggestion
-  
-  schoolId     String?
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  aiSuggestion String? // AI-generated decision suggestion
+
+  schoolId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  school       School?         @relation(fields: [schoolId], references: [id])
-  evaluation   Evaluation?     @relation(fields: [evaluationId], references: [id])
-  report       Report?         @relation(fields: [reportId],     references: [id])
-  campaignId   String?         @unique
-  campaign     EvaluationCampaign? @relation(fields: [campaignId], references: [id])
-  
-  // Liaison avec une analyse globale
-  analysisId   String?
-  analysis     AnalysisReport? @relation(fields: [analysisId], references: [id])
+  school     School?             @relation(fields: [schoolId], references: [id])
+  evaluation Evaluation?         @relation(fields: [evaluationId], references: [id])
+  report     Report?             @relation(fields: [reportId], references: [id])
+  campaignId String?             @unique
+  campaign   EvaluationCampaign? @relation(fields: [campaignId], references: [id])
 
-  decider      User           @relation(fields: [deciderId],    references: [id])
-  aiJobs       AiJob[]
+  // Liaison avec une analyse globale
+  analysisId String?
+  analysis   AnalysisReport? @relation(fields: [analysisId], references: [id])
+
+  decider User    @relation(fields: [deciderId], references: [id])
+  aiJobs  AiJob[]
 
   @@map("decisions")
 }
@@ -446,19 +485,20 @@ model Decision {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model AnalysisReport {
-  id           String   @id @default(uuid())
-  schoolId     String
-  title        String
-  content      Json     // Le contenu du rapport (synthèse, stats, etc.)
-  filters      Json     // Les filtres utilisés (dateRange, campusId, etc.)
+  id            String  @id @default(uuid())
+  schoolId      String
+  title         String
+  content       Json // Le contenu du rapport (synthèse, stats, etc.)
+  filters       Json // Les filtres utilisés (dateRange, campusId, etc.)
+  isRead        Boolean @default(false)
   generatedById String
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
 
-  school       School     @relation(fields: [schoolId], references: [id])
-  generatedBy  User       @relation(fields: [generatedById], references: [id])
-  decisions    Decision[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school      School     @relation(fields: [schoolId], references: [id])
+  generatedBy User       @relation(fields: [generatedById], references: [id])
+  decisions   Decision[]
 
   @@map("analysis_reports")
 }
@@ -469,74 +509,133 @@ model AnalysisReport {
 
 model AiJob {
   id           String      @id @default(uuid())
-  jobType      String      // "report-analysis" | "evaluation-scoring" | "decision-suggestion"
+  jobType      String // "report-analysis" | "evaluation-scoring" | "decision-suggestion" | "chat-query"
   status       AiJobStatus @default(QUEUED)
   payload      Json
   result       Json?
   errorMessage String?
-  
+
   reportId     String?
   evaluationId String?
   decisionId   String?
-  
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  report       Report?     @relation(fields: [reportId],     references: [id])
-  evaluation   Evaluation? @relation(fields: [evaluationId], references: [id])
-  decision     Decision?   @relation(fields: [decisionId],   references: [id])
+  report     Report?     @relation(fields: [reportId], references: [id])
+  evaluation Evaluation? @relation(fields: [evaluationId], references: [id])
+  decision   Decision?   @relation(fields: [decisionId], references: [id])
 
   @@map("ai_jobs")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI CHAT HISTORY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AiConversation {
+  id        String      @id @default(uuid())
+  schoolId  String
+  userId    String
+  title     String
+  messages  AiMessage[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String // "user" | "assistant"
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("ai_messages")
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SYSTEM CONFIGURATION (SaaS Ready)
 // ─────────────────────────────────────────────────────────────────────────────
 
 model SystemSettings {
-  id                     String   @id @default(uuid())
-  schoolId               String   @unique
-  schoolName             String   @default("AFI")
-  
-  // Auth Toggles
-  authReportsRequired    Boolean  @default(false)
-  authEvaluationsRequired Boolean @default(false)
-  authOtpRequired        Boolean  @default(false)
-  
-  // AI Dynamic Config
-  aiEnabled              Boolean  @default(true)
-  aiConfigs              Json     @default("[]") // Array of { id, name, provider, model, apiKey, priority, isFree }
-  aiOverrideConfigId     String?  // If set, force this model (manual override)
-  
-  updatedAt              DateTime @updatedAt
+  id         String @id @default(uuid())
+  schoolId   String @unique
+  schoolName String @default("AFI")
 
-  school                 School   @relation(fields: [schoolId], references: [id])
+  // Auth Toggles
+  authReportsRequired     Boolean @default(false)
+  authEvaluationsRequired Boolean @default(false)
+  authOtpRequired         Boolean @default(false)
+
+  // AI Dynamic Config
+  aiEnabled          Boolean @default(true)
+  aiConfigs          Json    @default("[]") // Array of { id, name, provider, model, apiKey, priority, isFree }
+  aiOverrideConfigId String? // If set, force this model (manual override)
+
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
 
   @@map("system_settings")
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  title       String
-  message     String
-  type        String   // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "EVALUATION_CAMPAIGN_REMINDER" | "SYSTEM"
-  userId      String?  // Null means global (tous les users de l'école)
-  campaignId  String?  // Optional linkage (reminders, campaign created)
-  /// Isolation multi-tenant : schoolId null = broadcast SuperAdmin (toutes écoles)
-  schoolId    String?
-  isRead      Boolean  @default(false)
-  
-  createdAt   DateTime @default(now())
-  
-  user        User?    @relation(fields: [userId], references: [id])
-  school      School?  @relation(fields: [schoolId], references: [id])
-  campaign    EvaluationCampaign? @relation(fields: [campaignId], references: [id])
+  id      String @id @default(uuid())
+  title   String
+  message String
+  type    String // "AI_FAILURE" | "EVALUATION_CAMPAIGN" | "EVALUATION_CAMPAIGN_REMINDER" | "SYSTEM" | "BROADCAST"
 
-  @@map("notifications")
+  // Targeting (Legacy / Personal)
+  userId String? // Adressée directement à un utilisateur spécifique
+
+  // Targeting (Broadcast / Flex) - Nouveaux champs pour ciblage multiple
+  targetRoles     Role[]   @default([])
+  targetCampusIds String[] @default([])
+  targetClassIds  String[] @default([])
+  targetUserIds   String[] @default([]) // Pour ciblage de plusieurs personnes sans créer N notifications
+
+  // Legacy fields (kept for compatibility or simpler single-target)
+  targetRole     Role? // Targeted role (deprecated in favor of targetRoles?)
+  targetCampusId String? // Targeted campus
+  targetClassId  String? // Targeted class
+
+  // Content enrichment
+  url         String? // Optional link
+  attachments Json? // Array of { name, url, type }
+
+  campaignId String? // Optional linkage (reminders, campaign created)
+  /// Isolation multi-tenant : schoolId null = broadcast SuperAdmin (toutes écoles)
+  schoolId   String?
+  isRead     Boolean @default(false)
+
+  /// UTI = Unique Tracking Identifier (device UUID) — pour cibler les invités sans compte
+  /// Stocké par l'app mobile/web lors d'une soumission anonyme.
+  targetDeviceUti String?
+
+  createdAt DateTime @default(now())
+
+  user     User?               @relation(fields: [userId], references: [id])
+  school   School?             @relation(fields: [schoolId], references: [id])
+  campus   Campus?             @relation(fields: [targetCampusId], references: [id])
+  class    Class?              @relation(fields: [targetClassId], references: [id])
+  campaign EvaluationCampaign? @relation(fields: [campaignId], references: [id])
+
+  @@unique([userId, campaignId, type])
   @@index([userId, isRead, createdAt])
   @@index([schoolId, isRead, createdAt])
   @@index([campaignId, createdAt])
-  @@unique([userId, campaignId, type])
+  @@index([targetCampusId])
+  @@index([targetClassId])
+  @@index([targetDeviceUti, createdAt])
+  @@map("notifications")
 }
 
 model EvaluationCampaign {
@@ -550,20 +649,20 @@ model EvaluationCampaign {
   professorId String?
   status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED
   dueDate     DateTime // end date (deadline)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  class       Class?    @relation(fields: [classId], references: [id])
-  campus      Campus?   @relation(fields: [campusId], references: [id])
-  module      Module?   @relation(fields: [moduleId], references: [id])
-  professor   Professor? @relation(fields: [professorId], references: [id])
-  evaluations Evaluation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class         Class?         @relation(fields: [classId], references: [id])
+  campus        Campus?        @relation(fields: [campusId], references: [id])
+  module        Module?        @relation(fields: [moduleId], references: [id])
+  professor     Professor?     @relation(fields: [professorId], references: [id])
+  evaluations   Evaluation[]
   notifications Notification[]
-  decision    Decision?
+  decision      Decision?
 
-  @@map("evaluation_campaigns")
   @@index([scope, status, dueDate])
   @@index([campusId, status, dueDate])
   @@index([classId, status, dueDate])
+  @@map("evaluation_campaigns")
 }

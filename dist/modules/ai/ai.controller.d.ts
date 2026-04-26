@@ -5,6 +5,11 @@ export declare const aiController: {
     getJobResult(req: Request, res: Response, next: NextFunction): Promise<void>;
     retryJob(req: Request, res: Response, next: NextFunction): Promise<void>;
     chat(req: Request, res: Response, next: NextFunction): Promise<void>;
+    chatDirect(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getConversations(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getMessages(req: Request, res: Response, next: NextFunction): Promise<void>;
+    saveConversation(req: Request, res: Response, next: NextFunction): Promise<void>;
+    deleteConversation(req: Request, res: Response, next: NextFunction): Promise<void>;
     generateSynthesis(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=ai.controller.d.ts.map

@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { env } from '../../core/config/env';

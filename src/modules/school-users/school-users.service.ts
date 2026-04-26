@@ -10,6 +10,7 @@ import {
 import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { env } from '../../core/config/env';
 import { uploadsService } from '../uploads/uploads.service';
+import { auditService } from '../audit/audit.service';
 
 const SALT_ROUNDS = 12;
 
@@ -94,6 +95,8 @@ export const schoolUsersService = {
       matricule?: string;
       numero?: string;
       phone?: string;
+      bio?: string;
+      address?: string;
       campusIds?: string[];
       classId?: string;
     }
@@ -137,13 +140,15 @@ export const schoolUsersService = {
         matricule: input.matricule ?? null,
         numero: input.numero?.trim() || null,
         phone: input.phone?.trim() || null,
+        bio: input.bio?.trim() || null,
+        address: input.address?.trim() || null,
         emailVerified: true,
         emailVerifiedAt: new Date(),
       },
       include: { campuses: { select: { id: true } } },
     });
 
-    return enrichSchoolUserWithAvatar({
+    const enriched = await enrichSchoolUserWithAvatar({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -154,9 +159,24 @@ export const schoolUsersService = {
       matricule: user.matricule,
       numero: user.numero,
       phone: user.phone,
+      bio: user.bio,
+      address: user.address,
       avatarPath: user.avatarPath,
       isActive: user.isActive,
     });
+
+    if (admin.schoolId) {
+      await auditService.log({
+        schoolId: admin.schoolId,
+        userId: adminUserId,
+        action: 'CREATE_USER',
+        entity: 'User',
+        entityId: user.id,
+        details: { email: user.email, role: user.role }
+      });
+    }
+
+    return enriched;
   },
 
   async list(adminUserId: string, query: Record<string, unknown>) {
@@ -225,6 +245,8 @@ export const schoolUsersService = {
           matricule: true,
           numero: true,
           phone: true,
+          bio: true,
+          address: true,
           classId: true,
           campuses: { select: { id: true } },
           avatarPath: true,
@@ -267,6 +289,13 @@ export const schoolUsersService = {
       isActive?: boolean;
       classId?: string | null;
       campusIds?: string[];
+      firstName?: string;
+      lastName?: string;
+      matricule?: string | null;
+      numero?: string | null;
+      phone?: string | null;
+      bio?: string | null;
+      address?: string | null;
     }
   ) {
     const admin = await assertCampusAdmin(adminUserId);
@@ -319,12 +348,19 @@ export const schoolUsersService = {
       resolvedCampusIds = [cls.campusId];
     }
 
-    return prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: targetId },
       data: {
         ...(input.role !== undefined && { role: input.role as Role }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
         ...(input.classId !== undefined && { classId: input.classId }),
+        ...(input.firstName !== undefined && { firstName: input.firstName }),
+        ...(input.lastName !== undefined && { lastName: input.lastName }),
+        ...(input.matricule !== undefined && { matricule: input.matricule }),
+        ...(input.numero !== undefined && { numero: input.numero }),
+        ...(input.phone !== undefined && { phone: input.phone }),
+        ...(input.bio !== undefined && { bio: input.bio }),
+        ...(input.address !== undefined && { address: input.address }),
         ...(resolvedCampusIds !== undefined && { campuses: { set: resolvedCampusIds.map(id => ({ id })) } }),
       },
       select: {
@@ -339,6 +375,19 @@ export const schoolUsersService = {
         campuses: { select: { id: true } },
       },
     });
+
+    if (admin.schoolId) {
+      await auditService.log({
+        schoolId: admin.schoolId,
+        userId: adminUserId,
+        action: 'UPDATE_USER',
+        entity: 'User',
+        entityId: targetId,
+        details: { updatedFields: Object.keys(input) }
+      });
+    }
+
+    return updated;
   },
 
   async getById(adminUserId: string, targetId: string) {
@@ -355,6 +404,8 @@ export const schoolUsersService = {
         matricule: true,
         numero: true,
         phone: true,
+        bio: true,
+        address: true,
         classId: true,
         campuses: { select: { id: true } },
         schoolId: true,
@@ -409,6 +460,16 @@ export const schoolUsersService = {
       prisma.loginOtpChallenge.deleteMany({ where: { userId: targetId } }),
     ]);
 
+    if (admin.schoolId) {
+      await auditService.log({
+        schoolId: admin.schoolId,
+        userId: adminUserId,
+        action: 'RESET_PASSWORD',
+        entity: 'User',
+        entityId: targetId,
+      });
+    }
+
     return {
       message:
         'Password reset. The user must sign in with the default password configured for the server (DEFAULT_PASSWORD_RESET).',
@@ -439,6 +500,18 @@ export const schoolUsersService = {
     
     // Deactivate instead of hard delete to preserve history?
     // User requested "delete", let's follow standard pattern
-    return prisma.user.delete({ where: { id: targetId } });
+    const result = await prisma.user.delete({ where: { id: targetId } });
+
+    if (admin.schoolId) {
+      await auditService.log({
+        schoolId: admin.schoolId,
+        userId: adminUserId,
+        action: 'DELETE_USER',
+        entity: 'User',
+        entityId: targetId,
+      });
+    }
+
+    return result;
   }
 };

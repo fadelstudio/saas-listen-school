@@ -36,7 +36,21 @@ router.get(
   '/dashboard',
   authMiddleware,
   requireRole(Role.ADMIN, Role.MANAGER, Role.SUPERADMIN),
-  analyticsController.getDashboard
+  analyticsController.getDashboardStats
+);
+
+router.get(
+  '/time-series',
+  authMiddleware,
+  requireRole(Role.ADMIN, Role.MANAGER, Role.SUPERADMIN),
+  analyticsController.getTimeSeriesStats
+);
+
+router.post(
+  '/generate-periodic-report',
+  authMiddleware,
+  requireRole(Role.ADMIN, Role.MANAGER, Role.SUPERADMIN),
+  analyticsController.generatePeriodicReport
 );
 
 router.post(
@@ -45,6 +59,27 @@ router.post(
   requireRole(Role.ADMIN, Role.MANAGER),
   validate({ body: globalAnalysisSchema }),
   analyticsController.generateGlobalAnalysis
+);
+
+router.get(
+  '/reports',
+  authMiddleware,
+  requireRole(Role.ADMIN, Role.MANAGER),
+  analyticsController.getReports
+);
+
+router.get(
+  '/reports/:id',
+  authMiddleware,
+  requireRole(Role.ADMIN, Role.MANAGER),
+  analyticsController.getReportById
+);
+
+router.post(
+  '/generate-periodic-report',
+  authMiddleware,
+  requireRole(Role.ADMIN, Role.MANAGER),
+  analyticsController.generatePeriodicReport
 );
 
 /**

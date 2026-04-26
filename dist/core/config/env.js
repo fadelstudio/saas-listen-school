@@ -40,6 +40,7 @@ const envSchema = zod_1.z.object({
     // Supabase
     SUPABASE_URL: zod_1.z.string().url("SUPABASE_URL must be a valid URL"),
     SUPABASE_KEY: zod_1.z.string().min(1, "SUPABASE_KEY is required"),
+    SUPABASE_BUCKET: zod_1.z.string().default("attachments"),
     // Redis
     REDIS_URL: zod_1.z.string().min(1).optional(),
     REDIS_HOST: zod_1.z.string().default("localhost"),
@@ -50,6 +51,8 @@ const envSchema = zod_1.z.object({
     // Uploads
     MAX_FILE_SIZE_MB: zod_1.z.coerce.number().int().positive().default(10),
     SIGNED_URL_EXPIRES_IN: zod_1.z.coerce.number().int().positive().default(60 * 60), // seconds
+    // Analytics
+    ANALYTICS_REPORT_INTERVAL_DAYS: zod_1.z.coerce.number().int().positive().default(30),
     // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
     PUBLIC_APP_URL: zod_1.z.string().url().default("http://localhost:3000"),
     MAIL_PROVIDER: zod_1.z.enum(["console", "resend"]).default("console"),

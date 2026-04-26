@@ -8,6 +8,8 @@ export declare const schoolUsersService: {
         matricule?: string;
         numero?: string;
         phone?: string;
+        bio?: string;
+        address?: string;
         campusIds?: string[];
         classId?: string;
     }): Promise<{
@@ -23,6 +25,8 @@ export declare const schoolUsersService: {
         matricule: string | null;
         numero: string | null;
         phone: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         isActive: boolean;
     } & {
@@ -39,6 +43,8 @@ export declare const schoolUsersService: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
@@ -60,6 +66,8 @@ export declare const schoolUsersService: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
@@ -81,6 +89,8 @@ export declare const schoolUsersService: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
@@ -98,6 +108,13 @@ export declare const schoolUsersService: {
         isActive?: boolean;
         classId?: string | null;
         campusIds?: string[];
+        firstName?: string;
+        lastName?: string;
+        matricule?: string | null;
+        numero?: string | null;
+        phone?: string | null;
+        bio?: string | null;
+        address?: string | null;
     }): Promise<{
         email: string;
         id: string;
@@ -122,6 +139,8 @@ export declare const schoolUsersService: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
@@ -150,12 +169,15 @@ export declare const schoolUsersService: {
         lastName: string;
         matricule: string | null;
         numero: string | null;
+        bio: string | null;
+        address: string | null;
         avatarPath: string | null;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;
         emailVerified: boolean;
         emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
         classId: string | null;
     }>;
 };

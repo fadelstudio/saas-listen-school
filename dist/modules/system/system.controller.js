@@ -40,10 +40,30 @@ exports.systemController = {
             next(error);
         }
     },
-    async getAiStatus(_req, res, next) {
+    async getAiStatus(req, res, next) {
         try {
-            const status = AiBalancer_1.aiBalancer.getStatus();
+            const status = await AiBalancer_1.aiBalancer.getStatus(req.schoolId);
             res.sendSuccess('AI status fetched successfully', status);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async getAiModels(_req, res, next) {
+        try {
+            const models = await system_service_1.systemService.getAvailableModels();
+            res.sendSuccess('Available AI models fetched successfully', models);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async updateLogo(req, res, next) {
+        try {
+            if (!req.file)
+                throw new AppError_1.BadRequestError('Logo file is required');
+            const result = await system_service_1.systemService.updateLogo(req.schoolId, req.file);
+            res.sendSuccess('Logo updated successfully', result);
         }
         catch (error) {
             next(error);

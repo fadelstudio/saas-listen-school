@@ -7,8 +7,9 @@ import { prisma } from "../database/prisma";
 export interface JwtPayload {
   userId: string;
   role: string;
+  sid?: string;
   schoolId?: string | null;
-  campusId?: string | null;
+  campusIds?: string[];
   classId?: string | null;
   iat: number;
   exp: number;
@@ -44,6 +45,18 @@ export async function authMiddleware(
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+
+    // Single Session Enforcement
+    if (payload.sid) {
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { currentSessionId: true }
+      });
+      if (user && user.currentSessionId !== payload.sid) {
+        throw new UnauthorizedError("Session expirée : une autre connexion a été détectée sur cet appareil.");
+      }
+    }
+
     if (payload.role !== "SUPERADMIN" && !payload.schoolId) {
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
@@ -70,7 +83,8 @@ export async function authMiddleware(
 
     req.user = payload;
     next();
-  } catch {
+  } catch (err) {
+    if (err instanceof UnauthorizedError || err instanceof ForbiddenError) throw err;
     throw new UnauthorizedError("Invalid or expired token");
   }
 }
@@ -92,3 +106,6 @@ export function requireRole(...roles: string[]) {
     next();
   };
 }
+
+export const authenticate = authMiddleware;
+export const authorize = requireRole;

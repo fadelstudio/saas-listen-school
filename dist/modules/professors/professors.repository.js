@@ -34,6 +34,7 @@ exports.professorsRepository = {
                 include: {
                     user: { select: { id: true, avatarPath: true } },
                     _count: { select: { evaluations: true } },
+                    modules: { select: { moduleId: true } },
                 },
             }),
             prisma_1.prisma.professor.count({ where }),

@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { Request, Response, NextFunction } from 'express';
 import { uploadsService } from './uploads.service';
 import { BadRequestError } from '../../core/errors/AppError';

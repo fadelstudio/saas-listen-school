@@ -40,6 +40,7 @@ export declare const reportsService: {
         } | null;
     } & {
         type: import("@prisma/client").$Enums.ReportType;
+        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -54,7 +55,6 @@ export declare const reportsService: {
         authorId: string | null;
         professorId: string | null;
         moduleId: string | null;
-        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
@@ -110,6 +110,7 @@ export declare const reportsService: {
         }[];
     } & {
         type: import("@prisma/client").$Enums.ReportType;
+        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -124,7 +125,6 @@ export declare const reportsService: {
         authorId: string | null;
         professorId: string | null;
         moduleId: string | null;
-        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
@@ -167,6 +167,7 @@ export declare const reportsService: {
         } | null;
     } & {
         type: import("@prisma/client").$Enums.ReportType;
+        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -181,12 +182,12 @@ export declare const reportsService: {
         authorId: string | null;
         professorId: string | null;
         moduleId: string | null;
-        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>>;
     update(id: string, input: UpdateReportInput, userId: string, userRole: string, schoolId?: string | null): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
+        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -201,12 +202,12 @@ export declare const reportsService: {
         authorId: string | null;
         professorId: string | null;
         moduleId: string | null;
-        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     } | null>;
-    updateStatus(id: string, status: ReportStatus, userRole: string, schoolId?: string | null): Promise<{
+    updateStatus(id: string, status: ReportStatus, userRole: string, schoolId?: string | null, userId?: string): Promise<{
         type: import("@prisma/client").$Enums.ReportType;
+        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -221,11 +222,10 @@ export declare const reportsService: {
         authorId: string | null;
         professorId: string | null;
         moduleId: string | null;
-        attachments: import("@prisma/client/runtime/client").JsonValue | null;
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     } | null>;
-    delete(id: string, userRole: string, schoolId?: string | null): Promise<import("@prisma/client").Prisma.BatchPayload>;
+    delete(id: string, userRole: string, schoolId?: string | null, userId?: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     triggerAiAnalysis(id: string, userRole: string, schoolId?: string | null): Promise<{
         queued: boolean;
         reportId: string;

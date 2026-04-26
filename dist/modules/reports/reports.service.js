@@ -7,6 +7,8 @@ const AppError_1 = require("../../core/errors/AppError");
 const pagination_1 = require("../../utils/pagination");
 const queue_1 = require("../../core/config/queue");
 const prisma_1 = require("../../core/database/prisma");
+const audit_service_1 = require("../audit/audit.service");
+const notifications_service_1 = require("../notifications/notifications.service");
 exports.reportsService = {
     async create(input, userId, schoolId) {
         let finalInput = { ...input };
@@ -42,6 +44,25 @@ exports.reportsService = {
             }
         }
         const report = await reports_repository_1.reportsRepository.create(finalInput, userId, resolvedSchoolId);
+        if (resolvedSchoolId) {
+            await audit_service_1.auditService.log({
+                schoolId: resolvedSchoolId,
+                userId,
+                action: 'CREATE_REPORT',
+                entity: 'Report',
+                entityId: report.id,
+                details: { title: report.title, type: report.type }
+            });
+        }
+        // 4. Notify School Managers/Admins
+        if (resolvedSchoolId) {
+            notifications_service_1.notificationService.sendBroadcast(resolvedSchoolId, {
+                title: 'Nouveau signalement',
+                message: `Un nouveau signalement "${report.title}" a été reçu.`,
+                targetRoles: ['ADMIN', 'MANAGER'],
+                url: `/dashboard/reports/${report.id}`,
+            }).catch(err => console.warn('[Notification] Failed to notify managers', err));
+        }
         // 3. Automatic AI Trigger
         try {
             await queue_1.jobQueue.add('ai-analysis', {
@@ -99,25 +120,71 @@ exports.reportsService = {
         if (report.authorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('You do not have permission to update this report');
         }
-        return reports_repository_1.reportsRepository.update(id, input, schoolId ?? null);
+        const updated = await reports_repository_1.reportsRepository.update(id, input, schoolId ?? null);
+        if (schoolId) {
+            await audit_service_1.auditService.log({
+                schoolId,
+                userId,
+                action: 'UPDATE_REPORT',
+                entity: 'Report',
+                entityId: id,
+                details: { updatedFields: Object.keys(input) }
+            });
+        }
+        return updated;
     },
-    async updateStatus(id, status, userRole, schoolId) {
+    async updateStatus(id, status, userRole, schoolId, userId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can change report status');
         }
         const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Report');
-        return reports_repository_1.reportsRepository.updateStatus(id, status, schoolId ?? null);
+        const result = await reports_repository_1.reportsRepository.updateStatus(id, status, schoolId ?? null);
+        if (schoolId) {
+            await audit_service_1.auditService.log({
+                schoolId,
+                userId,
+                action: 'UPDATE_REPORT_STATUS',
+                entity: 'Report',
+                entityId: id,
+                details: { newStatus: status }
+            });
+        }
+        // Notify author of status change
+        const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
+        if (report) {
+            const uti = report.deviceMetadata?.uti;
+            notifications_service_1.notificationService.create({
+                title: '📢 Mise à jour de votre signalement',
+                message: `Le statut de votre signalement "${report.title}" vient de passer à : ${status}.`,
+                type: 'REPORT_STATUS_CHANGED',
+                userId: report.authorId,
+                targetDeviceUti: uti,
+                schoolId: report.schoolId,
+                url: `/dashboard/reports/${report.id}`,
+            }).catch(err => console.warn('[Notification] Failed to notify author', err));
+        }
+        return result;
     },
-    async delete(id, userRole, schoolId) {
+    async delete(id, userRole, schoolId, userId) {
         if (userRole !== 'ADMIN') {
             throw new AppError_1.ForbiddenError('Only ADMIN can delete reports');
         }
         const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)
             throw new AppError_1.NotFoundError('Report');
-        return reports_repository_1.reportsRepository.delete(id, schoolId ?? null);
+        const result = await reports_repository_1.reportsRepository.delete(id, schoolId ?? null);
+        if (schoolId) {
+            await audit_service_1.auditService.log({
+                schoolId,
+                userId,
+                action: 'DELETE_REPORT',
+                entity: 'Report',
+                entityId: id,
+            });
+        }
+        return result;
     },
     async triggerAiAnalysis(id, userRole, schoolId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {

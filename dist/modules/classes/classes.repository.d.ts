@@ -80,6 +80,7 @@ export declare const classesRepository: {
         }[];
         reports: {
             type: import("@prisma/client").$Enums.ReportType;
+            attachments: Prisma.JsonValue | null;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -94,7 +95,6 @@ export declare const classesRepository: {
             authorId: string | null;
             professorId: string | null;
             moduleId: string | null;
-            attachments: Prisma.JsonValue | null;
             deviceMetadata: Prisma.JsonValue | null;
             aiAnalysis: Prisma.JsonValue | null;
         }[];

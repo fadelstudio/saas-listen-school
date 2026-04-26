@@ -25,6 +25,7 @@ const saas_route_1 = __importDefault(require("../../modules/saas/saas.route"));
 const school_users_route_1 = require("../../modules/school-users/school-users.route");
 const analytics_route_1 = require("../../modules/analytics/analytics.route");
 const bulk_import_route_1 = require("../../modules/bulk-import/bulk-import.route");
+const audit_route_1 = __importDefault(require("../../modules/audit/audit.route"));
 const resolveSchool_middleware_1 = require("../middleware/resolveSchool.middleware");
 const router = (0, express_1.Router)();
 // Basic API v1 info (non-sensitive)
@@ -75,5 +76,6 @@ router.use("/notifications", notifications_route_1.notificationsRouter);
 router.use("/school-users", school_users_route_1.schoolUsersRouter);
 router.use("/analytics", analytics_route_1.analyticsRouter);
 router.use("/bulk-import", bulk_import_route_1.bulkImportRouter);
+router.use("/audit", audit_route_1.default);
 exports.default = router;
 //# sourceMappingURL=v1.js.map

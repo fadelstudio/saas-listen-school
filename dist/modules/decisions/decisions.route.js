@@ -52,7 +52,7 @@ exports.decisionsRouter.post('/', auth_middleware_1.authMiddleware, (0, validate
  *     parameters:
  *       - in: query
  *         name: status
- *         schema: { type: string, enum: [PENDING, APPROVED, REJECTED, DEFERRED, DONE] }
+ *         schema: { type: string, enum: [PROPOSED, APPROVED, REJECTED, IN_PROGRESS, DONE] }
  *       - in: query
  *         name: priority
  *         schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
@@ -153,7 +153,7 @@ exports.decisionsRouter.patch('/:id', auth_middleware_1.authMiddleware, (0, vali
  *             type: object
  *             required: [status]
  *             properties:
- *               status: { type: string, enum: [PENDING, APPROVED, REJECTED, DEFERRED, DONE] }
+ *               status: { type: string, enum: [PROPOSED, APPROVED, REJECTED, IN_PROGRESS, DONE] }
  *     responses:
  *       200:
  *         description: Statut mis à jour
