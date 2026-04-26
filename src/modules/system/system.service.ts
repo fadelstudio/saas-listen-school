@@ -12,41 +12,30 @@ const CACHE_TTL = 30000; // 30 seconds
 export const systemService = {
   /**
    * Toggles publics pour l’école résolue par le middleware (req.schoolId).
-   * Ne renvoie jamais de valeurs « génériques » d’une autre école : le nom vient de `School` si pas de ligne system_settings.
+   * Utilise le cache interne pour garantir une mise à jour instantanée après modif admin.
    */
   async getPublicSettings(schoolId: string) {
+    // On récupère les settings via la fonction qui gère le cache
+    const settings = await this.getSettings(schoolId);
+    
+    // On récupère les infos de l'école (slug, logo)
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
       select: { name: true, slug: true, logoUrl: true },
     });
-    if (!school) {
-      throw new NotFoundError('School');
-    }
+    
+    if (!school) throw new NotFoundError('School');
 
-    const settings = await prisma.systemSettings.findUnique({
-      where: { schoolId },
-      select: {
-        schoolName: true,
-        aiEnabled: true,
-        authOtpRequired: true,
-        authReportsRequired: true,
-        authEvaluationsRequired: true,
-        updatedAt: true,
-      },
-    });
-
-    const base = {
+    return {
       schoolSlug: school.slug,
-      schoolName: settings?.schoolName ?? school.name,
+      schoolName: settings.schoolName || school.name,
       logoUrl: school.logoUrl,
-      aiEnabled: settings?.aiEnabled ?? true,
-      authOtpRequired: settings?.authOtpRequired ?? false,
-      authReportsRequired: settings?.authReportsRequired ?? false,
-      authEvaluationsRequired: settings?.authEvaluationsRequired ?? false,
-      updatedAt: settings?.updatedAt ?? new Date(0),
+      aiEnabled: settings.aiEnabled,
+      authOtpRequired: settings.authOtpRequired,
+      authReportsRequired: settings.authReportsRequired,
+      authEvaluationsRequired: settings.authEvaluationsRequired,
+      updatedAt: settings.updatedAt,
     };
-
-    return base;
   },
   async getSettings(schoolId: string, forceRefresh = false): Promise<SystemSettingsResponse> {
     const cached = settingsCache.get(schoolId);

@@ -630,8 +630,8 @@ export const chatService = {
     const id = require('crypto').randomUUID();
     const title = firstMessage.substring(0, 60) + (firstMessage.length > 60 ? '…' : '');
     await prisma.$executeRawUnsafe(`
-      INSERT INTO ai_conversations (id,"schoolId","userId",title)
-      VALUES ('${id}','${schoolId}','${userId}','${title.replace(/'/g, "''")}')
+      INSERT INTO ai_conversations (id,"schoolId","userId",title,"createdAt","updatedAt")
+      VALUES ('${id}','${schoolId}','${userId}','${title.replace(/'/g, "''")}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `);
     return { id, title };
   },
@@ -651,8 +651,8 @@ export const chatService = {
   async addMessage(conversationId: string, role: 'user' | 'assistant', content: string) {
     const id = require('crypto').randomUUID();
     await prisma.$executeRawUnsafe(`
-      INSERT INTO ai_messages (id,"conversationId",role,content)
-      VALUES ('${id}','${conversationId}','${role}','${content.replace(/'/g, "''")}')
+      INSERT INTO ai_messages (id,"conversationId",role,content,"createdAt")
+      VALUES ('${id}','${conversationId}','${role}','${content.replace(/'/g, "''")}', CURRENT_TIMESTAMP)
     `);
     await prisma.$executeRawUnsafe(`
       UPDATE ai_conversations SET "updatedAt"=CURRENT_TIMESTAMP WHERE id='${conversationId}'
@@ -674,7 +674,7 @@ export const chatService = {
     try {
       const json = JSON.stringify(ctx).replace(/'/g, "''");
       await prisma.$executeRawUnsafe(`
-        UPDATE ai_conversations SET "sqlContext"='${json}' WHERE id='${convId}'
+        UPDATE ai_conversations SET "sqlContext"='${json}', "updatedAt"=CURRENT_TIMESTAMP WHERE id='${convId}'
       `);
     } catch { /* ignore */ }
   },

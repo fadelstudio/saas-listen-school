@@ -80,7 +80,7 @@ enum RatingBand {
 }
 
 model School {
-  id        String   @id @default(uuid())
+  id        String   @id // Manuel: 'afi', 'isi', etc.
   name      String   @unique // e.g. "AFI L'UE"
   slug      String   @unique // e.g. "afi"
   domain    String?  @unique // e.g. "afi-ue.sn"

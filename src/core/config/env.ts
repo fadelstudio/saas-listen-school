@@ -55,9 +55,16 @@ const envSchema = z.object({
 
   // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  MAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
+  MAIL_PROVIDER: z.enum(["console", "resend", "smtp"]).default("console"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
+
+  // SMTP (for dev testing with Mailtrap/Ethereal)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_SECURE: z.coerce.boolean().default(false),
 
   // OTP email branding (registration)
   OTP_SITE_NAME: z.string().min(1).optional(),
@@ -83,6 +90,10 @@ const parsed = envSchema
         message: "RESEND_API_KEY is required when MAIL_PROVIDER=resend",
         path: ["RESEND_API_KEY"],
       });
+    }
+    if (data.MAIL_PROVIDER === "smtp") {
+      if (!data.SMTP_HOST) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
+      if (!data.SMTP_PORT) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
     }
   })
   .safeParse(process.env);

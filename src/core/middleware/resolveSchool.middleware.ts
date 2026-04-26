@@ -106,7 +106,7 @@ export async function resolveSchoolMiddleware(
   }
 
   const school = await prisma.school.findUnique({
-    where: { slug: resolvedSlug },
+    where: { slug: resolvedSlug }, // On cherche à nouveau par le slug (ex: 'afi')
     select: { id: true, slug: true, name: true, domain: true },
   });
 

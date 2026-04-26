@@ -1,12 +1,7 @@
-import { PrismaClient, Role, ReportType, ReportStatus, Priority, EvaluationStatus, RatingBand, DecisionStatus, AiJobStatus } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
+import { Role, ReportType, ReportStatus, Priority, EvaluationStatus, RatingBand, DecisionStatus, AiJobStatus } from '@prisma/client';
+import { prisma } from '../src/core/database/prisma';
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
-
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
 
 const DEFAULT_SCHOOL_ID = 'afi-default-school';
 
@@ -42,17 +37,38 @@ async function main() {
 
   const passwordHash = await bcrypt.hash('Changeme@123', 12);
   const studentPassword = await bcrypt.hash('Student@123', 12);
+  const adminPassword = await bcrypt.hash('fadeldev', 12);
 
-  // 1. School
+  // 1. School & Settings
   await prisma.school.upsert({
     where: { id: DEFAULT_SCHOOL_ID },
     update: {},
     create: { id: DEFAULT_SCHOOL_ID, name: "AFI L'UE", slug: 'afi', domain: 'afi-ue.sn' },
   });
 
+  await prisma.systemSettings.upsert({
+    where: { schoolId: DEFAULT_SCHOOL_ID },
+    update: {},
+    create: {
+      schoolId: DEFAULT_SCHOOL_ID,
+      schoolName: "AFI L'UE",
+      authOtpRequired: false,
+      aiEnabled: true,
+      aiConfigs: [],
+    }
+  });
+
   // 2. Structure
-  const campusDakar = await prisma.campus.create({ data: { name: 'Campus Dakar Point E', location: 'Dakar', schoolId: DEFAULT_SCHOOL_ID } });
-  const campusAbidjan = await prisma.campus.create({ data: { name: 'Campus Abidjan Plateau', location: 'Abidjan', schoolId: DEFAULT_SCHOOL_ID } });
+  const campusDakar = await prisma.campus.upsert({
+    where: { name: 'Campus Dakar Point E' },
+    update: {},
+    create: { name: 'Campus Dakar Point E', location: 'Dakar', schoolId: DEFAULT_SCHOOL_ID }
+  });
+  const campusAbidjan = await prisma.campus.upsert({
+    where: { name: 'Campus Abidjan Plateau' },
+    update: {},
+    create: { name: 'Campus Abidjan Plateau', location: 'Abidjan', schoolId: DEFAULT_SCHOOL_ID }
+  });
 
   const l3 = await prisma.academicLevel.create({ data: { name: 'Licence 3', order: 3, schoolId: DEFAULT_SCHOOL_ID } });
   const m1 = await prisma.academicLevel.create({ data: { name: 'Master 1', order: 4, schoolId: DEFAULT_SCHOOL_ID } });
@@ -73,7 +89,21 @@ async function main() {
     modules.push(await prisma.module.create({ data: { ...m, schoolId: DEFAULT_SCHOOL_ID } }));
   }
 
-  // 3. Professors (12 Professors)
+  // 3. Admins
+  const adminAfi = await prisma.user.create({
+    data: {
+      email: 'admin@afi.com', firstName: 'Admin', lastName: 'AFI', role: Role.ADMIN,
+      schoolId: DEFAULT_SCHOOL_ID, passwordHash: adminPassword, emailVerified: true,
+    },
+  });
+  const adminIssa = await prisma.user.create({
+    data: {
+      email: 'issa@afi.com', firstName: 'Issa', lastName: 'Diop', role: Role.ADMIN,
+      schoolId: DEFAULT_SCHOOL_ID, passwordHash: adminPassword, emailVerified: true,
+    },
+  });
+
+  // 4. Professors (12 Professors)
   const profNames = [
     { first: 'Abdoulaye', last: 'Kane', email: 'a.kane@afi.com' },
     { first: 'Seynabou', last: 'Diop', email: 's.diop@afi.com' },
@@ -180,7 +210,7 @@ async function main() {
     const statusValues = [ReportStatus.SUBMITTED, ReportStatus.REVIEWED, ReportStatus.APPROVED, ReportStatus.REJECTED];
     const status = statusValues[Math.floor(Math.random() * statusValues.length)];
 
-    await prisma.report.create({
+    const report = await prisma.report.create({
       data: {
         title: `${scenario.title} #${i}`,
         content: scenario.content,
@@ -193,9 +223,27 @@ async function main() {
         status: status,
       },
     });
+
+    // Add a decision for processed reports
+    if (status !== ReportStatus.SUBMITTED) {
+      await prisma.decision.create({
+        data: {
+          reportId: report.id,
+          deciderId: i % 2 === 0 ? adminAfi.id : adminIssa.id,
+          title: `Décision sur le rapport #${i}`,
+          rationale: `Action prise pour le rapport #${i}. Statut mis à jour à ${status}.`,
+          status: status === ReportStatus.APPROVED ? DecisionStatus.VALIDATED : DecisionStatus.REJECTED,
+          schoolId: DEFAULT_SCHOOL_ID,
+        }
+      });
+    }
   }
 
-  console.log('✨ Seed finished: 45+ rich reports with different contexts injected!');
+  console.log('✨ Seed finished: 45+ rich reports with decisions and admins injected!');
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main()
+  .catch(console.error)
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
