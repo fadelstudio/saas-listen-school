@@ -168,4 +168,44 @@ export const evaluationCampaignsRepository = {
       decision,
     };
   },
+  async findAllForStudent(
+    schoolId: string,
+    filters: { classId?: string; campusId?: string; status?: string },
+    pagination: { skip: number; limit: number },
+  ) {
+    const tenant = campaignInSchool(schoolId);
+    
+    const where: Prisma.EvaluationCampaignWhereInput = {
+      AND: [
+        tenant,
+        {
+          OR: [
+            { scope: 'SCHOOL' },
+            ...(filters.campusId ? [{ AND: [{ scope: 'CAMPUS' }, { campusId: filters.campusId }] }] : []),
+            ...(filters.classId ? [{ AND: [{ scope: 'CLASS' }, { classId: filters.classId }] }] : []),
+          ],
+        },
+        ...(filters.status ? [{ status: filters.status }] : []),
+      ],
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.evaluationCampaign.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          class: true,
+          module: true,
+          professor: true,
+          _count: { select: { evaluations: true } },
+        },
+      }),
+      prisma.evaluationCampaign.count({ where }),
+    ]);
+
+    return { items, total };
+  },
 };
+

@@ -105,18 +105,36 @@ export const evaluationCampaignsService = {
     return campaign;
   },
 
-  async getAll(schoolId: string, query: Record<string, unknown>) {
+  async getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusId?: string) {
     const pagination = parsePagination(query);
+    
+    // Default filters
     const filters: EvaluationCampaignFilters = {
-      classId:  typeof query.classId  === 'string' ? query.classId  : undefined,
-      campusId: typeof query.campusId === 'string' ? query.campusId : undefined,
       scope:    typeof query.scope    === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
       status:   typeof query.status   === 'string' ? query.status   : undefined,
     };
 
+    // If student, we force a complex OR filter to include all relevant scopes
+    if (userRole === 'STUDENT') {
+      // For students, we don't just filter by classId in an AND way, 
+      // we want campaigns that are (SCHOOL) OR (CAMPUS + userCampusId) OR (CLASS + userClassId)
+      const { items, total } = await evaluationCampaignsRepository.findAllForStudent(schoolId, {
+        classId: userClassId,
+        campusId: userCampusId,
+        status: filters.status || 'ACTIVE',
+      }, pagination);
+      return buildPaginated(items, total, pagination.page, pagination.limit);
+    }
+
+    // For non-students (ADMIN/MANAGER), use standard filtering
+    filters.classId = typeof query.classId === 'string' ? query.classId : undefined;
+    filters.campusId = typeof query.campusId === 'string' ? query.campusId : undefined;
+
     const { items, total } = await evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
+
+
 
   async getById(id: string, schoolId: string) {
     const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
