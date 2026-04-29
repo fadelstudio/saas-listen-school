@@ -29,7 +29,30 @@ export const professorsRepository = {
       });
     }
 
+    if (filters.classId) {
+      andParts.push({
+        modules: {
+          some: {
+            classId: filters.classId,
+          },
+        },
+      });
+    }
+
+    if (filters.campusId) {
+      andParts.push({
+        school: {
+          campuses: {
+            some: {
+              id: filters.campusId,
+            },
+          },
+        },
+      });
+    }
+
     const where: Prisma.ProfessorWhereInput = { AND: andParts };
+
 
     const [items, total] = await Promise.all([
       prisma.professor.findMany({

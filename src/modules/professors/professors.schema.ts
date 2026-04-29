@@ -31,4 +31,7 @@ export const professorParamsSchema = z.object({
 
 export const professorQuerySchema = z.object({
   search: z.string().optional(),
+  classId: z.string().uuid().optional(),
+  campusId: z.string().uuid().optional(),
 });
+

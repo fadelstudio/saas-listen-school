@@ -137,7 +137,14 @@ export const systemService = {
       }),
       prisma.professor.findMany({
         where: { schoolId },
-        select: { id: true, firstName: true, lastName: true },
+        select: { 
+          id: true, 
+          firstName: true, 
+          lastName: true,
+          modules: {
+            select: { classId: true }
+          }
+        },
       }),
       // Enums ReportType et Priority
       Promise.resolve(['PROBLEM_MATERIAL', 'PROBLEM_ADMIN', 'PROBLEM_PEDAGOGICAL', 'INCIDENT', 'SUGGESTION', 'OTHER']),
@@ -163,7 +170,11 @@ export const systemService = {
     return {
       campuses,
       classes,
-      professors: professors.map(p => ({ id: p.id, name: `${p.firstName} ${p.lastName}` })),
+      professors: professors.map(p => ({ 
+        id: p.id, 
+        name: `${p.firstName} ${p.lastName}`,
+        targetClassIds: Array.from(new Set(p.modules.map(m => m.classId)))
+      })),
       modules: modules.map(m => ({
         id: m.id,
         name: m.name,
@@ -172,5 +183,6 @@ export const systemService = {
       types,
       priorities,
     };
+
   }
 };

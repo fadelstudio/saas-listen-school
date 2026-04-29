@@ -46,7 +46,10 @@ export const professorsService = {
     const pagination = parsePagination(query);
     const filters: ProfessorFilters = {
       search: query.search as string | undefined,
+      classId: query.classId as string | undefined,
+      campusId: query.campusId as string | undefined,
     };
+
 
     const { items, total } = await professorsRepository.findAll(schoolId, filters, pagination);
     const enriched = await Promise.all(items.map((p) => enrichProfessorWithAvatar(p as ProfessorRow)));
