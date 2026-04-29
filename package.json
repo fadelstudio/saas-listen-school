@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev:locale": "npx concurrently -n \"api,worker\" -c \"cyan,magenta\" \"npm run dev:api\" \"npm run dev:worker\"",
     "postinstall": "prisma generate",
     "dev": "nodemon -w src -e ts --exec \"ts-node src/server.ts\"",
     "dev:api": "nodemon -w src -e ts --exec \"ts-node src/server.ts\"",

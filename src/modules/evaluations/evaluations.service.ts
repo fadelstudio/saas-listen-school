@@ -47,7 +47,21 @@ export const evaluationsService = {
       throw new BadRequestError('This professor is not assigned to this module for this class');
     }
 
+    // 3. Prevent duplicate evaluation for the same campaign
+    if (finalInput.campaignId && userId) {
+      const existing = await prisma.evaluation.findFirst({
+        where: {
+          campaignId: finalInput.campaignId,
+          evaluatorId: userId,
+        },
+      });
+      if (existing) {
+        throw new BadRequestError('Vous avez déjà participé à cette évaluation.');
+      }
+    }
+
     const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
+
 
     return evaluation;
   },

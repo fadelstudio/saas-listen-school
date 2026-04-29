@@ -21,8 +21,10 @@ export const evaluationCampaignsController = {
         req.query, 
         req.user?.role, 
         (req.user as any)?.classId,
-        req.user?.campusIds && req.user.campusIds.length > 0 ? req.user.campusIds[0] : undefined
+        req.user?.campusIds && req.user.campusIds.length > 0 ? req.user.campusIds[0] : undefined,
+        req.user?.userId
       );
+
 
       res.sendSuccess('Campaigns retrieved', result.items, 200, {
 

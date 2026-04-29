@@ -172,6 +172,7 @@ export const evaluationCampaignsRepository = {
     schoolId: string,
     filters: { classId?: string; campusId?: string; status?: string },
     pagination: { skip: number; limit: number },
+    userId?: string,
   ) {
     const tenant = campaignInSchool(schoolId);
     
@@ -200,12 +201,22 @@ export const evaluationCampaignsRepository = {
           module: true,
           professor: true,
           _count: { select: { evaluations: true } },
+          ...(userId ? { evaluations: { where: { evaluatorId: userId }, select: { id: true } } } : {}),
         },
       }),
       prisma.evaluationCampaign.count({ where }),
     ]);
 
-    return { items, total };
+    const itemsWithStatus = items.map(item => {
+      const { evaluations, ...rest } = item as any;
+      return {
+        ...rest,
+        hasEvaluated: evaluations ? evaluations.length > 0 : false,
+      };
+    });
+
+    return { items: itemsWithStatus, total };
   },
+
 };
 

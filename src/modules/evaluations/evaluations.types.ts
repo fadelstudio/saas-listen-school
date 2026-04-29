@@ -14,7 +14,9 @@ export interface CreateEvaluationInput {
   comment?: string;
   isAnonymous?: boolean;
   uti?: string; // Short for targetDeviceUti
+  campaignId?: string;
   deviceMetadata?: Record<string, any>;
+
 }
 
 export interface UpdateEvaluationInput {

@@ -8,6 +8,8 @@ import type { CreateReportInput, UpdateReportInput, ReportFilters } from './repo
 import { prisma } from '../../core/database/prisma';
 import { auditService } from '../audit/audit.service';
 import { notificationService } from '../notifications/notifications.service';
+import { logger } from '../../utils/logger';
+
 
 export const reportsService = {
   async create(input: CreateReportInput, userId?: string, schoolId?: string | null) {

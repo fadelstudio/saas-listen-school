@@ -1,10 +1,26 @@
 import { NotificationType, SendBroadcastInput, NotificationFilters } from './notifications.types';
-import { Role } from '@prisma/client';
+import { Role, PrismaClient } from '@prisma/client';
 import { notificationsRepository } from './notifications.repository';
 import { NotFoundError } from '../../core/errors/AppError';
 import { fcmService } from '../../core/push/fcm.service';
 import { prisma } from '../../core/database/prisma';
 import { logger } from '../../utils/logger';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extension temporaire des types Prisma (en attendant 'npx prisma generate')
+// ─────────────────────────────────────────────────────────────────────────────
+type ExtendedPrismaClient = PrismaClient & {
+  guestDevice: {
+    findUnique(args: any): Promise<any>;
+    upsert(args: any): Promise<any>;
+    delete(args: any): Promise<any>;
+  };
+};
+const db = prisma as unknown as ExtendedPrismaClient;
+
+
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Anti-spam: garde en mémoire les envois récents par clé (UTI ou userId)
@@ -156,10 +172,11 @@ export const notificationService = {
 
     // Cas 1.5 : Notification à un invité (targetDeviceUti)
     if (data.targetDeviceUti) {
-      const guest = await (prisma as any).guestDevice.findUnique({
+      const guest = await db.guestDevice.findUnique({
         where: { uti: data.targetDeviceUti },
         select: { fcmToken: true },
       });
+
 
       if (guest?.fcmToken) {
         await fcmService.sendToDevice({
@@ -302,13 +319,14 @@ export const notificationService = {
    * Enregistre le token FCM d'un invité (UTI).
    */
   async registerGuestFcmToken(uti: string, fcmToken: string): Promise<void> {
-    await (prisma as any).guestDevice.upsert({
+    await db.guestDevice.upsert({
       where: { uti },
       update: { fcmToken, updatedAt: new Date() },
       create: { uti, fcmToken },
     });
     logger.info('[FCM] Guest token registered.', { uti });
   },
+
 
 
 
@@ -347,7 +365,8 @@ export const notificationService = {
         });
 
         // 3. Nettoyage de l'entrée GuestDevice
-        await (prisma as any).guestDevice.delete({ where: { uti } }).catch(() => {});
+        await db.guestDevice.delete({ where: { uti } }).catch(() => {});
+
 
         
         logger.info('[Notification] Fusion terminée avec succès', { 

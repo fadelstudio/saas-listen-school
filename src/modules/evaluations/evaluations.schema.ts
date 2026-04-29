@@ -21,6 +21,8 @@ export const createEvaluationSchema = z.object({
   comment: z.string().max(2000).optional(),
   isAnonymous: z.boolean().optional().default(false),
   uti: z.string().optional(),
+  campaignId: idStringSchema.optional(),
+
 });
 
 export const updateEvaluationSchema = z.object({

@@ -111,7 +111,7 @@ export const evaluationCampaignsService = {
     return campaign;
   },
 
-  async getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusId?: string) {
+  async getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusId?: string, userId?: string) {
     const pagination = parsePagination(query);
     
     // Default filters
@@ -128,9 +128,10 @@ export const evaluationCampaignsService = {
         classId: userClassId,
         campusId: userCampusId,
         status: filters.status || 'ACTIVE',
-      }, pagination);
+      }, pagination, userId);
       return buildPaginated(items, total, pagination.page, pagination.limit);
     }
+
 
     // For non-students (ADMIN/MANAGER), use standard filtering
     filters.classId = typeof query.classId === 'string' ? query.classId : undefined;
