@@ -77,18 +77,42 @@ export const notificationsController = {
 
   async updateFcmToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
       const { fcmToken, uti } = req.body;
       if (!fcmToken || typeof fcmToken !== 'string') {
         res.status(400).json({ success: false, message: 'fcmToken requis' });
         return;
       }
-      await notificationService.updateFcmToken(userId, fcmToken, uti);
-      res.sendSuccess('Token FCM mis à jour', null);
+
+      if (req.user?.userId) {
+        // Authenticated user (optionally merging an UTI)
+        await notificationService.updateFcmToken(req.user.userId, fcmToken, uti);
+        res.sendSuccess('Token FCM utilisateur mis à jour', null);
+      } else if (uti) {
+        // Guest mode (UTI only)
+        await notificationService.registerGuestFcmToken(uti, fcmToken);
+        res.sendSuccess('Token FCM invité mis à jour', null);
+      } else {
+        res.status(400).json({ success: false, message: 'Authentification ou UTI requis' });
+      }
     } catch (error) {
       next(error);
     }
   },
+
+  async updateGuestFcmToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fcmToken, uti } = req.body;
+      if (!fcmToken || !uti) {
+        res.status(400).json({ success: false, message: 'fcmToken et uti requis' });
+        return;
+      }
+      await notificationService.registerGuestFcmToken(uti, fcmToken);
+      res.sendSuccess('Token FCM invité mis à jour', null);
+    } catch (error) {
+      next(error);
+    }
+  },
+
 
   async getGuestNotifications(req: Request, res: Response, next: NextFunction) {
     try {

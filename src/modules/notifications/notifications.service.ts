@@ -150,6 +150,24 @@ export const notificationService = {
       return;
     }
 
+    // Cas 1.5 : Notification à un invité (targetDeviceUti)
+    if (data.targetDeviceUti) {
+      const guest = await prisma.guestDevice.findUnique({
+        where: { uti: data.targetDeviceUti },
+        select: { fcmToken: true },
+      });
+      if (guest?.fcmToken) {
+        await fcmService.sendToDevice({
+          token: guest.fcmToken,
+          title: data.title,
+          body: data.message,
+          data: fcmData,
+        });
+      }
+      return;
+    }
+
+
     // Cas 2 : Notification à une liste d'utilisateurs (targetUserIds)
     if (data.targetUserIds?.length) {
       const users = await prisma.user.findMany({
@@ -264,6 +282,19 @@ export const notificationService = {
   },
 
   /**
+   * Enregistre le token FCM d'un invité (UTI).
+   */
+  async registerGuestFcmToken(uti: string, fcmToken: string): Promise<void> {
+    await prisma.guestDevice.upsert({
+      where: { uti },
+      update: { fcmToken, updatedAt: new Date() },
+      create: { uti, fcmToken },
+    });
+    logger.info('[FCM] Guest token registered.', { uti });
+  },
+
+
+  /**
    * Met à jour le token FCM d'un utilisateur (appelé après login/register).
    * Fait aussi la fusion invité → compte si un UTI est fourni.
    */
@@ -287,9 +318,14 @@ export const notificationService = {
         },
         data: { authorId: userId },
       });
+
+      // Nettoyage de l'entrée GuestDevice
+      await prisma.guestDevice.delete({ where: { uti } }).catch(() => {});
+      
       logger.info('[Notification] Fusion invité → compte effectuée.', { userId, uti });
     }
   },
+
 
   async getUnreadCount(userId: string, schoolId: string, userRole: Role, campusIds: string[], classId: string | null) {
     return notificationsRepository.countUnread(userId, schoolId, userRole, campusIds, classId);

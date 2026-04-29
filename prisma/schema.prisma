@@ -648,6 +648,16 @@ model Notification {
   @@map("notifications")
 }
 
+model GuestDevice {
+  uti       String   @id
+  fcmToken  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("guest_devices")
+}
+
+
 model EvaluationCampaign {
   id          String   @id @default(uuid())
   title       String
