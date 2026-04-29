@@ -154,8 +154,19 @@ export const authService = {
     const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
     const otpRequired = await isRegisterOtpRequiredForSchool(schoolId);
 
+    // If student chooses a class but no campus, resolve the campus from the class
+    let campusId = input.campusId;
+    if (input.classId && !campusId) {
+      const classRecord = await prisma.class.findUnique({
+        where: { id: input.classId },
+        select: { campusId: true }
+      });
+      if (classRecord) campusId = classRecord.campusId;
+    }
+
     const user = await authRepository.create({
       ...input,
+      campusId,
       passwordHash,
       schoolId,
       emailVerified: !otpRequired,

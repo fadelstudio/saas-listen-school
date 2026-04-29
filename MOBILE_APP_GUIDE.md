@@ -28,8 +28,9 @@ Pour une application ultra-réactive :
    - *Slide 2 :* Signalements anonymes et sécurité.
    - *Slide 3 :* Évaluations et Assistant MyIA.
 3. **Portail d'Entrée :**
-   - Formulaire Login (Email / Matricule + Password).
-   - Bouton "S'inscrire" (Register).
+   - **Connexion :** Email / Matricule + Password.
+   - **Inscription :** Formulaire incluant Email, Password, Prénom, Nom, et **Choix de la Classe** (via `classId`).
+     - L'app doit d'abord appeler `GET /api/system/public/form-data` pour récupérer la liste des classes.
    - **Bouton "Continuer en mode invité"** (Accès limité aux signalements).
 
 ---
@@ -40,6 +41,25 @@ L'UTI est la clé de voûte du mode anonyme.
 - **Génération :** Créez un UUID unique au premier lancement (ex: `device_8472...`).
 - **Stockage :** Stockez-le dans `AsyncStorage` (ne change jamais meme apres unistall gere sur appl/androit).
 - **Fusion :** Lors du login/register, envoyez l'UTI au backend pour rattacher l'historique anonyme au nouveau compte.
+
+---
+
+## 3.5 📝 Module : Inscription (Register)
+
+### Inscription d'un étudiant
+- **Endpoint :** `POST /api/auth/register`
+- **Body :**
+  ```json
+  {
+    "email": "etudiant@afi.com",
+    "password": "monMdpSecret123",
+    "firstName": "Mamadou",
+    "lastName": "Niane",
+    "classId": "uuid-de-la-classe",
+    "campusId": "uuid-optionnel"
+  }
+  ```
+- **Note :** Si `classId` est fourni, le backend rattachera automatiquement l'étudiant au bon campus.
 
 ---
 

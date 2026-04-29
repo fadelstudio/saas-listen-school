@@ -16,6 +16,8 @@ function parseOptionalBool(value: unknown): boolean | undefined {
   return undefined;
 }
 
+const zEnvBool = z.preprocess((v) => parseOptionalBool(v), z.coerce.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(3000),
@@ -28,7 +30,7 @@ const envSchema = z.object({
   /** Mot de passe appliqué par un admin lors de `POST .../reset-password-default` (compte utilisateur). */
   DEFAULT_PASSWORD_RESET: z.string().min(8).default("ListenReset1!"),
   // Registration OTP (first registration only). Keeps legacy name for compatibility.
-  LOGIN_OTP_ENABLED: z.coerce.boolean().default(false),
+  LOGIN_OTP_ENABLED: zEnvBool.default(false),
   /** Comptes créés avec OTP requis mais jamais vérifiés : purge après ce délai (minutes). */
   PENDING_REGISTRATION_TTL_MINUTES: z.coerce.number().int().positive().default(30),
 
@@ -64,7 +66,7 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_SECURE: zEnvBool.default(false),
 
   // OTP email branding (registration)
   OTP_SITE_NAME: z.string().min(1).optional(),
