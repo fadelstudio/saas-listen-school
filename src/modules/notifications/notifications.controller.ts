@@ -2,15 +2,16 @@ import { Request, Response, NextFunction } from 'express';
 import { notificationService } from './notifications.service';
 import { buildPaginated, parsePagination } from '../../utils/pagination';
 import { Role } from '@prisma/client';
+import { logger } from '../../utils/logger';
 
 export const notificationsController = {
   async getMyNotifications(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId    = req.user!.userId;
-      const schoolId  = req.user!.schoolId!;
-      const userRole  = req.user!.role;
+      const userId = req.user!.userId;
+      const schoolId = req.user!.schoolId!;
+      const userRole = req.user!.role;
       const campusIds = req.user!.campusIds || [];
-      const classId   = req.user!.classId || null;
+      const classId = req.user!.classId || null;
 
       const pagination = parsePagination(req.query as Record<string, unknown>);
       const isRead =
@@ -21,15 +22,15 @@ export const notificationsController = {
         typeof req.query.type === 'string' ? (req.query.type as any) : undefined;
 
       const { items, total } = await notificationService.getAllForUser(
-        userId, 
-        schoolId, 
+        userId,
+        schoolId,
         userRole as Role,
         campusIds,
         classId,
         {
           isRead,
           type,
-          skip:  pagination.skip,
+          skip: pagination.skip,
           limit: pagination.limit,
         }
       );
@@ -94,10 +95,17 @@ export const notificationsController = {
       } else {
         res.status(400).json({ success: false, message: 'Authentification ou UTI requis' });
       }
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('[NotificationController] updateFcmToken failed', {
+        error: error.message,
+        stack: error.stack,
+        body: req.body,
+        userId: req.user?.userId
+      });
       next(error);
     }
   },
+
 
   async updateGuestFcmToken(req: Request, res: Response, next: NextFunction) {
     try {
@@ -136,11 +144,11 @@ export const notificationsController = {
 
   async getUnreadCount(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId    = req.user!.userId;
-      const schoolId  = req.user!.schoolId!;
-      const userRole  = req.user!.role;
+      const userId = req.user!.userId;
+      const schoolId = req.user!.schoolId!;
+      const userRole = req.user!.role;
       const campusIds = req.user!.campusIds || [];
-      const classId   = req.user!.classId || null;
+      const classId = req.user!.classId || null;
 
       const count = await notificationService.getUnreadCount(
         userId,

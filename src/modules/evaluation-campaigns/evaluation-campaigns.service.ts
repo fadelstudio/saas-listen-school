@@ -99,8 +99,14 @@ export const evaluationCampaignsService = {
         targetUserIds: studentIds,
         campaignId: campaign.id,
         schoolId,
+      }).then(() => {
+        logger.info('[CampaignService] Targeted notifications sent', { 
+          campaignId: campaign.id, 
+          studentCount: studentIds.length 
+        });
       }).catch((e) => logger.error('Failed to send campaign notifications (bulk)', { error: e }));
     }
+
 
     return campaign;
   },
@@ -213,7 +219,13 @@ export const evaluationCampaignsService = {
       targetUserIds: missingIds,
       campaignId: campaign.id,
       schoolId,
+    }).then(() => {
+      logger.info('[CampaignService] Reminders sent', { 
+        campaignId: campaign.id, 
+        studentCount: missingIds.length 
+      });
     }).catch((e) => logger.error('Failed to send campaign reminders (bulk)', { error: e }));
+
   },
 
   async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {

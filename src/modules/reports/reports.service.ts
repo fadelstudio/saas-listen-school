@@ -190,7 +190,14 @@ export const reportsService = {
         targetDeviceUti: uti,
         schoolId: report.schoolId,
         url: `/dashboard/reports/${report.id}`,
-      }).catch(err => console.warn('[Notification] Failed to notify author', err));
+      }).then(() => {
+        logger.info('[ReportsService] Notification sent to author', { 
+          reportId: report.id, 
+          authorId: report.authorId,
+          uti 
+        });
+      }).catch(err => logger.warn('[Notification] Failed to notify author', { error: err }));
+
     }
 
     return result;
