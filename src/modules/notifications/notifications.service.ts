@@ -290,4 +290,8 @@ export const notificationService = {
       logger.info('[Notification] Fusion invité → compte effectuée.', { userId, uti });
     }
   },
+
+  async getUnreadCount(userId: string, schoolId: string, userRole: Role, campusIds: string[], classId: string | null) {
+    return notificationsRepository.countUnread(userId, schoolId, userRole, campusIds, classId);
+  },
 };

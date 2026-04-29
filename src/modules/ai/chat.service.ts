@@ -152,6 +152,7 @@ ${contextBlock}
 DÉCISION PREMIÈRE
 ══════════════════════════════════════════════════════════════
 • Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
+• Demande d'ACTION ("envoyer un signalement", "faire un rapport", "évaluer le prof X", "noter ce cours") → retourne EXACTEMENT la chaîne : INTENT_ACTION
 • Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
 • En cas de doute absolu → génère le SQL.
 
@@ -485,8 +486,17 @@ RÈGLES DE RÉPONSE
    - Tendance/courbe → décris la direction (hausse/baisse/stable) + valeurs extrêmes
    - Bilan complet → métriques structurées
    - Question simple → 2-4 phrases directes${chartNote}
-10. Jamais de SQL, d'UUIDs, de noms de tables dans la réponse.
-11. Établissement : "${schoolName}".`;
+10. ACTIONS : Si les DONNÉES indiquent "USER_WANTS_ACTION", tu dois proposer de créer le contenu (signalement ou évaluation) en demandant les détails manquants ou en confirmant ce qui a été dit. 
+    Pour accélérer, retourne un bloc JSON spécial à la fin de ta réponse si tu as assez d'infos pour pré-remplir le formulaire :
+    \`\`\`json_action
+    { "type": "CREATE_REPORT", "payload": { "title": "...", "content": "...", "priority": "MEDIUM" } }
+    \`\`\`
+    OU
+    \`\`\`json_action
+    { "type": "CREATE_EVALUATION", "payload": { "professorId": "...", "moduleId": "...", "ratings": { ... } } }
+    \`\`\`
+11. Jamais de SQL, d'UUIDs, de noms de tables dans la réponse.
+12. Établissement : "${schoolName}".`;
 }
 
 // ─── SQL Executor with Retry ──────────────────────────────────────────────────
@@ -729,6 +739,7 @@ export const chatService = {
         `QUESTION : ${question}`,
         '',
         '→ SALUTATION / HORS-SUJET / BLAGUE ("bonjour", "merci", "qui es-tu", "raconte une blague") : retourne EXACTEMENT "NO_QUERY"',
+        '→ DEMANDE D\'ACTION (créer un signalement, évaluer) : retourne EXACTEMENT "INTENT_ACTION"',
         '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements, profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles. JAMAIS LIMIT 1.',
         '→ Pour combat/classement/comparaison : retourne TOUTES les lignes (LIMIT 20).',
         '→ Pour courbe/tendance : GROUP BY date ORDER BY date ASC sans LIMIT ou LIMIT 90.',
@@ -743,6 +754,8 @@ export const chatService = {
 
       if (sqlContent.includes('NO_QUERY')) {
         isGeneral = true;
+      } else if (sqlContent.includes('INTENT_ACTION')) {
+        dbDataStr = 'USER_WANTS_ACTION';
       } else {
         const sqlMatch = sqlContent.match(/```sql\s*([\s\S]*?)```/i) ||
           sqlContent.match(/(SELECT\s[\s\S]+)/i);

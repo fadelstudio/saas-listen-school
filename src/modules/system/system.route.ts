@@ -41,6 +41,7 @@ export const systemRouter = Router();
  *                 updatedAt: { type: string, format: date-time }
  */
 systemRouter.get('/public', systemController.getPublicSettings);
+systemRouter.get('/public/form-data', systemController.getPublicFormData);
 
 /**
  * @swagger

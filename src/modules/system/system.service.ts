@@ -123,5 +123,54 @@ export const systemService = {
     settingsCache.delete(schoolId);
 
     return { url: finalUrl };
+  },
+
+  /**
+   * Récupère les données nécessaires pour remplir les formulaires (Signalements, Évaluations)
+   * sans authentification. Utile pour le mode invité du mobile.
+   */
+  async getPublicFormData(schoolId: string) {
+    const [campuses, professors, types, priorities, modules] = await Promise.all([
+      prisma.campus.findMany({
+        where: { schoolId },
+        select: { id: true, name: true },
+      }),
+      prisma.professor.findMany({
+        where: { schoolId },
+        select: { id: true, firstName: true, lastName: true },
+      }),
+      // Enums ReportType et Priority
+      Promise.resolve(['PROBLEM_MATERIAL', 'PROBLEM_ADMIN', 'PROBLEM_PEDAGOGICAL', 'INCIDENT', 'SUGGESTION', 'OTHER']),
+      Promise.resolve(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+      prisma.module.findMany({
+        where: { schoolId },
+        select: { 
+          id: true, 
+          name: true, 
+          classModules: {
+            select: { classId: true }
+          }
+        },
+      })
+    ]);
+
+    // On récupère aussi les classes liées aux campus
+    const classes = await prisma.class.findMany({
+      where: { campus: { schoolId } },
+      select: { id: true, name: true, campusId: true },
+    });
+
+    return {
+      campuses,
+      classes,
+      professors: professors.map(p => ({ id: p.id, name: `${p.firstName} ${p.lastName}` })),
+      modules: modules.map(m => ({
+        id: m.id,
+        name: m.name,
+        targetClassIds: m.classModules.map(cm => cm.classId)
+      })),
+      types,
+      priorities,
+    };
   }
 };

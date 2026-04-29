@@ -97,6 +97,49 @@ export const notificationsRepository = {
     return { items, total };
   },
 
+  async countUnread(
+    userId: string,
+    schoolId: string,
+    userRole: Role,
+    campusIds: string[],
+    classId: string | null
+  ) {
+    const where: Prisma.NotificationWhereInput = {
+      schoolId,
+      isRead: false,
+      OR: [
+        { userId },
+        { targetUserIds: { has: userId } },
+        {
+          userId: null,
+          AND: [
+            {
+              OR: [
+                { targetRoles: { isEmpty: true } },
+                { targetRoles: { has: userRole } }
+              ]
+            },
+            {
+              OR: [
+                { targetCampusIds: { isEmpty: true } },
+                { targetCampusIds: { hasSome: campusIds } }
+              ]
+            },
+            {
+              OR: [
+                { targetClassIds: { isEmpty: true } },
+                { targetClassIds: classId ? { has: classId } : undefined }
+              ].filter(Boolean) as Prisma.NotificationWhereInput[]
+            },
+          ],
+        },
+        { userId: null, schoolId: null },
+      ],
+    };
+
+    return prisma.notification.count({ where });
+  },
+
   /**
    * Récupère les notifications pour un invité identifié par son UTI.
    */

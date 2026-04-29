@@ -109,4 +109,26 @@ export const notificationsController = {
       next(error);
     }
   },
+
+  async getUnreadCount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId    = req.user!.userId;
+      const schoolId  = req.user!.schoolId!;
+      const userRole  = req.user!.role;
+      const campusIds = req.user!.campusIds || [];
+      const classId   = req.user!.classId || null;
+
+      const count = await notificationService.getUnreadCount(
+        userId,
+        schoolId,
+        userRole as Role,
+        campusIds,
+        classId
+      );
+
+      res.sendSuccess('Nombre de notifications non lues récupéré', { count });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

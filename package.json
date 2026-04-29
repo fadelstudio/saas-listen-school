@@ -20,7 +20,8 @@
     "render:start:api": "npx prisma migrate deploy && node dist/server.js",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:generate": "npx prisma generate",
-    "prisma:studio": "npx prisma studio"
+    "prisma:studio": "npx prisma studio",
+    "seed": "prisma db seed"
   },
   "keywords": [],
   "author": "",

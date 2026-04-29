@@ -102,4 +102,20 @@ export const reportsController = {
       next(error);
     }
   },
+
+  async getMyReports(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const userId = req.user!.userId;
+      const result = await reportsService.getMyReports(userId, req.query as Record<string, unknown>, req.schoolId);
+      res.sendSuccess('My reports fetched', result.items, 200, {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

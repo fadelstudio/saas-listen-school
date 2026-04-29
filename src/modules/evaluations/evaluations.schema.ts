@@ -20,6 +20,7 @@ export const createEvaluationSchema = z.object({
   ...fiveRatings,
   comment: z.string().max(2000).optional(),
   isAnonymous: z.boolean().optional().default(false),
+  uti: z.string().optional(),
 });
 
 export const updateEvaluationSchema = z.object({

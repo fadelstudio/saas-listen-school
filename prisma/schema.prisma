@@ -426,6 +426,9 @@ model Evaluation {
   comment String?
   aiScore Float? // AI-generated global score
 
+  // Data
+  deviceMetadata Json? // IP, Device info for anonymous tracking
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -70,7 +70,8 @@ export const evaluationsRepository = {
         comment: data.comment,
         isAnonymous: data.isAnonymous ?? false,
         status: EvaluationStatus.PENDING,
-      },
+        deviceMetadata: data.uti ? { uti: data.uti, ...(data.deviceMetadata || {}) } : (data.deviceMetadata as any),
+      } as any,
       include: {
         professor: true,
         module: true,

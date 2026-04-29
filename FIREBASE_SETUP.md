@@ -41,7 +41,7 @@ FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"afi-listen
 # Option B (Dev local uniquement) : chemin vers le fichier
 # FIREBASE_SERVICE_ACCOUNT_PATH=./firebase-service-account.json
 ```
-
+D:\AFI L3\Hack26\FIREBASE_SETUP.md
 > **PowerShell** pour convertir le JSON en une ligne :
 > ```powershell
 > $json = Get-Content "afi-listen-prod-firebase-adminsdk.json" -Raw

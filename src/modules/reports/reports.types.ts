@@ -25,6 +25,7 @@ export interface CreateReportInput {
   classId?: string;
   professorId?: string;
   moduleId?: string;
+  uti?: string; // Short for targetDeviceUti
   deviceMetadata?: Record<string, unknown>;
 }
 

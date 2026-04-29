@@ -13,6 +13,8 @@ export interface CreateEvaluationInput {
   rhythmRating?: RatingBand;
   comment?: string;
   isAnonymous?: boolean;
+  uti?: string; // Short for targetDeviceUti
+  deviceMetadata?: Record<string, any>;
 }
 
 export interface UpdateEvaluationInput {

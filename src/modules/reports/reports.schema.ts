@@ -24,6 +24,7 @@ export const createReportSchema = z.object({
   classId: z.string().uuid('Invalid class ID').optional(),
   professorId: z.string().uuid('Invalid professor ID').optional(),
   moduleId: z.string().uuid('Invalid module ID').optional(),
+  uti: z.string().optional(),
 });
 
 // ─── Update ───────────────────────────────────────────────────────────────────

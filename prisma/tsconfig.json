@@ -8,7 +8,7 @@
     "noEmit": true,
     "moduleResolution": "node16",
     "types": ["node"],
-    "rootDir": "."
+    "rootDir": ".."
   },
   "include": ["seed.ts"]
 }

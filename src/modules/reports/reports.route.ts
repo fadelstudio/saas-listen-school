@@ -128,6 +128,24 @@ reportsRouter.get(
 
 /**
  * @swagger
+ * /api/reports/my-reports:
+ *   get:
+ *     summary: "Mes signalements"
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste de mes signalements
+ */
+reportsRouter.get(
+  '/my-reports',
+  authMiddleware,
+  reportsController.getMyReports
+);
+
+/**
+ * @swagger
  * /api/reports/{id}:
  *   get:
  *     summary: "Voir un signalement par ID"

@@ -28,6 +28,7 @@ export const reportsRepository = {
         module: data.moduleId ? { connect: { id: data.moduleId } } : undefined,
         school: schoolId ? { connect: { id: schoolId } } : undefined,
         status: ReportStatus.SUBMITTED,
+        deviceMetadata: data.uti ? { uti: data.uti, ...(data.deviceMetadata || {}) } : (data.deviceMetadata as any),
       } satisfies Prisma.ReportCreateInput,
       include: {
         author: { select: { id: true, firstName: true, lastName: true, email: true } },

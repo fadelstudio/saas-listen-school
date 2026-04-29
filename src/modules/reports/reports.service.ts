@@ -236,4 +236,14 @@ export const reportsService = {
 
     return { queued: true, reportId: id };
   },
+
+  async getMyReports(userId: string, query: Record<string, unknown>, schoolId?: string | null) {
+    const pagination = parsePagination(query);
+    const filters: ReportFilters = {
+      ...query,
+      authorId: userId,
+    };
+    const { items, total } = await reportsRepository.findAll(filters, pagination, schoolId ?? null);
+    return buildPaginated(items, total, pagination.page, pagination.limit);
+  },
 };

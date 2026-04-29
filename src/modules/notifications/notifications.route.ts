@@ -13,6 +13,57 @@ const router = Router();
  *   description: Système d'alertes et messages internes (Push/In-app)
  */
 
+/**
+ * @swagger
+ * /api/notifications/guest:
+ *   get:
+ *     summary: "Notifications pour un invité (sans compte)"
+ *     description: "Récupère les notifications liées à un UTI. Public mais nécessite un UTI valide."
+ *     tags: [Notifications]
+ *     parameters:
+ *       - in: query
+ *         name: uti
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Notifications de l'invité
+ */
+router.get('/guest', notificationsController.getGuestNotifications);
+
+/**
+ * @swagger
+ * /api/notifications/fcm-token:
+ *   post:
+ *     summary: "Mettre à jour le token FCM (Push mobile/web)"
+ *     description: "Appelé après login ou au démarrage de l'app. Si un UTI (guest ID) est fourni, fusionne l'historique invité avec le compte. Authentification optionnelle (pour fusion)."
+ *     tags: [Notifications]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fcmToken]
+ *             properties:
+ *               fcmToken: { type: string, description: "Token Firebase Cloud Messaging" }
+ *               uti: { type: string, description: "UTI invité à fusionner (optionnel)" }
+ *     responses:
+ *       200:
+ *         description: Token mis à jour
+ */
+// Utilise un middleware optionnel ou gère l'auth dans le controller
+// Pour faire simple, on autorise l'accès sans authMiddleware global
+router.post('/fcm-token', notificationsController.updateFcmToken);
+
+// --- Routes protégées ---
 router.use(authMiddleware);
 
 /**
@@ -42,6 +93,19 @@ router.use(authMiddleware);
  *         description: Flux de notifications
  */
 router.get('/', validate({ query: notificationsSchema.query }), notificationsController.getMyNotifications);
+
+/**
+ * @swagger
+ * /api/notifications/unread-count:
+ *   get:
+ *     summary: "Nombre de notifications non lues"
+ *     tags: [Notifications]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Succès
+ */
+router.get('/unread-count', notificationsController.getUnreadCount);
 
 /**
  * @swagger
@@ -117,53 +181,5 @@ router.delete(
   validate({ params: notificationsSchema.params }), 
   notificationsController.deleteNotification
 );
-
-/**
- * @swagger
- * /api/notifications/fcm-token:
- *   post:
- *     summary: "Mettre à jour le token FCM (Push mobile/web)"
- *     description: "Appelé après login ou au démarrage de l'app. Si un UTI (guest ID) est fourni, fusionne l'historique invité avec le compte."
- *     tags: [Notifications]
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [fcmToken]
- *             properties:
- *               fcmToken: { type: string, description: "Token Firebase Cloud Messaging" }
- *               uti: { type: string, description: "UTI invité à fusionner (optionnel)" }
- *     responses:
- *       200:
- *         description: Token mis à jour
- */
-router.post('/fcm-token', notificationsController.updateFcmToken);
-
-/**
- * @swagger
- * /api/notifications/guest:
- *   get:
- *     summary: "Notifications pour un invité (sans compte)"
- *     description: "Récupère les notifications liées à un UTI. Public mais nécessite un UTI valide."
- *     tags: [Notifications]
- *     parameters:
- *       - in: query
- *         name: uti
- *         required: true
- *         schema: { type: string }
- *       - in: query
- *         name: page
- *         schema: { type: integer }
- *       - in: query
- *         name: limit
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Notifications de l'invité
- */
-router.get('/guest', notificationsController.getGuestNotifications);
 
 export { router as notificationsRouter };
