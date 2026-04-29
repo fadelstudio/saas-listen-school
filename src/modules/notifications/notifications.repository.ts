@@ -56,8 +56,10 @@ export const notificationsRepository = {
         // Broadcast ciblé
         {
           userId: null,
+          targetDeviceUti: null,
           AND: [
             {
+
               OR: [
                 { targetRoles: { isEmpty: true } },
                 { targetRoles: { has: userRole } }
@@ -112,8 +114,10 @@ export const notificationsRepository = {
         { targetUserIds: { has: userId } },
         {
           userId: null,
+          targetDeviceUti: null,
           AND: [
             {
+
               OR: [
                 { targetRoles: { isEmpty: true } },
                 { targetRoles: { has: userRole } }

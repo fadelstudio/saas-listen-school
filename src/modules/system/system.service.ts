@@ -142,10 +142,11 @@ export const systemService = {
           firstName: true, 
           lastName: true,
           modules: {
-            select: { classId: true }
+            select: { classId: true, moduleId: true }
           }
         },
       }),
+
       // Enums ReportType et Priority
       Promise.resolve(['PROBLEM_MATERIAL', 'PROBLEM_ADMIN', 'PROBLEM_PEDAGOGICAL', 'INCIDENT', 'SUGGESTION', 'OTHER']),
       Promise.resolve(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
@@ -173,8 +174,10 @@ export const systemService = {
       professors: professors.map(p => ({ 
         id: p.id, 
         name: `${p.firstName} ${p.lastName}`,
-        targetClassIds: Array.from(new Set(p.modules.map(m => m.classId)))
+        targetClassIds: Array.from(new Set(p.modules.map(m => m.classId))),
+        targetModuleIds: Array.from(new Set(p.modules.map(m => m.moduleId)))
       })),
+
       modules: modules.map(m => ({
         id: m.id,
         name: m.name,
