@@ -150,8 +150,8 @@ export const notificationService = {
     };
 
     // Cas 1 : Notification individuelle (userId connu)
-    let userTokenSent = false;
     if (data.userId) {
+      let userTokenSent = false;
       const user = await prisma.user.findUnique({
         where: { id: data.userId },
         select: { fcmToken: true },
@@ -169,22 +169,33 @@ export const notificationService = {
         logger.warn('[FCM] No token found for user', { userId: data.userId });
       }
       
-      // Si on n'a pas d'UTI de secours, on s'arrête là
-      if (!data.targetDeviceUti) {
-        return;
+      // Fallback à l'invité si l'utilisateur n'a pas de token (ex: s'il n'a pas encore login sur l'app)
+      if (!userTokenSent && data.targetDeviceUti) {
+        const guest = await db.guestDevice.findUnique({
+          where: { uti: data.targetDeviceUti },
+          select: { fcmToken: true },
+        });
+        if (guest?.fcmToken) {
+          await fcmService.sendToDevice({
+            token: guest.fcmToken,
+            title: data.title,
+            body: data.message,
+            data: fcmData,
+          });
+          logger.info('[FCM] Push sent to guest (fallback)', { uti: data.targetDeviceUti, notifId });
+        } else {
+          logger.warn('[FCM] No token found for guest fallback', { uti: data.targetDeviceUti });
+        }
       }
+      return; // On arrête ici pour une notification individuelle
     }
 
-    // Cas 1.5 : Notification à un invité (targetDeviceUti)
-    // On l'envoie si pas de userId, OU si userId n'avait pas de token (fallback)
-    if (data.targetDeviceUti && !userTokenSent) {
+    // Cas 1.5 : Notification à un invité (seulement UTI)
+    if (data.targetDeviceUti) {
       const guest = await db.guestDevice.findUnique({
         where: { uti: data.targetDeviceUti },
         select: { fcmToken: true },
       });
-
-
-
       if (guest?.fcmToken) {
         await fcmService.sendToDevice({
           token: guest.fcmToken,
@@ -196,10 +207,8 @@ export const notificationService = {
       } else {
         logger.warn('[FCM] No token found for guest', { uti: data.targetDeviceUti });
       }
-      return;
+      return; // On arrête ici
     }
-
-
 
     // Cas 2 : Notification à une liste d'utilisateurs (targetUserIds)
     if (data.targetUserIds?.length) {
@@ -219,9 +228,8 @@ export const notificationService = {
       } else {
         logger.warn('[FCM] No tokens found for target user list', { notifId });
       }
-      return;
+      return; // On arrête ici
     }
-
 
     // Cas 3 : Broadcast ciblé (rôles / campus / classes)
     const tokens = await resolveTokensForBroadcast(data);
@@ -236,6 +244,7 @@ export const notificationService = {
     } else {
       logger.warn('[FCM] No tokens found for broadcast target', { notifId });
     }
+
 
   },
 
