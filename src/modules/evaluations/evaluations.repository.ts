@@ -61,6 +61,8 @@ export const evaluationsRepository = {
         module: { connect: { id: data.moduleId } },
         class: { connect: { id: data.classId } },
         school: schoolId ? { connect: { id: schoolId } } : undefined,
+        // ── Rattachement de la campagne ──────────────────────────────────────
+        campaign: data.campaignId ? { connect: { id: data.campaignId } } : undefined,
         score,
         comprehensionRating: data.comprehensionRating,
         explanationRating: data.explanationRating,
@@ -81,6 +83,7 @@ export const evaluationsRepository = {
       },
     });
   },
+
 
   async findById(id: string, schoolId?: string | null) {
     return prisma.evaluation.findFirst({

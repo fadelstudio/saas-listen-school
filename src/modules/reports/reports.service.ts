@@ -70,9 +70,17 @@ export const reportsService = {
 
     // 4. Notify School Managers/Admins
     if (resolvedSchoolId) {
+      const isSuggestion = finalInput.type === 'SUGGESTION';
+      const notifTitle = isSuggestion
+        ? `💡 Nouvelle suggestion : "${report.title}"`
+        : `🚨 Nouveau signalement : "${report.title}"`;
+      const notifMessage = isSuggestion
+        ? `Un étudiant a soumis une suggestion.`
+        : `Un nouveau signalement de type ${report.type?.replace('_', ' ')} a été reçu.`;
+
       notificationService.sendBroadcast(resolvedSchoolId, {
-        title: 'Nouveau signalement',
-        message: `Un nouveau signalement "${report.title}" a été reçu.`,
+        title: notifTitle,
+        message: notifMessage,
         targetRoles: ['ADMIN', 'MANAGER'],
         url: `/dashboard/reports/${report.id}`,
       }).catch(err => console.warn('[Notification] Failed to notify managers', err));
@@ -184,9 +192,17 @@ export const reportsService = {
     const report = await reportsRepository.findById(id, schoolId ?? null);
     if (report) {
       const uti = (report.deviceMetadata as any)?.uti;
+      const isSuggestion = report.type === 'SUGGESTION';
+      const notifTitle = isSuggestion
+        ? `💡 Mise à jour de votre suggestion`
+        : `📢 Mise à jour de votre signalement`;
+      const notifMessage = isSuggestion
+        ? `Votre suggestion "${report.title}" a changé de statut : ${status}.`
+        : `Votre signalement "${report.title}" a changé de statut : ${status}.`;
+
       notificationService.create({
-        title: '📢 Mise à jour de votre signalement',
-        message: `Le statut de votre signalement "${report.title}" vient de passer à : ${status}.`,
+        title: notifTitle,
+        message: notifMessage,
         type: 'REPORT_STATUS_CHANGED',
         userId: report.authorId,
         targetDeviceUti: uti,
@@ -196,8 +212,10 @@ export const reportsService = {
         logger.info('[ReportsService] Notification sent to author', { 
           reportId: report.id, 
           authorId: report.authorId,
-          uti 
+          uti,
+          isSuggestion,
         });
+
       }).catch(err => logger.warn('[Notification] Failed to notify author', { error: err }));
 
     }

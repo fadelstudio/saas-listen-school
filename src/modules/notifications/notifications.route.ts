@@ -87,7 +87,7 @@ router.use(authMiddleware);
  *         name: type
  *         schema:
  *           type: string
- *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, SYSTEM, BROADCAST]
+ *           enum: [AI_FAILURE, EVALUATION_CAMPAIGN, EVALUATION_CAMPAIGN_REMINDER, REPORT_STATUS_CHANGED, NEW_REPORT, SYSTEM, BROADCAST, WELCOME]
  *     responses:
  *       200:
  *         description: Flux de notifications
@@ -141,13 +141,13 @@ router.patch('/:id/read', validate({ params: notificationsSchema.params }), noti
  *             type: object
  *             required: [title, message]
  *             properties:
- *               title: { type: string }
- *               message: { type: string }
- *               targetRoles: { type: array, items: { type: string } }
- *               targetCampusIds: { type: array, items: { type: string, format: uuid } }
- *               targetClassIds: { type: array, items: { type: string, format: uuid } }
- *               targetUserIds: { type: array, items: { type: string, format: uuid } }
- *               url: { type: string }
+ *               title: { type: string, description: "Titre de la notification" }
+ *               message: { type: string, description: "Contenu de la notification" }
+ *               targetRoles: { type: array, items: { type: string }, description: "Cibler par rôle (ex: STUDENT, MANAGER)" }
+ *               targetCampusIds: { type: array, items: { type: string, format: uuid }, description: "Cibler un ou plusieurs campus" }
+ *               targetClassIds: { type: array, items: { type: string, format: uuid }, description: "Cibler une ou plusieurs classes" }
+ *               targetUserIds: { type: array, items: { type: string, format: uuid }, description: "Cibler des utilisateurs spécifiques" }
+ *               url: { type: string, description: "Lien de redirection au clic" }
  *     responses:
  *       201:
  *         description: Broadcast envoyé
