@@ -24,10 +24,12 @@ export const loginSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
   matricule: z.string().min(1, 'Matricule must not be empty').optional(),
   password: z.string().min(1, 'Password is required'),
+  uti: z.string().optional(), // UTI pour la fusion invité → compte
 }).refine(data => data.email || data.matricule, {
   message: "Either email or matricule must be provided",
   path: ["email", "matricule"]
 });
+
 
 // ─── Change Password ──────────────────────────────────────────────────────────
 

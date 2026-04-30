@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
 import { BadRequestError } from '../../core/errors/AppError';
+import { notificationService } from '../notifications/notifications.service';
+import { logger } from '../../utils/logger';
 
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -21,11 +23,22 @@ export const authController = {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
       const result = await authService.login(req.body, req.schoolId);
+
+      // Fusion invité → compte : déclenchée via UTI si fourni dans le corps de la requête
+      // On n'attend pas la fusion pour répondre (fire-and-forget)
+      const uti = req.body.uti as string | undefined;
+      if (uti && 'user' in result && result.user?.id) {
+        notificationService.updateFcmToken(result.user.id, '', uti).catch(err =>
+          logger.warn('[Login] Fusion UTI→compte échouée (non bloquant)', { uti, error: err?.message })
+        );
+      }
+
       res.sendSuccess('Login successful', result);
     } catch (error) {
       next(error);
     }
   },
+
 
   async verifyRegisterOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

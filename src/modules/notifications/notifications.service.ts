@@ -335,10 +335,13 @@ export const notificationService = {
    * Fait aussi la fusion invité → compte si un UTI est fourni.
    */
   async updateFcmToken(userId: string, fcmToken: string, uti?: string): Promise<void> {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { fcmToken },
-    });
+    // Mise à jour du token FCM uniquement s'il est non vide
+    if (fcmToken) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { fcmToken },
+      });
+    }
 
     // Fusion des notifications invité → compte utilisateur
     if (uti) {
