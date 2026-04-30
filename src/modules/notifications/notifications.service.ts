@@ -150,6 +150,7 @@ export const notificationService = {
     };
 
     // Cas 1 : Notification individuelle (userId connu)
+    let userTokenSent = false;
     if (data.userId) {
       const user = await prisma.user.findUnique({
         where: { id: data.userId },
@@ -163,19 +164,25 @@ export const notificationService = {
           data: fcmData,
         });
         logger.info('[FCM] Push sent to user', { userId: data.userId, notifId });
+        userTokenSent = true;
       } else {
         logger.warn('[FCM] No token found for user', { userId: data.userId });
       }
-      return;
+      
+      // Si on n'a pas d'UTI de secours, on s'arrête là
+      if (!data.targetDeviceUti) {
+        return;
+      }
     }
 
-
     // Cas 1.5 : Notification à un invité (targetDeviceUti)
-    if (data.targetDeviceUti) {
+    // On l'envoie si pas de userId, OU si userId n'avait pas de token (fallback)
+    if (data.targetDeviceUti && !userTokenSent) {
       const guest = await db.guestDevice.findUnique({
         where: { uti: data.targetDeviceUti },
         select: { fcmToken: true },
       });
+
 
 
       if (guest?.fcmToken) {
