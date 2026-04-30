@@ -44,7 +44,7 @@ async function main() {
   // 1. Schools (Need 12)
   const schools = [];
   const schoolNames = [
-    "AFI L'UE", "ISI", "BEM", "IAM", "ISM", "Sup de Co", "ESTM", "UGB", "UCAD", "UT", "UADB", "USSEIN"
+    "AFI", "ISI", "BEM", "IAM", "ISM", "Sup de Co", "ESTM", "UGB", "UCAD", "UT", "UADB", "USSEIN"
   ];
   for (let i = 0; i < schoolNames.length; i++) {
     const slug = schoolNames[i].toLowerCase().replace(/ /g, '-').replace(/'/g, '');
@@ -149,6 +149,7 @@ async function main() {
         firstName: `Admin`,
         lastName: `${i + 1}`,
         role: Role.ADMIN,
+        sex: i % 2 === 0 ? Sex.MALE : Sex.FEMALE,
         schoolId: mainSchool.id,
         passwordHash: adminPassword,
         emailVerified: true
@@ -164,6 +165,7 @@ async function main() {
         firstName: `Etudiant`,
         lastName: `${i + 1}`,
         role: Role.STUDENT,
+        sex: i % 2 === 0 ? Sex.FEMALE : Sex.MALE,
         schoolId: mainSchool.id,
         classId: classes[i % classes.length].id,
         passwordHash: studentPassword,
@@ -171,6 +173,7 @@ async function main() {
       }
     }));
   }
+
 
   // 10. Evaluation Campaigns (Need 12)
   const campaigns = [];
