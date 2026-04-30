@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { notificationsController } from './notifications.controller';
-import { authMiddleware, requireRole } from '../../core/middleware/auth.middleware';
+import { authMiddleware, requireRole, optionalAuthMiddleware } from '../../core/middleware/auth.middleware';
 import { validate } from '../../core/middleware/validate.middleware';
 import { notificationsSchema } from './notifications.schema';
 
@@ -59,9 +59,9 @@ router.get('/guest', notificationsController.getGuestNotifications);
  *       200:
  *         description: Token mis à jour
  */
-// Utilise un middleware optionnel ou gère l'auth dans le controller
-// Pour faire simple, on autorise l'accès sans authMiddleware global
-router.post('/fcm-token', notificationsController.updateFcmToken);
+// Utilise un middleware optionnel pour fusionner les comptes correctement
+router.post('/fcm-token', optionalAuthMiddleware, notificationsController.updateFcmToken);
+
 
 // --- Routes protégées ---
 router.use(authMiddleware);

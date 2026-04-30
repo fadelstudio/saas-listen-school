@@ -109,3 +109,32 @@ export function requireRole(...roles: string[]) {
 
 export const authenticate = authMiddleware;
 export const authorize = requireRole;
+
+export async function optionalAuthMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return next();
+  }
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    if (payload.sid) {
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { currentSessionId: true }
+      });
+      if (user && user.currentSessionId !== payload.sid) {
+        return next(); // invalid session, continue as guest
+      }
+    }
+    req.user = payload;
+    next();
+  } catch (error) {
+    next();
+  }
+}
+
