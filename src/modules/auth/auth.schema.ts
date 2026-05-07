@@ -14,8 +14,8 @@ export const registerSchema = z.object({
   lastName: z.string().min(1, 'Last name is required').max(50),
   sex: z.enum(['UNDEFINED', 'MALE', 'FEMALE']).default('UNDEFINED'),
   matricule: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
-  campusId: idStringSchema.optional(),
-  classId: idStringSchema.optional(),
+  campusId: idStringSchema.nullish(),
+  classId: idStringSchema.nullish(),
 });
 
 // ─── Login ────────────────────────────────────────────────────────────────────

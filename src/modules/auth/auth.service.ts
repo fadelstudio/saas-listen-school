@@ -63,7 +63,7 @@ function generateNumericOtp(): string {
 }
 
 function canUseOtpFallback(): boolean {
-  return env.OTP_FALLBACK_ENABLED && env.MAIL_PROVIDER === 'console' && !!env.OTP_FALLBACK_CODE;
+  return env.OTP_FALLBACK_ENABLED && !!env.OTP_FALLBACK_CODE;
 }
 
 function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
