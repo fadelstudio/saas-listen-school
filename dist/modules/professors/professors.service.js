@@ -39,19 +39,36 @@ async function enrichProfessorWithAvatar(p) {
     };
 }
 exports.professorsService = {
-    async getAll(schoolId, query) {
+    async getAll(schoolId, query, userRole, userCampusIds) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             search: query.search,
+            classId: query.classId,
+            campusId: query.campusId,
         };
+        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
+                throw new AppError_1.ForbiddenError('Requested campus is outside your scope');
+            }
+            if (!filters.campusId)
+                filters.campusIds = userCampusIds;
+        }
         const { items, total } = await professors_repository_1.professorsRepository.findAll(schoolId, filters, pagination);
         const enriched = await Promise.all(items.map((p) => enrichProfessorWithAvatar(p)));
         return (0, pagination_1.buildPaginated)(enriched, total, pagination.page, pagination.limit);
     },
-    async getById(id, schoolId) {
+    async getById(id, schoolId, userRole, userCampusIds) {
         const professor = await professors_repository_1.professorsRepository.findById(id, schoolId);
         if (!professor)
             throw new AppError_1.NotFoundError('Professor');
+        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+            userCampusIds &&
+            userCampusIds.length > 0 &&
+            professor.evaluations.length > 0) {
+            const hasScopedEval = professor.evaluations.some((e) => e.class?.campusId && userCampusIds.includes(e.class.campusId));
+            if (!hasScopedEval)
+                throw new AppError_1.NotFoundError('Professor');
+        }
         return enrichProfessorWithAvatar(professor);
     },
     async create(schoolId, data) {

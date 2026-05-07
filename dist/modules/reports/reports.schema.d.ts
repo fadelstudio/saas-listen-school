@@ -2,25 +2,26 @@ import { z } from 'zod';
 export declare const createReportSchema: z.ZodObject<{
     title: z.ZodString;
     content: z.ZodString;
-    type: z.ZodOptional<z.ZodEnum<{
+    type: z.ZodEnum<{
         PROBLEM_MATERIAL: "PROBLEM_MATERIAL";
         PROBLEM_ADMIN: "PROBLEM_ADMIN";
         PROBLEM_PEDAGOGICAL: "PROBLEM_PEDAGOGICAL";
         INCIDENT: "INCIDENT";
         SUGGESTION: "SUGGESTION";
         OTHER: "OTHER";
-    }>>;
+    }>;
     category: z.ZodOptional<z.ZodString>;
-    priority: z.ZodOptional<z.ZodEnum<{
+    priority: z.ZodEnum<{
         LOW: "LOW";
         MEDIUM: "MEDIUM";
         HIGH: "HIGH";
         CRITICAL: "CRITICAL";
-    }>>;
+    }>;
     isAnonymous: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
-    classId: z.ZodOptional<z.ZodString>;
-    professorId: z.ZodOptional<z.ZodString>;
-    moduleId: z.ZodOptional<z.ZodString>;
+    classId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    professorId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    moduleId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    uti: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 export declare const updateReportSchema: z.ZodObject<{
     title: z.ZodOptional<z.ZodString>;

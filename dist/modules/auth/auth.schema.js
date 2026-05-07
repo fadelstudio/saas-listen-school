@@ -13,6 +13,8 @@ exports.registerSchema = zod_1.z.object({
         .regex(/[0-9]/, 'Password must contain at least one number'),
     firstName: zod_1.z.string().min(1, 'First name is required').max(50),
     lastName: zod_1.z.string().min(1, 'Last name is required').max(50),
+    sex: zod_1.z.enum(['UNDEFINED', 'MALE', 'FEMALE']).default('UNDEFINED'),
+    matricule: zod_1.z.union([zod_1.z.string().max(50), zod_1.z.literal(''), zod_1.z.null()]).optional(),
     campusId: idSchema_1.idStringSchema.optional(),
     classId: idSchema_1.idStringSchema.optional(),
 });
@@ -21,6 +23,7 @@ exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email address').optional(),
     matricule: zod_1.z.string().min(1, 'Matricule must not be empty').optional(),
     password: zod_1.z.string().min(1, 'Password is required'),
+    uti: zod_1.z.string().optional(), // UTI pour la fusion invité → compte
 }).refine(data => data.email || data.matricule, {
     message: "Either email or matricule must be provided",
     path: ["email", "matricule"]
@@ -49,6 +52,7 @@ exports.updateProfileSchema = zod_1.z.object({
     phone: zod_1.z.union([zod_1.z.string().max(40), zod_1.z.literal(''), zod_1.z.null()]).optional(),
     bio: zod_1.z.union([zod_1.z.string().max(1000), zod_1.z.literal(''), zod_1.z.null()]).optional(),
     address: zod_1.z.union([zod_1.z.string().max(255), zod_1.z.literal(''), zod_1.z.null()]).optional(),
+    sex: zod_1.z.enum(['UNDEFINED', 'MALE', 'FEMALE']).optional(),
 });
 exports.verifyLoginOtpSchema = zod_1.z.object({
     challengeId: idSchema_1.idStringSchema,

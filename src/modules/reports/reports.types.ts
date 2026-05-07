@@ -47,6 +47,7 @@ export interface ReportFilters {
   status?: ReportStatus;
   authorId?: string;
   campusId?: string;
+  campusIds?: string[];
   classId?: string;
   professorId?: string;
   moduleId?: string;

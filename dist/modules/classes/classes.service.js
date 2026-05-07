@@ -7,20 +7,36 @@ const pagination_1 = require("../../utils/pagination");
 const AppError_1 = require("../../core/errors/AppError");
 const prisma_1 = require("../../core/database/prisma");
 exports.classesService = {
-    async getAll(schoolId, query) {
+    async getAll(schoolId, query, userRole, userCampusIds, userClassId) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             campusId: query.campusId,
             levelId: query.levelId,
             search: query.search,
         };
+        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
+                throw new AppError_1.BadRequestError('Requested campus is outside your scope');
+            }
+            if (!filters.campusId)
+                filters.campusIds = userCampusIds;
+        }
+        if (userRole === 'STUDENT' && userClassId) {
+            filters.classId = userClassId;
+        }
         const { items, total } = await classes_repository_1.classesRepository.findAll(schoolId, filters, pagination);
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
-    async getById(id, schoolId) {
+    async getById(id, schoolId, userRole, userCampusIds) {
         const cl = await classes_repository_1.classesRepository.findById(id, schoolId);
         if (!cl)
             throw new AppError_1.NotFoundError('Class');
+        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+            userCampusIds &&
+            userCampusIds.length > 0 &&
+            !userCampusIds.includes(cl.campusId)) {
+            throw new AppError_1.NotFoundError('Class');
+        }
         return cl;
     },
     async create(schoolId, data) {
@@ -65,8 +81,8 @@ exports.classesService = {
         if (!ok)
             throw new AppError_1.NotFoundError('Class');
     },
-    async getStudents(id, schoolId) {
-        await this.getById(id, schoolId);
+    async getStudents(id, schoolId, userRole, userCampusIds) {
+        await this.getById(id, schoolId, userRole, userCampusIds);
         return classes_repository_1.classesRepository.findStudents(id, schoolId);
     },
 };

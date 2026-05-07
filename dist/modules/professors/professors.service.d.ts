@@ -1,12 +1,12 @@
 import { Role } from '@prisma/client';
 export declare const professorsService: {
-    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
         avatarUrl: string | null;
         linkedUserId: string | null;
         campusAccess: "ALL";
         campusScopeLabel: "TOUS";
     }>>;
-    getById(id: string, schoolId: string): Promise<{
+    getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         avatarUrl: string | null;
         linkedUserId: string | null;
         campusAccess: "ALL";

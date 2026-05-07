@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notificationsController = void 0;
 const notifications_service_1 = require("./notifications.service");
 const pagination_1 = require("../../utils/pagination");
+const logger_1 = require("../../utils/logger");
 exports.notificationsController = {
     async getMyNotifications(req, res, next) {
         try {
@@ -64,14 +65,44 @@ exports.notificationsController = {
     },
     async updateFcmToken(req, res, next) {
         try {
-            const userId = req.user.userId;
             const { fcmToken, uti } = req.body;
             if (!fcmToken || typeof fcmToken !== 'string') {
                 res.status(400).json({ success: false, message: 'fcmToken requis' });
                 return;
             }
-            await notifications_service_1.notificationService.updateFcmToken(userId, fcmToken, uti);
-            res.sendSuccess('Token FCM mis à jour', null);
+            if (req.user?.userId) {
+                // Authenticated user (optionally merging an UTI)
+                await notifications_service_1.notificationService.updateFcmToken(req.user.userId, fcmToken, uti);
+                res.sendSuccess('Token FCM utilisateur mis à jour', null);
+            }
+            else if (uti) {
+                // Guest mode (UTI only)
+                await notifications_service_1.notificationService.registerGuestFcmToken(uti, fcmToken);
+                res.sendSuccess('Token FCM invité mis à jour', null);
+            }
+            else {
+                res.status(400).json({ success: false, message: 'Authentification ou UTI requis' });
+            }
+        }
+        catch (error) {
+            logger_1.logger.error('[NotificationController] updateFcmToken failed', {
+                error: error.message,
+                stack: error.stack,
+                body: req.body,
+                userId: req.user?.userId
+            });
+            next(error);
+        }
+    },
+    async updateGuestFcmToken(req, res, next) {
+        try {
+            const { fcmToken, uti } = req.body;
+            if (!fcmToken || !uti) {
+                res.status(400).json({ success: false, message: 'fcmToken et uti requis' });
+                return;
+            }
+            await notifications_service_1.notificationService.registerGuestFcmToken(uti, fcmToken);
+            res.sendSuccess('Token FCM invité mis à jour', null);
         }
         catch (error) {
             next(error);
@@ -91,6 +122,20 @@ exports.notificationsController = {
             res.sendSuccess('Notifications invité récupérées', items, 200, {
                 page, limit, total, totalPages: Math.ceil(total / limit)
             });
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async getUnreadCount(req, res, next) {
+        try {
+            const userId = req.user.userId;
+            const schoolId = req.user.schoolId;
+            const userRole = req.user.role;
+            const campusIds = req.user.campusIds || [];
+            const classId = req.user.classId || null;
+            const count = await notifications_service_1.notificationService.getUnreadCount(userId, schoolId, userRole, campusIds, classId);
+            res.sendSuccess('Nombre de notifications non lues récupéré', { count });
         }
         catch (error) {
             next(error);

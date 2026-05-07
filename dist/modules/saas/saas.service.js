@@ -46,6 +46,7 @@ exports.saasService = {
             }
             const school = await tx.school.create({
                 data: {
+                    id: slug, // On utilise le slug comme ID (ex: 'afi-l-ue')
                     name: input.name,
                     slug,
                 }

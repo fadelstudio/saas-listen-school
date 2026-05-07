@@ -19,7 +19,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await evaluation_campaigns_service_1.evaluationCampaignsService.getAll(req.schoolId, req.query);
+            const result = await evaluation_campaigns_service_1.evaluationCampaignsService.getAll(req.schoolId, req.query, req.user?.role, req.user?.classId, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Campaigns retrieved', result.items, 200, {
                 total: result.total,
                 page: result.page,

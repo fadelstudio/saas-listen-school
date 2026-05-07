@@ -9,7 +9,8 @@ exports.analyticsController = {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
             const campusId = req.query.campusId;
-            const stats = await analytics_service_1.analyticsService.getDashboardStats(req.schoolId, campusId);
+            const scopedCampusIds = analytics_service_1.analyticsService.resolveScopedCampusIds(req.user?.role, req.user?.campusIds, campusId);
+            const stats = await analytics_service_1.analyticsService.getDashboardStats(req.schoolId, scopedCampusIds);
             res.sendSuccess('Analytics dashboard stats fetched', stats);
         }
         catch (error) {
@@ -22,7 +23,8 @@ exports.analyticsController = {
                 throw new AppError_1.BadRequestError('school context is required');
             const campusId = req.query.campusId;
             const period = req.query.period || 'week';
-            const stats = await analytics_service_1.analyticsService.getTimeSeriesStats(req.schoolId, period, campusId);
+            const scopedCampusIds = analytics_service_1.analyticsService.resolveScopedCampusIds(req.user?.role, req.user?.campusIds, campusId);
+            const stats = await analytics_service_1.analyticsService.getTimeSeriesStats(req.schoolId, period, scopedCampusIds);
             res.sendSuccess('Time series stats fetched', stats);
         }
         catch (error) {

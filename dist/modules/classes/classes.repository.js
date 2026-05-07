@@ -11,6 +11,10 @@ exports.classesRepository = {
         const andParts = [schoolScope(schoolId)];
         if (filters.campusId)
             andParts.push({ campusId: filters.campusId });
+        if (filters.campusIds && filters.campusIds.length > 0)
+            andParts.push({ campusId: { in: filters.campusIds } });
+        if (filters.classId)
+            andParts.push({ id: filters.classId });
         if (filters.levelId) {
             const levelBelongsToSchool = client_1.Prisma.validator()({
                 schoolId,

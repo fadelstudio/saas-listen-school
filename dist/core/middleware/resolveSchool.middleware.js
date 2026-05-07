@@ -96,7 +96,7 @@ async function resolveSchoolMiddleware(req, _res, next) {
         throw new AppError_1.NotFoundError("School", `School not found: aucun contexte école résolu. ${hint}`);
     }
     const school = await prisma_1.prisma.school.findUnique({
-        where: { slug: resolvedSlug },
+        where: { slug: resolvedSlug }, // On cherche à nouveau par le slug (ex: 'afi')
         select: { id: true, slug: true, name: true, domain: true },
     });
     if (!school) {

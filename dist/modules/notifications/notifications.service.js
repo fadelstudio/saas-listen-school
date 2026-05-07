@@ -6,6 +6,7 @@ const AppError_1 = require("../../core/errors/AppError");
 const fcm_service_1 = require("../../core/push/fcm.service");
 const prisma_1 = require("../../core/database/prisma");
 const logger_1 = require("../../utils/logger");
+const db = prisma_1.prisma;
 // ─────────────────────────────────────────────────────────────────────────────
 // Anti-spam: garde en mémoire les envois récents par clé (UTI ou userId)
 // pour éviter les doublons rapides (max 1 notif d'un même type par 60s).
@@ -46,7 +47,8 @@ async function resolveTokensForBroadcast(data) {
             where.AND = conditions;
     }
     const users = await prisma_1.prisma.user.findMany({ where, select: { fcmToken: true } });
-    return users.map(u => u.fcmToken).filter(Boolean);
+    const tokens = users.map(u => u.fcmToken).filter(Boolean);
+    return [...new Set(tokens)];
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // SERVICE
@@ -95,6 +97,7 @@ exports.notificationService = {
         };
         // Cas 1 : Notification individuelle (userId connu)
         if (data.userId) {
+            let userTokenSent = false;
             const user = await prisma_1.prisma.user.findUnique({
                 where: { id: data.userId },
                 select: { fcmToken: true },
@@ -106,8 +109,52 @@ exports.notificationService = {
                     body: data.message,
                     data: fcmData,
                 });
+                logger_1.logger.info('[FCM] Push sent to user', { userId: data.userId, notifId });
+                userTokenSent = true;
             }
-            return;
+            else {
+                logger_1.logger.warn('[FCM] No token found for user', { userId: data.userId });
+            }
+            // Fallback à l'invité si l'utilisateur n'a pas de token (ex: s'il n'a pas encore login sur l'app)
+            if (!userTokenSent && data.targetDeviceUti) {
+                const guest = await db.guestDevice.findUnique({
+                    where: { uti: data.targetDeviceUti },
+                    select: { fcmToken: true },
+                });
+                if (guest?.fcmToken) {
+                    await fcm_service_1.fcmService.sendToDevice({
+                        token: guest.fcmToken,
+                        title: data.title,
+                        body: data.message,
+                        data: fcmData,
+                    });
+                    logger_1.logger.info('[FCM] Push sent to guest (fallback)', { uti: data.targetDeviceUti, notifId });
+                }
+                else {
+                    logger_1.logger.warn('[FCM] No token found for guest fallback', { uti: data.targetDeviceUti });
+                }
+            }
+            return; // On arrête ici pour une notification individuelle
+        }
+        // Cas 1.5 : Notification à un invité (seulement UTI)
+        if (data.targetDeviceUti) {
+            const guest = await db.guestDevice.findUnique({
+                where: { uti: data.targetDeviceUti },
+                select: { fcmToken: true },
+            });
+            if (guest?.fcmToken) {
+                await fcm_service_1.fcmService.sendToDevice({
+                    token: guest.fcmToken,
+                    title: data.title,
+                    body: data.message,
+                    data: fcmData,
+                });
+                logger_1.logger.info('[FCM] Push sent to guest', { uti: data.targetDeviceUti, notifId });
+            }
+            else {
+                logger_1.logger.warn('[FCM] No token found for guest', { uti: data.targetDeviceUti });
+            }
+            return; // On arrête ici
         }
         // Cas 2 : Notification à une liste d'utilisateurs (targetUserIds)
         if (data.targetUserIds?.length) {
@@ -115,7 +162,7 @@ exports.notificationService = {
                 where: { id: { in: data.targetUserIds }, fcmToken: { not: null } },
                 select: { fcmToken: true },
             });
-            const tokens = users.map(u => u.fcmToken).filter(Boolean);
+            const tokens = [...new Set(users.map(u => u.fcmToken).filter(Boolean))];
             if (tokens.length > 0) {
                 await fcm_service_1.fcmService.sendToMultipleDevices({
                     tokens,
@@ -123,8 +170,12 @@ exports.notificationService = {
                     body: data.message,
                     data: fcmData,
                 });
+                logger_1.logger.info('[FCM] Push sent to multiple users', { count: tokens.length, notifId });
             }
-            return;
+            else {
+                logger_1.logger.warn('[FCM] No tokens found for target user list', { notifId });
+            }
+            return; // On arrête ici
         }
         // Cas 3 : Broadcast ciblé (rôles / campus / classes)
         const tokens = await resolveTokensForBroadcast(data);
@@ -135,6 +186,10 @@ exports.notificationService = {
                 body: data.message,
                 data: fcmData,
             });
+            logger_1.logger.info('[FCM] Push sent via broadcast', { tokenCount: tokens.length, notifId });
+        }
+        else {
+            logger_1.logger.warn('[FCM] No tokens found for broadcast target', { notifId });
         }
     },
     /**
@@ -187,30 +242,71 @@ exports.notificationService = {
         return notifications_repository_1.notificationsRepository.delete(id);
     },
     /**
+     * Enregistre le token FCM d'un invité (UTI).
+     */
+    async registerGuestFcmToken(uti, fcmToken) {
+        await db.guestDevice.upsert({
+            where: { uti },
+            update: { fcmToken, updatedAt: new Date() },
+            create: { uti, fcmToken },
+        });
+        logger_1.logger.info('[FCM] Guest token registered.', { uti });
+    },
+    /**
      * Met à jour le token FCM d'un utilisateur (appelé après login/register).
      * Fait aussi la fusion invité → compte si un UTI est fourni.
      */
     async updateFcmToken(userId, fcmToken, uti) {
-        await prisma_1.prisma.user.update({
-            where: { id: userId },
-            data: { fcmToken },
-        });
+        // Mise à jour du token FCM uniquement s'il est non vide
+        if (fcmToken) {
+            await prisma_1.prisma.user.update({
+                where: { id: userId },
+                data: { fcmToken },
+            });
+        }
         // Fusion des notifications invité → compte utilisateur
         if (uti) {
-            await prisma_1.prisma.notification.updateMany({
-                where: { targetDeviceUti: uti, userId: null },
-                data: { userId, targetDeviceUti: null },
-            });
-            // Fusion des rapports anonymes
-            await prisma_1.prisma.report.updateMany({
-                where: {
-                    authorId: null,
-                    deviceMetadata: { path: ['uti'], equals: uti },
-                },
-                data: { authorId: userId },
-            });
-            logger_1.logger.info('[Notification] Fusion invité → compte effectuée.', { userId, uti });
+            try {
+                logger_1.logger.info('[Notification] Début fusion invité → compte', { userId, uti });
+                // 1. Fusion des notifications
+                const notifResult = await prisma_1.prisma.notification.updateMany({
+                    where: { targetDeviceUti: uti, userId: null },
+                    data: { userId, targetDeviceUti: null },
+                });
+                // 2. Fusion des rapports anonymes (Safer JSON filtering)
+                // On cherche les rapports dont deviceMetadata contient {"uti": uti}
+                const reportResult = await prisma_1.prisma.report.updateMany({
+                    where: {
+                        authorId: null,
+                        deviceMetadata: {
+                            path: ['uti'],
+                            equals: uti,
+                        },
+                    },
+                    data: { authorId: userId },
+                });
+                // 3. Nettoyage de l'entrée GuestDevice
+                await db.guestDevice.delete({ where: { uti } }).catch(() => { });
+                logger_1.logger.info('[Notification] Fusion terminée avec succès', {
+                    userId,
+                    uti,
+                    notificationsMigrated: notifResult.count,
+                    reportsMigrated: reportResult.count
+                });
+            }
+            catch (err) {
+                logger_1.logger.error('[Notification] Échec de la fusion invité → compte', {
+                    userId,
+                    uti,
+                    error: err.message,
+                    stack: err.stack
+                });
+                // On ne bloque pas l'update du token FCM si la fusion échoue
+            }
         }
+    },
+    async getUnreadCount(userId, schoolId, userRole, campusIds, classId) {
+        return notifications_repository_1.notificationsRepository.countUnread(userId, schoolId, userRole, campusIds, classId);
     },
 };
 //# sourceMappingURL=notifications.service.js.map

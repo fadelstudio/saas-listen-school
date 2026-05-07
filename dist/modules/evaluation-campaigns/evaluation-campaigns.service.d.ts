@@ -14,54 +14,7 @@ export declare const evaluationCampaignsService: {
         description: string | null;
         scope: string;
     }>;
-    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
-        module: {
-            code: string | null;
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            schoolId: string;
-        } | null;
-        professor: {
-            email: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            schoolId: string | null;
-            phone: string | null;
-            firstName: string;
-            lastName: string;
-            matricule: string | null;
-            numero: string | null;
-            avatarPath: string | null;
-            userId: string | null;
-        } | null;
-        _count: {
-            evaluations: number;
-        };
-        class: {
-            name: string;
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            levelId: string;
-            campusId: string;
-        } | null;
-    } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        classId: string | null;
-        title: string;
-        status: string;
-        professorId: string | null;
-        moduleId: string | null;
-        dueDate: Date;
-        campusId: string | null;
-        description: string | null;
-        scope: string;
-    }>>;
+    getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusIds?: string[], userId?: string): Promise<import("../../utils/pagination").PaginatedResult<any>>;
     getById(id: string, schoolId: string): Promise<{
         campus: ({
             users: {
@@ -122,6 +75,7 @@ export declare const evaluationCampaignsService: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;

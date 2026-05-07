@@ -20,7 +20,7 @@ exports.evaluationsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await evaluations_service_1.evaluationsService.getAll(req.query, req.user?.role, req.schoolId);
+            const result = await evaluations_service_1.evaluationsService.getAll(req.query, req.user?.role, req.schoolId, req.user?.campusIds);
             res.sendSuccess('Evaluations fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -36,7 +36,7 @@ exports.evaluationsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await evaluations_service_1.evaluationsService.getById(req.params.id, req.user?.role, req.schoolId);
+            const result = await evaluations_service_1.evaluationsService.getById(req.params.id, req.user?.role, req.schoolId, req.user?.campusIds);
             res.sendSuccess('Evaluation fetched', result);
         }
         catch (error) {
@@ -69,7 +69,7 @@ exports.evaluationsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await evaluations_service_1.evaluationsService.getStats(req.query, req.schoolId);
+            const result = await evaluations_service_1.evaluationsService.getStats(req.query, req.schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Evaluation stats', result);
         }
         catch (error) {

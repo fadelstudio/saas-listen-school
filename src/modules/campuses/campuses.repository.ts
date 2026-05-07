@@ -9,6 +9,7 @@ export const campusesRepository = {
   async findAll(schoolId: string, filters: CampusFilters, pagination: PaginationArgs) {
     const where: Prisma.CampusWhereInput = {
       schoolId,
+      ...(filters.campusIds && filters.campusIds.length > 0 ? { id: { in: filters.campusIds } } : {}),
       ...(filters.search && {
         name: { contains: filters.search, mode: 'insensitive' },
       }),

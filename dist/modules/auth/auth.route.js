@@ -37,6 +37,8 @@ exports.authRouter = authRouter;
  *               password: { type: string, minLength: 8, example: "monMdpSecret123" }
  *               firstName: { type: string, example: "Mamadou" }
  *               lastName: { type: string, example: "Niane" }
+ *               campusId: { type: string, format: uuid, example: "uuid-du-campus", description: "ID du campus (optionnel si classId fourni)" }
+ *               classId: { type: string, format: uuid, example: "uuid-de-la-classe", description: "ID de la classe de l'étudiant" }
  *     responses:
  *       201:
  *         description: Créé. Retourne un challengeId s'il faut valider l'OTP.

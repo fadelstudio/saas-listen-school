@@ -44,37 +44,40 @@ const CACHE_TTL = 30000; // 30 seconds
 exports.systemService = {
     /**
      * Toggles publics pour l’école résolue par le middleware (req.schoolId).
-     * Ne renvoie jamais de valeurs « génériques » d’une autre école : le nom vient de `School` si pas de ligne system_settings.
+     * Utilise le cache interne pour garantir une mise à jour instantanée après modif admin.
      */
     async getPublicSettings(schoolId) {
+        // On récupère les settings via la fonction qui gère le cache
+        const settings = await this.getSettings(schoolId);
+        // On récupère les infos de l'école (slug, logo)
         const school = await prisma_1.prisma.school.findUnique({
             where: { id: schoolId },
-            select: { name: true, slug: true },
+            select: { name: true, slug: true, logoUrl: true },
         });
-        if (!school) {
+        if (!school)
             throw new AppError_1.NotFoundError('School');
+        let finalLogoUrl = school.logoUrl;
+        if (finalLogoUrl && finalLogoUrl.includes('/object/sign/')) {
+            try {
+                const urlObj = new URL(finalLogoUrl);
+                urlObj.pathname = urlObj.pathname.replace('/object/sign/', '/object/public/');
+                urlObj.search = '';
+                finalLogoUrl = urlObj.toString();
+            }
+            catch (e) {
+                // Ignore invalid URLs
+            }
         }
-        const settings = await prisma_1.prisma.systemSettings.findUnique({
-            where: { schoolId },
-            select: {
-                schoolName: true,
-                aiEnabled: true,
-                authOtpRequired: true,
-                authReportsRequired: true,
-                authEvaluationsRequired: true,
-                updatedAt: true,
-            },
-        });
-        const base = {
+        return {
             schoolSlug: school.slug,
-            schoolName: settings?.schoolName ?? school.name,
-            aiEnabled: settings?.aiEnabled ?? true,
-            authOtpRequired: settings?.authOtpRequired ?? false,
-            authReportsRequired: settings?.authReportsRequired ?? false,
-            authEvaluationsRequired: settings?.authEvaluationsRequired ?? false,
-            updatedAt: settings?.updatedAt ?? new Date(0),
+            schoolName: settings.schoolName || school.name,
+            logoUrl: finalLogoUrl,
+            aiEnabled: settings.aiEnabled,
+            authOtpRequired: settings.authOtpRequired,
+            authReportsRequired: settings.authReportsRequired,
+            authEvaluationsRequired: settings.authEvaluationsRequired,
+            updatedAt: settings.updatedAt,
         };
-        return base;
     },
     async getSettings(schoolId, forceRefresh = false) {
         const cached = settingsCache.get(schoolId);
@@ -123,12 +126,82 @@ exports.systemService = {
         if (!result) {
             throw lastError || new Error('All storage buckets failed. Please check Supabase configuration.');
         }
+        let finalUrl = result.url;
+        if (finalUrl && finalUrl.includes('/object/sign/')) {
+            try {
+                const urlObj = new URL(finalUrl);
+                urlObj.pathname = urlObj.pathname.replace('/object/sign/', '/object/public/');
+                urlObj.search = '';
+                finalUrl = urlObj.toString();
+            }
+            catch (e) {
+                // Fallback
+            }
+        }
         await prisma_1.prisma.school.update({
             where: { id: schoolId },
-            data: { logoUrl: result.url }
+            data: { logoUrl: finalUrl }
         });
         settingsCache.delete(schoolId);
-        return { url: result.url };
+        return { url: finalUrl };
+    },
+    /**
+     * Récupère les données nécessaires pour remplir les formulaires (Signalements, Évaluations)
+     * sans authentification. Utile pour le mode invité du mobile.
+     */
+    async getPublicFormData(schoolId) {
+        const [campuses, professors, types, priorities, modules] = await Promise.all([
+            prisma_1.prisma.campus.findMany({
+                where: { schoolId },
+                select: { id: true, name: true },
+            }),
+            prisma_1.prisma.professor.findMany({
+                where: { schoolId },
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    modules: {
+                        select: { classId: true, moduleId: true }
+                    }
+                },
+            }),
+            // Enums ReportType et Priority
+            Promise.resolve(['PROBLEM_MATERIAL', 'PROBLEM_ADMIN', 'PROBLEM_PEDAGOGICAL', 'INCIDENT', 'SUGGESTION', 'OTHER']),
+            Promise.resolve(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+            prisma_1.prisma.module.findMany({
+                where: { schoolId },
+                select: {
+                    id: true,
+                    name: true,
+                    classModules: {
+                        select: { classId: true }
+                    }
+                },
+            })
+        ]);
+        // On récupère aussi les classes liées aux campus
+        const classes = await prisma_1.prisma.class.findMany({
+            where: { campus: { schoolId } },
+            select: { id: true, name: true, campusId: true },
+        });
+        return {
+            campuses,
+            classes,
+            professors: professors.map(p => ({
+                id: p.id,
+                name: `${p.firstName} ${p.lastName}`,
+                targetClassIds: Array.from(new Set(p.modules.map(m => m.classId))),
+                targetModuleIds: Array.from(new Set(p.modules.map(m => m.moduleId)))
+            })),
+            modules: modules.map(m => ({
+                id: m.id,
+                name: m.name,
+                targetClassIds: m.classModules.map(cm => cm.classId)
+            })),
+            types,
+            priorities,
+        };
     }
 };
 //# sourceMappingURL=system.service.js.map

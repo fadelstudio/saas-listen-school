@@ -2,6 +2,8 @@ import { z } from 'zod';
 export declare const createEvaluationSchema: z.ZodObject<{
     comment: z.ZodOptional<z.ZodString>;
     isAnonymous: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    uti: z.ZodOptional<z.ZodString>;
+    campaignId: z.ZodOptional<z.ZodString>;
     comprehensionRating: z.ZodEnum<{
         VERY_POOR: "VERY_POOR";
         POOR: "POOR";

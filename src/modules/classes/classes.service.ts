@@ -6,21 +6,44 @@ import { ClassFilters } from './classes.types';
 import { prisma } from '../../core/database/prisma';
 
 export const classesService = {
-  async getAll(schoolId: string, query: Record<string, unknown>) {
+  async getAll(
+    schoolId: string,
+    query: Record<string, unknown>,
+    userRole?: string,
+    userCampusIds?: string[],
+    userClassId?: string | null
+  ) {
     const pagination = parsePagination(query);
     const filters: ClassFilters = {
       campusId: query.campusId as string | undefined,
       levelId: query.levelId as string | undefined,
       search: query.search as string | undefined,
     };
+    if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
+        throw new BadRequestError('Requested campus is outside your scope');
+      }
+      if (!filters.campusId) filters.campusIds = userCampusIds;
+    }
+    if (userRole === 'STUDENT' && userClassId) {
+      filters.classId = userClassId;
+    }
 
     const { items, total } = await classesRepository.findAll(schoolId, filters, pagination);
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
-  async getById(id: string, schoolId: string) {
+  async getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {
     const cl = await classesRepository.findById(id, schoolId);
     if (!cl) throw new NotFoundError('Class');
+    if (
+      ['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+      userCampusIds &&
+      userCampusIds.length > 0 &&
+      !userCampusIds.includes(cl.campusId)
+    ) {
+      throw new NotFoundError('Class');
+    }
     return cl;
   },
 
@@ -63,8 +86,8 @@ export const classesService = {
     if (!ok) throw new NotFoundError('Class');
   },
 
-  async getStudents(id: string, schoolId: string) {
-    await this.getById(id, schoolId);
+  async getStudents(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {
+    await this.getById(id, schoolId, userRole, userCampusIds);
     return classesRepository.findStudents(id, schoolId);
   },
 };

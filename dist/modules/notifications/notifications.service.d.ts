@@ -164,9 +164,14 @@ export declare const notificationService: {
         targetDeviceUti: string | null;
     }>;
     /**
+     * Enregistre le token FCM d'un invité (UTI).
+     */
+    registerGuestFcmToken(uti: string, fcmToken: string): Promise<void>;
+    /**
      * Met à jour le token FCM d'un utilisateur (appelé après login/register).
      * Fait aussi la fusion invité → compte si un UTI est fourni.
      */
     updateFcmToken(userId: string, fcmToken: string, uti?: string): Promise<void>;
+    getUnreadCount(userId: string, schoolId: string, userRole: Role, campusIds: string[], classId: string | null): Promise<number>;
 };
 //# sourceMappingURL=notifications.service.d.ts.map

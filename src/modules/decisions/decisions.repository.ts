@@ -37,8 +37,9 @@ export const decisionsRepository = {
       },
       include: {
         decider:    { select: { id: true, firstName: true, lastName: true, email: true } },
-        evaluation: true,
-        report:     true,
+        evaluation: { include: { class: { select: { campusId: true } } } },
+        report:     { include: { class: { select: { campusId: true } } } },
+        campaign:   { include: { class: { select: { campusId: true } } } },
         aiJobs:     { orderBy: { createdAt: 'desc' }, take: 3 },
       },
     });
@@ -51,6 +52,16 @@ export const decisionsRepository = {
       ...(filters.deciderId && { deciderId: filters.deciderId }),
       ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
       ...(filters.endDate   && { createdAt: { lte: new Date(filters.endDate) } }),
+      ...(filters.campusIds && filters.campusIds.length > 0
+        ? {
+            OR: [
+              { report: { class: { campusId: { in: filters.campusIds } } } },
+              { evaluation: { class: { campusId: { in: filters.campusIds } } } },
+              { campaign: { class: { campusId: { in: filters.campusIds } } } },
+              { campaign: { campusId: { in: filters.campusIds } } },
+            ],
+          }
+        : {}),
     };
 
     const [items, total] = await Promise.all([

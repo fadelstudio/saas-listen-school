@@ -21,6 +21,7 @@ export interface DecisionFilters {
     status?: DecisionStatus;
     deciderId?: string;
     priority?: DecisionPriority;
+    campusIds?: string[];
     startDate?: string;
     endDate?: string;
 }

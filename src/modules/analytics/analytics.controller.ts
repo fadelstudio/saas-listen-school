@@ -6,8 +6,9 @@ export const analyticsController = {
   async getDashboardStats(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campusId = req.query.campusId as string;
-      const stats = await analyticsService.getDashboardStats(req.schoolId, campusId);
+      const campusId = req.query.campusId as string | undefined;
+      const scopedCampusIds = analyticsService.resolveScopedCampusIds(req.user?.role, req.user?.campusIds, campusId);
+      const stats = await analyticsService.getDashboardStats(req.schoolId, scopedCampusIds);
       res.sendSuccess('Analytics dashboard stats fetched', stats);
     } catch (error) {
       next(error);
@@ -17,9 +18,10 @@ export const analyticsController = {
   async getTimeSeriesStats(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campusId = req.query.campusId as string;
+      const campusId = req.query.campusId as string | undefined;
       const period = (req.query.period as any) || 'week';
-      const stats = await analyticsService.getTimeSeriesStats(req.schoolId, period, campusId);
+      const scopedCampusIds = analyticsService.resolveScopedCampusIds(req.user?.role, req.user?.campusIds, campusId);
+      const stats = await analyticsService.getTimeSeriesStats(req.schoolId, period, scopedCampusIds);
       res.sendSuccess('Time series stats fetched', stats);
     } catch (error) {
       next(error);

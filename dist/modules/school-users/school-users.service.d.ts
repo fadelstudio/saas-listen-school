@@ -172,6 +172,7 @@ export declare const schoolUsersService: {
         bio: string | null;
         address: string | null;
         avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         fcmToken: string | null;

@@ -4,6 +4,7 @@ export interface ProfessorFilters {
   search?: string;
   classId?: string;
   campusId?: string;
+  campusIds?: string[];
 }
 
 

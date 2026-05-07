@@ -10,6 +10,7 @@ Ce document est le guide de référence ultime pour le développement de l'appli
 - **Base URL (Production) :** `https://afi-listen-api.up.railway.app/api`
 - **Header École :** `x-school-slug: afi` (OBLIGATOIRE sur tous les appels).
 - **Header Auth :** `Authorization: Bearer <JWT_TOKEN>` (Obtenu après Login/Register).
+- **Scope sécurité :** ne jamais forcer des `campusId` hors scope utilisateur. Le backend rejette les IDs hors périmètre.
 
 ### Stratégie de Performance (Légèreté & Vitesse)
 Pour une application ultra-réactive :
@@ -90,7 +91,7 @@ L'UTI est la clé de voûte du mode anonyme.
 Les évaluations ne se font pas dans le vide : elles sont liées à des **Campagnes actives**.
 
 ### Flux d'Évaluation
-1. **Récupérer les Campagnes :** `GET /api/evaluation-campaigns` (filtré par votre `classId` vue que user connecté).
+1. **Récupérer les Campagnes :** `GET /api/evaluation-campaigns` (filtré automatiquement par votre `classId` + campus attachés).
 2. **Filtrage :** L'app affiche les campagnes "OUVERTES" pour les modules suivis par l'étudiant.
 3. **Soumission :** `POST /api/evaluations`
    - **Body :**
@@ -156,6 +157,13 @@ Appelez systématiquement cet endpoint au démarrage et après login :
     "uti": "votre-uti-local"
   }
   ```
+
+## 9. OTP / Emails / Reset Password (prod)
+
+- Les emails OTP/reset utilisent `PUBLIC_APP_URL` (Railway en prod).
+- Si SMTP Ethereal est utilisé, récupérer l'URL de preview depuis les logs serveur (`[mail:smtp:preview]`).
+- Le fallback OTP serveur peut être activé temporairement (`OTP_FALLBACK_ENABLED`) pour continuité de service.
+- Ne pas dépendre de l'inbound Ethereal (désactivé sans clé API payante).
 
 ---
 

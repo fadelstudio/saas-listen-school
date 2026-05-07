@@ -24,7 +24,7 @@ router.use(authMiddleware);
  * @swagger
  * /api/evaluation-campaigns:
  *   post:
- *     summary: "Lancer une nouvelle campagne d'évaluation (ADMIN+)"
+ *     summary: "Lancer une nouvelle campagne d'évaluation (MANAGER+)"
  *     description: Crée une invitation à évaluer pour un groupe d'élèves (classe, campus ou école entière).
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
@@ -54,7 +54,7 @@ router.use(authMiddleware);
  */
 router.post(
   '/',
-  requireRole(Role.ADMIN),
+  requireRole(Role.ADMIN, Role.MANAGER),
   validate({ body: createEvaluationCampaignSchema }),
   evaluationCampaignsController.create
 );
@@ -121,7 +121,7 @@ router.get('/:id', validate({ params: evaluationCampaignIdParamsSchema }), evalu
  * @swagger
  * /api/evaluation-campaigns/{id}/close:
  *   post:
- *     summary: "Clôturer manuellement une campagne (ADMIN+)"
+ *     summary: "Clôturer manuellement une campagne (MANAGER+)"
  *     description: Empêche toute nouvelle évaluation pour cette campagne.
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
@@ -136,7 +136,7 @@ router.get('/:id', validate({ params: evaluationCampaignIdParamsSchema }), evalu
  */
 router.post(
   '/:id/close',
-  requireRole(Role.ADMIN),
+  requireRole(Role.ADMIN, Role.MANAGER),
   validate({ params: evaluationCampaignIdParamsSchema }),
   evaluationCampaignsController.close
 );
@@ -149,14 +149,14 @@ router.get(
 
 router.post(
   '/:id/remind',
-  requireRole(Role.ADMIN),
+  requireRole(Role.ADMIN, Role.MANAGER),
   validate({ params: evaluationCampaignIdParamsSchema }),
   evaluationCampaignsController.remind
 );
 
 router.post(
   '/:id/analyze',
-  requireRole(Role.ADMIN),
+  requireRole(Role.ADMIN, Role.MANAGER),
   validate({ params: evaluationCampaignIdParamsSchema }),
   evaluationCampaignsController.analyze
 );

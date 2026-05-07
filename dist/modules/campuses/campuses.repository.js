@@ -7,6 +7,7 @@ exports.campusesRepository = {
     async findAll(schoolId, filters, pagination) {
         const where = {
             schoolId,
+            ...(filters.campusIds && filters.campusIds.length > 0 ? { id: { in: filters.campusIds } } : {}),
             ...(filters.search && {
                 name: { contains: filters.search, mode: 'insensitive' },
             }),

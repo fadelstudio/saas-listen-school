@@ -62,6 +62,10 @@ function generateNumericOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+function canUseOtpFallback(): boolean {
+  return env.OTP_FALLBACK_ENABLED && env.MAIL_PROVIDER === 'console' && !!env.OTP_FALLBACK_CODE;
+}
+
 function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
   return {
     id: user.id,
@@ -300,7 +304,8 @@ export const authService = {
     }
 
     const expected = hashOtp(input.otp.trim());
-    if (expected !== challenge.otpHash) {
+    const fallbackMatch = canUseOtpFallback() && input.otp.trim() === env.OTP_FALLBACK_CODE;
+    if (expected !== challenge.otpHash && !fallbackMatch) {
       const updated = await authRepository.incrementLoginOtpAttempts(challenge.id);
 
       if (updated.attempts >= OTP_MAX_ATTEMPTS) {

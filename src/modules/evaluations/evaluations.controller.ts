@@ -18,7 +18,8 @@ export const evaluationsController = {
       const result = await evaluationsService.getAll(
         req.query as Record<string, unknown>,
         req.user?.role,
-        req.schoolId
+        req.schoolId,
+        req.user?.campusIds
       );
       res.sendSuccess('Evaluations fetched', result.items, 200, {
         total: result.total,
@@ -35,7 +36,8 @@ export const evaluationsController = {
       const result = await evaluationsService.getById(
         req.params.id as string,
         req.user?.role,
-        req.schoolId
+        req.schoolId,
+        req.user?.campusIds
       );
       res.sendSuccess('Evaluation fetched', result);
     } catch (error) { next(error); }
@@ -62,7 +64,12 @@ export const evaluationsController = {
   async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const result = await evaluationsService.getStats(req.query as Record<string, unknown>, req.schoolId);
+      const result = await evaluationsService.getStats(
+        req.query as Record<string, unknown>,
+        req.schoolId,
+        req.user?.role,
+        req.user?.campusIds
+      );
       res.sendSuccess('Evaluation stats', result);
     } catch (error) { next(error); }
   },

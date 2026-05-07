@@ -68,6 +68,17 @@ exports.systemController = {
         catch (error) {
             next(error);
         }
+    },
+    async getPublicFormData(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const data = await system_service_1.systemService.getPublicFormData(req.schoolId);
+            res.sendSuccess('Public form data fetched', data);
+        }
+        catch (error) {
+            next(error);
+        }
     }
 };
 //# sourceMappingURL=system.controller.js.map

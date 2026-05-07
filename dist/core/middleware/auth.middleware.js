@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorize = exports.authenticate = void 0;
 exports.authMiddleware = authMiddleware;
 exports.requireRole = requireRole;
+exports.optionalAuthMiddleware = optionalAuthMiddleware;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const AppError_1 = require("../errors/AppError");
@@ -74,4 +75,28 @@ function requireRole(...roles) {
 }
 exports.authenticate = authMiddleware;
 exports.authorize = requireRole;
+async function optionalAuthMiddleware(req, _res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+        return next();
+    }
+    const token = authHeader.slice(7);
+    try {
+        const payload = jsonwebtoken_1.default.verify(token, env_1.env.JWT_SECRET);
+        if (payload.sid) {
+            const user = await prisma_1.prisma.user.findUnique({
+                where: { id: payload.userId },
+                select: { currentSessionId: true }
+            });
+            if (user && user.currentSessionId !== payload.sid) {
+                return next(); // invalid session, continue as guest
+            }
+        }
+        req.user = payload;
+        next();
+    }
+    catch (error) {
+        next();
+    }
+}
 //# sourceMappingURL=auth.middleware.js.map

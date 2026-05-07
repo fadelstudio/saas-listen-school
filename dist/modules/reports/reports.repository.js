@@ -25,6 +25,7 @@ exports.reportsRepository = {
                 module: data.moduleId ? { connect: { id: data.moduleId } } : undefined,
                 school: schoolId ? { connect: { id: schoolId } } : undefined,
                 status: client_1.ReportStatus.SUBMITTED,
+                deviceMetadata: data.uti ? { uti: data.uti, ...(data.deviceMetadata || {}) } : data.deviceMetadata,
             },
             include: {
                 author: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -54,6 +55,7 @@ exports.reportsRepository = {
             ...(schoolId ? { schoolId } : {}),
             ...(filters.status && { status: filters.status }),
             ...(filters.authorId && { authorId: filters.authorId }),
+            ...(filters.campusIds && filters.campusIds.length > 0 ? { class: { campusId: { in: filters.campusIds } } } : {}),
             ...(filters.campusId && { class: { campusId: filters.campusId } }),
             ...(filters.classId && { classId: filters.classId }),
             ...(filters.professorId && { professorId: filters.professorId }),

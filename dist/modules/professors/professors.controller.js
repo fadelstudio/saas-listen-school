@@ -8,7 +8,7 @@ exports.professorsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await professors_service_1.professorsService.getAll(req.schoolId, req.query);
+            const result = await professors_service_1.professorsService.getAll(req.schoolId, req.query, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Professors fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -24,7 +24,7 @@ exports.professorsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const professor = await professors_service_1.professorsService.getById(req.params.id, req.schoolId);
+            const professor = await professors_service_1.professorsService.getById(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Professor fetched', professor);
         }
         catch (error) {

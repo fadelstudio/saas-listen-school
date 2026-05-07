@@ -46,14 +46,29 @@ export async function sendTransactionalEmail(params: {
 
   if (env.MAIL_PROVIDER === "smtp") {
     const transporter = getSmtpTransporter();
-    await transporter.sendMail({
-      from: env.EMAIL_FROM,
-      to: params.to,
-      subject: params.subject,
-      text: params.text,
-      html: params.html ?? `<pre>${escapeHtml(params.text)}</pre>`,
-    });
-    return;
+    try {
+      const info = await transporter.sendMail({
+        from: env.EMAIL_FROM,
+        to: params.to,
+        subject: params.subject,
+        text: params.text,
+        html: params.html ?? `<pre>${escapeHtml(params.text)}</pre>`,
+      });
+
+      // Ethereal helper URL to preview outbound emails in browser.
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      if (previewUrl) {
+        logger.info("[mail:smtp:preview]", { to: params.to, previewUrl });
+      }
+      return;
+    } catch (smtpError) {
+      logger.warn("[mail:smtp] failed, attempting resend fallback", {
+        error: (smtpError as Error).message,
+      });
+      if (!env.RESEND_API_KEY?.trim()) {
+        throw smtpError;
+      }
+    }
   }
 
   await axios.post(

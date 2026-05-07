@@ -1,6 +1,7 @@
 import { ReportStatus } from '@prisma/client';
 import type { CreateReportInput, UpdateReportInput } from './reports.types';
 export declare const reportsService: {
+    resolveScopedCampusFilter(userRole?: string, userCampusIds?: string[], requestedCampusId?: string): string[] | undefined;
     create(input: CreateReportInput, userId?: string, schoolId?: string | null): Promise<{
         module: {
             code: string | null;
@@ -58,7 +59,7 @@ export declare const reportsService: {
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
-    getById(id: string, userRole?: string, schoolId?: string | null): Promise<{
+    getById(id: string, userRole?: string, schoolId?: string | null, scopedCampusIds?: string[]): Promise<{
         module: {
             code: string | null;
             name: string;
@@ -128,7 +129,7 @@ export declare const reportsService: {
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
-    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
         module: {
             code: string | null;
             name: string;
@@ -230,5 +231,62 @@ export declare const reportsService: {
         queued: boolean;
         reportId: string;
     }>;
+    getMyReports(userId: string, query: Record<string, unknown>, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
+        module: {
+            code: string | null;
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string;
+        } | null;
+        professor: {
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            schoolId: string | null;
+            phone: string | null;
+            firstName: string;
+            lastName: string;
+            matricule: string | null;
+            numero: string | null;
+            avatarPath: string | null;
+            userId: string | null;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            levelId: string;
+            campusId: string;
+        } | null;
+        author: {
+            email: string;
+            id: string;
+            firstName: string;
+            lastName: string;
+        } | null;
+    } & {
+        type: import("@prisma/client").$Enums.ReportType;
+        attachments: import("@prisma/client/runtime/client").JsonValue | null;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        classId: string | null;
+        title: string;
+        content: string;
+        priority: import("@prisma/client").$Enums.Priority;
+        status: import("@prisma/client").$Enums.ReportStatus;
+        isAnonymous: boolean;
+        category: string | null;
+        authorId: string | null;
+        professorId: string | null;
+        moduleId: string | null;
+        deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
+        aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
+    }>>;
 };
 //# sourceMappingURL=reports.service.d.ts.map

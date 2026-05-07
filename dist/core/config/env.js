@@ -24,6 +24,7 @@ function parseOptionalBool(value) {
         return false;
     return undefined;
 }
+const zEnvBool = zod_1.z.preprocess((v) => parseOptionalBool(v), zod_1.z.coerce.boolean());
 const envSchema = zod_1.z.object({
     NODE_ENV: zod_1.z.enum(["development", "production", "test"]).default("development"),
     PORT: zod_1.z.coerce.number().default(3000),
@@ -34,7 +35,7 @@ const envSchema = zod_1.z.object({
     /** Mot de passe appliqué par un admin lors de `POST .../reset-password-default` (compte utilisateur). */
     DEFAULT_PASSWORD_RESET: zod_1.z.string().min(8).default("ListenReset1!"),
     // Registration OTP (first registration only). Keeps legacy name for compatibility.
-    LOGIN_OTP_ENABLED: zod_1.z.coerce.boolean().default(false),
+    LOGIN_OTP_ENABLED: zEnvBool.default(false),
     /** Comptes créés avec OTP requis mais jamais vérifiés : purge après ce délai (minutes). */
     PENDING_REGISTRATION_TTL_MINUTES: zod_1.z.coerce.number().int().positive().default(30),
     // Supabase
@@ -55,13 +56,24 @@ const envSchema = zod_1.z.object({
     ANALYTICS_REPORT_INTERVAL_DAYS: zod_1.z.coerce.number().int().positive().default(30),
     // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
     PUBLIC_APP_URL: zod_1.z.string().url().default("http://localhost:3000"),
-    MAIL_PROVIDER: zod_1.z.enum(["console", "resend"]).default("console"),
+    MAIL_PROVIDER: zod_1.z.enum(["console", "resend", "smtp"]).default("console"),
     RESEND_API_KEY: zod_1.z.string().optional(),
     EMAIL_FROM: zod_1.z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
+    // SMTP (for dev testing with Mailtrap/Ethereal)
+    SMTP_HOST: zod_1.z.string().optional(),
+    SMTP_PORT: zod_1.z.coerce.number().optional(),
+    SMTP_USER: zod_1.z.string().optional(),
+    SMTP_PASS: zod_1.z.string().optional(),
+    SMTP_SECURE: zEnvBool.default(false),
     // OTP email branding (registration)
     OTP_SITE_NAME: zod_1.z.string().min(1).optional(),
     OTP_EMAIL_SUBJECT: zod_1.z.string().min(1).optional(),
     OTP_HELP_URL: zod_1.z.string().url().optional(),
+    OTP_FALLBACK_ENABLED: zEnvBool.default(false),
+    OTP_FALLBACK_CODE: zod_1.z
+        .string()
+        .regex(/^\d{6}$/, "OTP_FALLBACK_CODE must be a 6-digit numeric string")
+        .optional(),
     // Tenant resolution (see .env.local.example)
     DEFAULT_SCHOOL_SLUG: zod_1.z.string().min(1).optional(),
     /** @deprecated Prefer `TENANT_STRICT_MODE`. Kept for backward compatibility. */
@@ -79,6 +91,19 @@ const parsed = envSchema
             code: zod_1.z.ZodIssueCode.custom,
             message: "RESEND_API_KEY is required when MAIL_PROVIDER=resend",
             path: ["RESEND_API_KEY"],
+        });
+    }
+    if (data.MAIL_PROVIDER === "smtp") {
+        if (!data.SMTP_HOST)
+            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
+        if (!data.SMTP_PORT)
+            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
+    }
+    if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
+        ctx.addIssue({
+            code: zod_1.z.ZodIssueCode.custom,
+            message: "PUBLIC_APP_URL must be a public HTTPS URL in production",
+            path: ["PUBLIC_APP_URL"],
         });
     }
 })

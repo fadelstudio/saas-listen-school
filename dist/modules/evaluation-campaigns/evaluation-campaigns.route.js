@@ -48,7 +48,7 @@ router.use(auth_middleware_1.authMiddleware);
  *       201:
  *         description: Campagne créée avec succès. Les élèves concernés recevront une notification.
  */
-router.post('/', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ body: evaluation_campaigns_schema_1.createEvaluationCampaignSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.create);
+router.post('/', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ body: evaluation_campaigns_schema_1.createEvaluationCampaignSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.create);
 /**
  * @swagger
  * /api/evaluation-campaigns:
@@ -122,8 +122,8 @@ router.get('/:id', (0, validate_middleware_1.validate)({ params: evaluation_camp
  *       200:
  *         description: Campagne clôturée avec succès
  */
-router.post('/:id/close', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.close);
+router.post('/:id/close', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.close);
 router.get('/:id/analytics', (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.getAnalytics);
-router.post('/:id/remind', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.remind);
-router.post('/:id/analyze', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.analyze);
+router.post('/:id/remind', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.remind);
+router.post('/:id/analyze', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.analyze);
 //# sourceMappingURL=evaluation-campaigns.route.js.map

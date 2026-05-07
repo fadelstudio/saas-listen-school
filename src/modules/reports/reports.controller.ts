@@ -21,7 +21,8 @@ export const reportsController = {
       const result = await reportsService.getAll(
         req.query as Record<string, unknown>,
         req.user?.role,
-        req.schoolId
+        req.schoolId,
+        req.user?.campusIds
       );
       res.sendSuccess('Reports fetched', result.items, 200, {
         total: result.total,
@@ -40,7 +41,8 @@ export const reportsController = {
       const report = await reportsService.getById(
         req.params.id as string,
         req.user?.role,
-        req.schoolId
+        req.schoolId,
+        req.user?.campusIds
       );
       res.sendSuccess('Report fetched', report);
     } catch (error) {

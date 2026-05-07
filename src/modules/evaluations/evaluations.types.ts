@@ -36,6 +36,7 @@ export interface EvaluationFilters {
   moduleId?: string;
   classId?: string;
   campusId?: string;
+  campusIds?: string[];
   startDate?: string;
   endDate?: string;
 }

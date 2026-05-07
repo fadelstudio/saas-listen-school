@@ -9,6 +9,13 @@ const audit_service_1 = require("../audit/audit.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const reports_repository_1 = require("../reports/reports.repository");
 exports.decisionsService = {
+    resolveScopedCampusIds(userRole, userCampusIds) {
+        if (!['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || ''))
+            return undefined;
+        if (!userCampusIds || userCampusIds.length === 0)
+            return undefined;
+        return userCampusIds;
+    },
     async create(input, userId, userRole, schoolId) {
         if (!['ADMIN', 'MANAGER'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can create decisions');
@@ -52,19 +59,31 @@ exports.decisionsService = {
         }
         return decision;
     },
-    async getById(id, schoolId) {
+    async getById(id, schoolId, scopedCampusIds) {
         const decision = await decisions_repository_1.decisionsRepository.findById(id, schoolId ?? null);
         if (!decision)
             throw new AppError_1.NotFoundError('Decision');
+        if (scopedCampusIds && scopedCampusIds.length > 0) {
+            const reportCampusId = decision.report?.class?.campusId;
+            const evaluationCampusId = decision.evaluation?.class?.campusId;
+            const campaignClassCampusId = decision.campaign?.class?.campusId;
+            const campaignCampusId = decision.campaign?.campusId;
+            const scoped = [reportCampusId, evaluationCampusId, campaignClassCampusId, campaignCampusId]
+                .filter(Boolean)
+                .some((c) => scopedCampusIds.includes(c));
+            if (!scoped)
+                throw new AppError_1.NotFoundError('Decision');
+        }
         return decision;
     },
-    async getAll(query, schoolId) {
+    async getAll(query, schoolId, userRole, userCampusIds) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
             deciderId: query.deciderId,
             startDate: query.startDate,
             endDate: query.endDate,
+            campusIds: this.resolveScopedCampusIds(userRole, userCampusIds),
         };
         const { items, total } = await decisions_repository_1.decisionsRepository.findAll(filters, pagination, schoolId ?? null);
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);

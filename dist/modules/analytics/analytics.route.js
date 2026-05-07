@@ -33,11 +33,11 @@ exports.analyticsRouter = router;
  *       200:
  *         description: Statistiques récupérées
  */
-router.get('/dashboard', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.SUPERADMIN), analytics_controller_1.analyticsController.getDashboardStats);
-router.get('/time-series', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.SUPERADMIN), analytics_controller_1.analyticsController.getTimeSeriesStats);
+router.get('/dashboard', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.VIEWER, client_1.Role.SUPERADMIN), analytics_controller_1.analyticsController.getDashboardStats);
+router.get('/time-series', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.VIEWER, client_1.Role.SUPERADMIN), analytics_controller_1.analyticsController.getTimeSeriesStats);
 router.post('/generate-periodic-report', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.SUPERADMIN), analytics_controller_1.analyticsController.generatePeriodicReport);
 router.post('/global-analysis', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ body: analytics_schema_1.globalAnalysisSchema }), analytics_controller_1.analyticsController.generateGlobalAnalysis);
-router.get('/reports', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), analytics_controller_1.analyticsController.getReports);
-router.get('/reports/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), analytics_controller_1.analyticsController.getReportById);
+router.get('/reports', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.VIEWER), analytics_controller_1.analyticsController.getReports);
+router.get('/reports/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER, client_1.Role.VIEWER), analytics_controller_1.analyticsController.getReportById);
 router.post('/generate-periodic-report', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), analytics_controller_1.analyticsController.generatePeriodicReport);
 //# sourceMappingURL=analytics.route.js.map

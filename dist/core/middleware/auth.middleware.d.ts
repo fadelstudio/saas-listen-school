@@ -27,4 +27,5 @@ export declare function authMiddleware(req: Request, _res: Response, next: NextF
 export declare function requireRole(...roles: string[]): (req: Request, _res: Response, next: NextFunction) => void;
 export declare const authenticate: typeof authMiddleware;
 export declare const authorize: typeof requireRole;
+export declare function optionalAuthMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void>;
 //# sourceMappingURL=auth.middleware.d.ts.map

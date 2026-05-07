@@ -33,6 +33,7 @@ exports.notificationsRepository = {
                 // Broadcast ciblé
                 {
                     userId: null,
+                    targetDeviceUti: null,
                     AND: [
                         {
                             OR: [
@@ -70,6 +71,42 @@ exports.notificationsRepository = {
             prisma_1.prisma.notification.count({ where }),
         ]);
         return { items, total };
+    },
+    async countUnread(userId, schoolId, userRole, campusIds, classId) {
+        const where = {
+            schoolId,
+            isRead: false,
+            OR: [
+                { userId },
+                { targetUserIds: { has: userId } },
+                {
+                    userId: null,
+                    targetDeviceUti: null,
+                    AND: [
+                        {
+                            OR: [
+                                { targetRoles: { isEmpty: true } },
+                                { targetRoles: { has: userRole } }
+                            ]
+                        },
+                        {
+                            OR: [
+                                { targetCampusIds: { isEmpty: true } },
+                                { targetCampusIds: { hasSome: campusIds } }
+                            ]
+                        },
+                        {
+                            OR: [
+                                { targetClassIds: { isEmpty: true } },
+                                { targetClassIds: classId ? { has: classId } : undefined }
+                            ].filter(Boolean)
+                        },
+                    ],
+                },
+                { userId: null, schoolId: null },
+            ],
+        };
+        return prisma_1.prisma.notification.count({ where });
     },
     /**
      * Récupère les notifications pour un invité identifié par son UTI.

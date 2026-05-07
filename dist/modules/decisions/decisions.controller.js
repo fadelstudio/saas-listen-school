@@ -19,7 +19,7 @@ exports.decisionsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await decisions_service_1.decisionsService.getAll(req.query, req.schoolId);
+            const result = await decisions_service_1.decisionsService.getAll(req.query, req.schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Decisions fetched', result);
         }
         catch (error) {
@@ -30,7 +30,7 @@ exports.decisionsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await decisions_service_1.decisionsService.getById(req.params.id, req.schoolId);
+            const result = await decisions_service_1.decisionsService.getById(req.params.id, req.schoolId, decisions_service_1.decisionsService.resolveScopedCampusIds(req.user?.role, req.user?.campusIds));
             res.sendSuccess('Decision fetched', result);
         }
         catch (error) {

@@ -18,8 +18,8 @@ const router = Router();
  * @swagger
  * /api/analytics/dashboard:
  *   get:
- *     summary: "[MANAGER+] Statistiques globales du dashboard"
- *     description: Retourne des compteurs et distributions pour les graphiques.
+ *     summary: "[VIEWER+] Statistiques globales du dashboard"
+ *     description: Retourne des compteurs et distributions, automatiquement filtrés par campus attachés au compte.
  *     tags: [Analytics]
  *     security:
  *       - bearerAuth: []
@@ -35,14 +35,14 @@ const router = Router();
 router.get(
   '/dashboard',
   authMiddleware,
-  requireRole(Role.ADMIN, Role.MANAGER, Role.SUPERADMIN),
+  requireRole(Role.ADMIN, Role.MANAGER, Role.VIEWER, Role.SUPERADMIN),
   analyticsController.getDashboardStats
 );
 
 router.get(
   '/time-series',
   authMiddleware,
-  requireRole(Role.ADMIN, Role.MANAGER, Role.SUPERADMIN),
+  requireRole(Role.ADMIN, Role.MANAGER, Role.VIEWER, Role.SUPERADMIN),
   analyticsController.getTimeSeriesStats
 );
 
@@ -64,14 +64,14 @@ router.post(
 router.get(
   '/reports',
   authMiddleware,
-  requireRole(Role.ADMIN, Role.MANAGER),
+  requireRole(Role.ADMIN, Role.MANAGER, Role.VIEWER),
   analyticsController.getReports
 );
 
 router.get(
   '/reports/:id',
   authMiddleware,
-  requireRole(Role.ADMIN, Role.MANAGER),
+  requireRole(Role.ADMIN, Role.MANAGER, Role.VIEWER),
   analyticsController.getReportById
 );
 

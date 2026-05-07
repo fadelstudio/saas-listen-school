@@ -12,6 +12,22 @@ import { logger } from '../../utils/logger';
 
 
 export const reportsService = {
+  resolveScopedCampusFilter(
+    userRole?: string,
+    userCampusIds?: string[],
+    requestedCampusId?: string
+  ): string[] | undefined {
+    if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole)) return undefined;
+    if (!userCampusIds || userCampusIds.length === 0) return undefined;
+    if (requestedCampusId) {
+      if (!userCampusIds.includes(requestedCampusId)) {
+        throw new ForbiddenError('Requested campus is outside your scope');
+      }
+      return [requestedCampusId];
+    }
+    return userCampusIds;
+  },
+
   async create(input: CreateReportInput, userId?: string, schoolId?: string | null) {
     let finalInput = { ...input };
 
@@ -99,9 +115,17 @@ export const reportsService = {
     return report;
   },
 
-  async getById(id: string, userRole?: string, schoolId?: string | null) {
+  async getById(id: string, userRole?: string, schoolId?: string | null, scopedCampusIds?: string[]) {
     const report = await reportsRepository.findById(id, schoolId ?? null);
     if (!report) throw new NotFoundError('Report');
+    if (
+      scopedCampusIds &&
+      scopedCampusIds.length > 0 &&
+      report.class?.campusId &&
+      !scopedCampusIds.includes(report.class.campusId)
+    ) {
+      throw new ForbiddenError('You do not have access to this report');
+    }
 
     // Scrub author if anonymous and requester is not admin
     if (report.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
@@ -112,7 +136,7 @@ export const reportsService = {
     return report;
   },
 
-  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null) {
+  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]) {
     const pagination = parsePagination(query);
 
     const filters: ReportFilters = {
@@ -127,6 +151,11 @@ export const reportsService = {
       endDate: query.endDate as string | undefined,
       search: query.search as string | undefined,
     };
+    const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
+    if (scopedCampusIds && scopedCampusIds.length > 0) {
+      delete filters.campusId;
+      filters.campusIds = scopedCampusIds;
+    }
 
     const { items, total } = await reportsRepository.findAll(filters, pagination, schoolId ?? null);
 

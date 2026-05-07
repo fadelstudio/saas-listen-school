@@ -2,6 +2,14 @@
 
 L'API AFI-LISTEN est accessible via `/api/v1` (ou `/api`). Tous les endpoints retournent du JSON.
 
+## Scope & Sécurité multi-campus
+
+- Toutes les routes de lecture dashboard sont filtrées par `schoolId` + scope utilisateur.
+- Rôles `ADMIN`/`MANAGER`/`VIEWER` avec `campusIds` attachés: données limitées à ces campus.
+- `STUDENT`: filtrage renforcé par `classId`/campagnes actives.
+- `VIEWER`: lecture seule (aucune action d'écriture).
+- En production, les liens d'email (reset/OTP) utilisent `PUBLIC_APP_URL` public (pas de `localhost`).
+
 ## 🔑 Authentification (`/auth`)
 
 Endpoints pour la gestion des comptes et sessions.
@@ -21,6 +29,11 @@ Endpoints pour la gestion des comptes et sessions.
 | POST | `/change-password` | Changement de mot de passe | Oui |
 | POST | `/refresh` | Rafraîchissement des tokens | Non |
 | POST | `/logout` | Déconnexion | Non |
+
+Notes OTP/email:
+- OTP standard: envoi email (SMTP/Resend selon config).
+- Fallback OTP: activable via `OTP_FALLBACK_ENABLED=true` + `OTP_FALLBACK_CODE=XXXXXX`, utilisable uniquement sur challenge OTP déjà ouvert.
+- SMTP Ethereal: si l'envoi réussit, une URL de preview est loggée côté serveur (`[mail:smtp:preview]`).
 
 ---
 

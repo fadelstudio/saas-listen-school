@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { AcademicModuleFilters } from './academic-modules.types';
 import { parsePagination } from '../../utils/pagination';
 type PaginationArgs = ReturnType<typeof parsePagination>;
@@ -36,6 +37,7 @@ export declare const academicModulesRepository: {
                 bio: string | null;
                 address: string | null;
                 avatarPath: string | null;
+                sex: import("@prisma/client").$Enums.Sex;
                 role: import("@prisma/client").$Enums.Role;
                 isActive: boolean;
                 fcmToken: string | null;
@@ -54,6 +56,7 @@ export declare const academicModulesRepository: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: Prisma.JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;

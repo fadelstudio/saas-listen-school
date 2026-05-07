@@ -16,13 +16,14 @@ const priorityEnum = zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
 exports.createReportSchema = zod_1.z.object({
     title: zod_1.z.string().min(3, 'Title must be at least 3 characters').max(200),
     content: zod_1.z.string().min(10, 'Content must be at least 10 characters').max(5000),
-    type: reportTypeEnum.optional(),
+    type: reportTypeEnum,
     category: zod_1.z.string().max(100).optional(),
-    priority: priorityEnum.optional(),
+    priority: priorityEnum,
     isAnonymous: zod_1.z.boolean().optional().default(false),
-    classId: zod_1.z.string().uuid('Invalid class ID').optional(),
-    professorId: zod_1.z.string().uuid('Invalid professor ID').optional(),
-    moduleId: zod_1.z.string().uuid('Invalid module ID').optional(),
+    classId: zod_1.z.string().uuid('Invalid class ID').optional().nullable(),
+    professorId: zod_1.z.string().uuid('Invalid professor ID').optional().nullable(),
+    moduleId: zod_1.z.string().uuid('Invalid module ID').optional().nullable(),
+    uti: zod_1.z.string().optional().nullable(),
 });
 // ─── Update ───────────────────────────────────────────────────────────────────
 exports.updateReportSchema = zod_1.z.object({

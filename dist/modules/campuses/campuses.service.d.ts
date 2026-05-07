@@ -1,5 +1,5 @@
 export declare const campusesService: {
-    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
         _count: {
             classes: number;
             users: number;
@@ -14,7 +14,7 @@ export declare const campusesService: {
         location: string | null;
         phone: string | null;
     }>>;
-    getById(id: string, schoolId: string): Promise<{
+    getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         classes: ({
             _count: {
                 users: number;
@@ -65,7 +65,7 @@ export declare const campusesService: {
         location: string | null;
         phone: string | null;
     } | null>;
-    getClasses(id: string, schoolId: string): Promise<({
+    getClasses(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<({
         academicLevel: {
             name: string;
             id: string;
@@ -85,7 +85,7 @@ export declare const campusesService: {
         levelId: string;
         campusId: string;
     })[]>;
-    getStudents(id: string, schoolId: string): Promise<{
+    getStudents(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         email: string;
         id: string;
         firstName: string;
@@ -102,7 +102,7 @@ export declare const campusesService: {
         students: number;
         professors: number;
     }>;
-    getProfessors(id: string, schoolId: string): Promise<({
+    getProfessors(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<({
         _count: {
             evaluations: number;
         };

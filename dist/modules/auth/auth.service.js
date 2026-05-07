@@ -44,12 +44,16 @@ function hashResetToken(token) {
 function generateNumericOtp() {
     return String(Math.floor(100000 + Math.random() * 900000));
 }
+function canUseOtpFallback() {
+    return env_1.env.OTP_FALLBACK_ENABLED && env_1.env.MAIL_PROVIDER === 'console' && !!env_1.env.OTP_FALLBACK_CODE;
+}
 function toSafeUser(user) {
     return {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        sex: user.sex || 'UNDEFINED',
         role: user.role,
         isActive: user.isActive,
         emailVerified: user.emailVerified,
@@ -115,8 +119,19 @@ exports.authService = {
         }
         const passwordHash = await bcrypt_1.default.hash(input.password, SALT_ROUNDS);
         const otpRequired = await isRegisterOtpRequiredForSchool(schoolId);
+        // If student chooses a class but no campus, resolve the campus from the class
+        let campusId = input.campusId;
+        if (input.classId && !campusId) {
+            const classRecord = await prisma_1.prisma.class.findUnique({
+                where: { id: input.classId },
+                select: { campusId: true }
+            });
+            if (classRecord)
+                campusId = classRecord.campusId;
+        }
         const user = await auth_repository_1.authRepository.create({
             ...input,
+            campusId,
             passwordHash,
             schoolId,
             emailVerified: !otpRequired,
@@ -227,7 +242,8 @@ exports.authService = {
             throw new AppError_1.BadRequestError('Too many OTP attempts. Please log in again.');
         }
         const expected = hashOtp(input.otp.trim());
-        if (expected !== challenge.otpHash) {
+        const fallbackMatch = canUseOtpFallback() && input.otp.trim() === env_1.env.OTP_FALLBACK_CODE;
+        if (expected !== challenge.otpHash && !fallbackMatch) {
             const updated = await auth_repository_1.authRepository.incrementLoginOtpAttempts(challenge.id);
             if (updated.attempts >= OTP_MAX_ATTEMPTS) {
                 await auth_repository_1.authRepository.deleteLoginOtpChallenge(challenge.id);
@@ -375,6 +391,7 @@ exports.authService = {
             ...(input.phone !== undefined && { phone: trimOrNull(input.phone) ?? null }),
             ...(input.bio !== undefined && { bio: trimOrNull(input.bio) ?? null }),
             ...(input.address !== undefined && { address: trimOrNull(input.address) ?? null }),
+            ...(input.sex !== undefined && { sex: input.sex }),
         };
         if (Object.keys(payload).length === 0) {
             return toSafeUserWithAvatar(user);

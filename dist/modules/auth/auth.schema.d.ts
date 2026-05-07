@@ -4,6 +4,12 @@ export declare const registerSchema: z.ZodObject<{
     password: z.ZodString;
     firstName: z.ZodString;
     lastName: z.ZodString;
+    sex: z.ZodDefault<z.ZodEnum<{
+        UNDEFINED: "UNDEFINED";
+        MALE: "MALE";
+        FEMALE: "FEMALE";
+    }>>;
+    matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     campusId: z.ZodOptional<z.ZodString>;
     classId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
@@ -11,6 +17,7 @@ export declare const loginSchema: z.ZodObject<{
     email: z.ZodOptional<z.ZodString>;
     matricule: z.ZodOptional<z.ZodString>;
     password: z.ZodString;
+    uti: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const changePasswordSchema: z.ZodObject<{
     currentPassword: z.ZodString;
@@ -25,6 +32,11 @@ export declare const updateProfileSchema: z.ZodObject<{
     phone: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     bio: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
     address: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
+    sex: z.ZodOptional<z.ZodEnum<{
+        UNDEFINED: "UNDEFINED";
+        MALE: "MALE";
+        FEMALE: "FEMALE";
+    }>>;
 }, z.core.$strip>;
 export declare const verifyLoginOtpSchema: z.ZodObject<{
     challengeId: z.ZodString;

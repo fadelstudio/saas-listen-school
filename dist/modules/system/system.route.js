@@ -41,6 +41,7 @@ exports.systemRouter = (0, express_1.Router)();
  *                 updatedAt: { type: string, format: date-time }
  */
 exports.systemRouter.get('/public', system_controller_1.systemController.getPublicSettings);
+exports.systemRouter.get('/public/form-data', system_controller_1.systemController.getPublicFormData);
 /**
  * @swagger
  * /api/system:

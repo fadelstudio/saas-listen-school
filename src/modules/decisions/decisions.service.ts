@@ -9,6 +9,12 @@ import { notificationService } from '../notifications/notifications.service';
 import { reportsRepository } from '../reports/reports.repository';
 
 export const decisionsService = {
+  resolveScopedCampusIds(userRole?: string, userCampusIds?: string[]): string[] | undefined {
+    if (!['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '')) return undefined;
+    if (!userCampusIds || userCampusIds.length === 0) return undefined;
+    return userCampusIds;
+  },
+
   async create(input: CreateDecisionInput, userId: string, userRole: string, schoolId?: string | null) {
     if (!['ADMIN', 'MANAGER'].includes(userRole)) {
       throw new ForbiddenError('Only MANAGER or ADMIN can create decisions');
@@ -57,19 +63,35 @@ export const decisionsService = {
     return decision;
   },
 
-  async getById(id: string, schoolId?: string | null) {
+  async getById(id: string, schoolId?: string | null, scopedCampusIds?: string[]) {
     const decision = await decisionsRepository.findById(id, schoolId ?? null);
     if (!decision) throw new NotFoundError('Decision');
+    if (scopedCampusIds && scopedCampusIds.length > 0) {
+      const reportCampusId = (decision as any).report?.class?.campusId;
+      const evaluationCampusId = (decision as any).evaluation?.class?.campusId;
+      const campaignClassCampusId = (decision as any).campaign?.class?.campusId;
+      const campaignCampusId = (decision as any).campaign?.campusId;
+      const scoped = [reportCampusId, evaluationCampusId, campaignClassCampusId, campaignCampusId]
+        .filter(Boolean)
+        .some((c) => scopedCampusIds.includes(c));
+      if (!scoped) throw new NotFoundError('Decision');
+    }
     return decision;
   },
 
-  async getAll(query: Record<string, unknown>, schoolId?: string | null) {
+  async getAll(
+    query: Record<string, unknown>,
+    schoolId?: string | null,
+    userRole?: string,
+    userCampusIds?: string[]
+  ) {
     const pagination = parsePagination(query);
     const filters: DecisionFilters = {
       status:    query.status as DecisionStatus | undefined,
       deciderId: query.deciderId as string | undefined,
       startDate: query.startDate as string | undefined,
       endDate:   query.endDate as string | undefined,
+      campusIds: this.resolveScopedCampusIds(userRole, userCampusIds),
     };
     const { items, total } = await decisionsRepository.findAll(filters, pagination, schoolId ?? null);
     return buildPaginated(items, total, pagination.page, pagination.limit);

@@ -12,6 +12,7 @@ export interface CreateReportInput {
     classId?: string;
     professorId?: string;
     moduleId?: string;
+    uti?: string;
     deviceMetadata?: Record<string, unknown>;
 }
 export interface UpdateReportInput {
@@ -28,6 +29,7 @@ export interface ReportFilters {
     status?: ReportStatus;
     authorId?: string;
     campusId?: string;
+    campusIds?: string[];
     classId?: string;
     professorId?: string;
     moduleId?: string;

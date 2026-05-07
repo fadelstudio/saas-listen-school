@@ -27,5 +27,7 @@ exports.professorParamsSchema = zod_1.z.object({
 });
 exports.professorQuerySchema = zod_1.z.object({
     search: zod_1.z.string().optional(),
+    classId: zod_1.z.string().uuid().optional(),
+    campusId: zod_1.z.string().uuid().optional(),
 });
 //# sourceMappingURL=professors.schema.js.map

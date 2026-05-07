@@ -45,6 +45,8 @@ exports.evaluationsRepository = {
                 module: { connect: { id: data.moduleId } },
                 class: { connect: { id: data.classId } },
                 school: schoolId ? { connect: { id: schoolId } } : undefined,
+                // ── Rattachement de la campagne ──────────────────────────────────────
+                campaign: data.campaignId ? { connect: { id: data.campaignId } } : undefined,
                 score,
                 comprehensionRating: data.comprehensionRating,
                 explanationRating: data.explanationRating,
@@ -54,6 +56,7 @@ exports.evaluationsRepository = {
                 comment: data.comment,
                 isAnonymous: data.isAnonymous ?? false,
                 status: client_1.EvaluationStatus.PENDING,
+                deviceMetadata: data.uti ? { uti: data.uti, ...(data.deviceMetadata || {}) } : data.deviceMetadata,
             },
             include: {
                 professor: true,
@@ -88,6 +91,7 @@ exports.evaluationsRepository = {
             ...(filters.professorId && { professorId: filters.professorId }),
             ...(filters.moduleId && { moduleId: filters.moduleId }),
             ...(filters.classId && { classId: filters.classId }),
+            ...(filters.campusIds && filters.campusIds.length > 0 ? { class: { campusId: { in: filters.campusIds } } } : {}),
             ...(filters.campusId && { class: { campusId: filters.campusId } }),
             ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
             ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),
@@ -152,6 +156,7 @@ exports.evaluationsRepository = {
             ...(filters.professorId && { professorId: filters.professorId }),
             ...(filters.moduleId && { moduleId: filters.moduleId }),
             ...(filters.classId && { classId: filters.classId }),
+            ...(filters.campusIds && filters.campusIds.length > 0 ? { class: { campusId: { in: filters.campusIds } } } : {}),
             ...(filters.campusId && { class: { campusId: filters.campusId } }),
             ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
             ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),

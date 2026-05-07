@@ -6,7 +6,13 @@ export const classesController = {
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const result = await classesService.getAll(req.schoolId, req.query);
+      const result = await classesService.getAll(
+        req.schoolId,
+        req.query,
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.classId
+      );
       res.sendSuccess('Classes fetched', result.items, 200, {
         total: result.total,
         page: result.page,
@@ -21,7 +27,7 @@ export const classesController = {
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const cl = await classesService.getById(req.params.id as string, req.schoolId);
+      const cl = await classesService.getById(req.params.id as string, req.schoolId, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Class fetched', cl);
     } catch (error) {
       next(error);
@@ -61,7 +67,7 @@ export const classesController = {
   async getStudents(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const students = await classesService.getStudents(req.params.id as string, req.schoolId);
+      const students = await classesService.getStudents(req.params.id as string, req.schoolId, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Students for class fetched', students);
     } catch (error) {
       next(error);

@@ -20,7 +20,12 @@ export const decisionsController = {
   async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const result = await decisionsService.getAll(req.query as Record<string, unknown>, req.schoolId);
+      const result = await decisionsService.getAll(
+        req.query as Record<string, unknown>,
+        req.schoolId,
+        req.user?.role,
+        req.user?.campusIds
+      );
       res.sendSuccess('Decisions fetched', result);
     } catch (error) { next(error); }
   },
@@ -28,7 +33,11 @@ export const decisionsController = {
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const result = await decisionsService.getById(req.params.id as string, req.schoolId);
+      const result = await decisionsService.getById(
+        req.params.id as string,
+        req.schoolId,
+        decisionsService.resolveScopedCampusIds(req.user?.role, req.user?.campusIds)
+      );
       res.sendSuccess('Decision fetched', result);
     } catch (error) { next(error); }
   },

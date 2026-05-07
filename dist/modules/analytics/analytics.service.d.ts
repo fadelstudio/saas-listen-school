@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { GlobalAnalysisInput } from './analytics.schema';
 export declare const analyticsService: {
-    getDashboardStats(schoolId: string, campusId?: string): Promise<{
+    resolveScopedCampusIds(userRole?: string, userCampusIds?: string[], requestedCampusId?: string): string[] | undefined;
+    getDashboardStats(schoolId: string, campusIds?: string[]): Promise<{
         counters: {
             users: number;
             students: number;
@@ -27,7 +28,7 @@ export declare const analyticsService: {
             }[];
         };
     }>;
-    getTimeSeriesStats(schoolId: string, period?: "day" | "week" | "month" | "year", campusId?: string): Promise<{
+    getTimeSeriesStats(schoolId: string, period?: "day" | "week" | "month" | "year", campusIds?: string[]): Promise<{
         date: any;
         submitted: number;
         inProgress: number;

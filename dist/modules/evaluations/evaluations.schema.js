@@ -20,6 +20,8 @@ exports.createEvaluationSchema = zod_1.z.object({
     ...fiveRatings,
     comment: zod_1.z.string().max(2000).optional(),
     isAnonymous: zod_1.z.boolean().optional().default(false),
+    uti: zod_1.z.string().optional(),
+    campaignId: idSchema_1.idStringSchema.optional(),
 });
 exports.updateEvaluationSchema = zod_1.z.object({
     comprehensionRating: ratingBandSchema.optional(),

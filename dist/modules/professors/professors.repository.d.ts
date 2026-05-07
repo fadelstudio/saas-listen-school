@@ -50,6 +50,9 @@ export declare const professorsRepository: {
                 updatedAt: Date;
                 schoolId: string;
             };
+            class: {
+                campusId: string;
+            };
         } & {
             id: string;
             createdAt: Date;
@@ -60,6 +63,7 @@ export declare const professorsRepository: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: Prisma.JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;

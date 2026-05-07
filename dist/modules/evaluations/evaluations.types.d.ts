@@ -12,6 +12,9 @@ export interface CreateEvaluationInput {
     rhythmRating?: RatingBand;
     comment?: string;
     isAnonymous?: boolean;
+    uti?: string;
+    campaignId?: string;
+    deviceMetadata?: Record<string, any>;
 }
 export interface UpdateEvaluationInput {
     comprehensionRating?: RatingBand;
@@ -29,6 +32,7 @@ export interface EvaluationFilters {
     moduleId?: string;
     classId?: string;
     campusId?: string;
+    campusIds?: string[];
     startDate?: string;
     endDate?: string;
 }

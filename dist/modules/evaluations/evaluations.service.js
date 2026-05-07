@@ -8,6 +8,19 @@ const pagination_1 = require("../../utils/pagination");
 const queue_1 = require("../../core/config/queue");
 const prisma_1 = require("../../core/database/prisma");
 exports.evaluationsService = {
+    resolveScopedCampusFilter(userRole, userCampusIds, requestedCampusId) {
+        if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole))
+            return undefined;
+        if (!userCampusIds || userCampusIds.length === 0)
+            return undefined;
+        if (requestedCampusId) {
+            if (!userCampusIds.includes(requestedCampusId)) {
+                throw new AppError_1.ForbiddenError('Requested campus is outside your scope');
+            }
+            return [requestedCampusId];
+        }
+        return userCampusIds;
+    },
     async create(input, userId, schoolId) {
         let finalInput = { ...input };
         // 1. User context auto-fill (needed before school / class-module resolution)
@@ -37,13 +50,31 @@ exports.evaluationsService = {
         if (!isAssigned) {
             throw new AppError_1.BadRequestError('This professor is not assigned to this module for this class');
         }
+        // 3. Prevent duplicate evaluation for the same campaign
+        if (finalInput.campaignId && userId) {
+            const existing = await prisma_1.prisma.evaluation.findFirst({
+                where: {
+                    campaignId: finalInput.campaignId,
+                    evaluatorId: userId,
+                },
+            });
+            if (existing) {
+                throw new AppError_1.BadRequestError('Vous avez déjà participé à cette évaluation.');
+            }
+        }
         const evaluation = await evaluations_repository_1.evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
         return evaluation;
     },
-    async getById(id, userRole, schoolId) {
+    async getById(id, userRole, schoolId, scopedCampusIds) {
         const evaluation = await evaluations_repository_1.evaluationsRepository.findById(id, schoolId ?? null);
         if (!evaluation)
             throw new AppError_1.NotFoundError('Evaluation');
+        if (scopedCampusIds &&
+            scopedCampusIds.length > 0 &&
+            evaluation.class?.campusId &&
+            !scopedCampusIds.includes(evaluation.class.campusId)) {
+            throw new AppError_1.ForbiddenError('You do not have access to this evaluation');
+        }
         // Scrub evaluator if anonymous and requester is not admin
         if (evaluation.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
             evaluation.evaluator = null;
@@ -51,7 +82,7 @@ exports.evaluationsService = {
         }
         return evaluation;
     },
-    async getAll(query, userRole, schoolId) {
+    async getAll(query, userRole, schoolId, userCampusIds) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
@@ -64,6 +95,11 @@ exports.evaluationsService = {
             startDate: query.startDate,
             endDate: query.endDate,
         };
+        const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
+        if (scopedCampusIds && scopedCampusIds.length > 0) {
+            delete filters.campusId;
+            filters.campusIds = scopedCampusIds;
+        }
         const { items, total } = await evaluations_repository_1.evaluationsRepository.findAll(filters, pagination, schoolId ?? null);
         // Filter anonymous evaluators for non-admins
         if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
@@ -93,7 +129,7 @@ exports.evaluationsService = {
             throw new AppError_1.NotFoundError('Evaluation');
         return evaluations_repository_1.evaluationsRepository.delete(id, schoolId ?? null);
     },
-    async getStats(query, schoolId) {
+    async getStats(query, schoolId, userRole, userCampusIds) {
         const filters = {
             reportId: query.reportId,
             professorId: query.professorId,
@@ -103,6 +139,11 @@ exports.evaluationsService = {
             startDate: query.startDate,
             endDate: query.endDate,
         };
+        const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
+        if (scopedCampusIds && scopedCampusIds.length > 0) {
+            delete filters.campusId;
+            filters.campusIds = scopedCampusIds;
+        }
         return evaluations_repository_1.evaluationsRepository.getAggregatedStats(filters, schoolId ?? null);
     },
     async triggerAiScoring(id, userRole, schoolId) {

@@ -39,6 +39,7 @@ export const evaluationCampaignsRepository = {
       AND: [
         tenant,
         ...(filters.classId ? [{ classId: filters.classId }] : []),
+        ...(filters.campusIds && filters.campusIds.length > 0 ? [{ campusId: { in: filters.campusIds } }] : []),
         ...(filters.campusId ? [{ campusId: filters.campusId }] : []),
         ...(filters.scope ? [{ scope: filters.scope }] : []),
         ...(filters.status ? [{ status: filters.status }] : []),
@@ -170,7 +171,7 @@ export const evaluationCampaignsRepository = {
   },
   async findAllForStudent(
     schoolId: string,
-    filters: { classId?: string; campusId?: string; status?: string },
+    filters: { classId?: string; campusIds?: string[]; status?: string },
     pagination: { skip: number; limit: number },
     userId?: string,
   ) {
@@ -182,7 +183,9 @@ export const evaluationCampaignsRepository = {
         {
           OR: [
             { scope: 'SCHOOL' },
-            ...(filters.campusId ? [{ AND: [{ scope: 'CAMPUS' }, { campusId: filters.campusId }] }] : []),
+            ...(filters.campusIds && filters.campusIds.length > 0
+              ? [{ AND: [{ scope: 'CAMPUS' }, { campusId: { in: filters.campusIds } }] }]
+              : []),
             ...(filters.classId ? [{ AND: [{ scope: 'CLASS' }, { classId: filters.classId }] }] : []),
           ],
         },

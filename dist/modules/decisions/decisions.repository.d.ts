@@ -38,7 +38,11 @@ export declare const decisionsRepository: {
         analysisId: string | null;
     }>;
     findById(id: string, schoolId?: string | null): Promise<({
-        report: {
+        report: ({
+            class: {
+                campusId: string;
+            } | null;
+        } & {
             type: import("@prisma/client").$Enums.ReportType;
             attachments: Prisma.JsonValue | null;
             id: string;
@@ -57,8 +61,12 @@ export declare const decisionsRepository: {
             moduleId: string | null;
             deviceMetadata: Prisma.JsonValue | null;
             aiAnalysis: Prisma.JsonValue | null;
-        } | null;
-        evaluation: {
+        }) | null;
+        evaluation: ({
+            class: {
+                campusId: string;
+            };
+        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -68,6 +76,7 @@ export declare const decisionsRepository: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: Prisma.JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -79,7 +88,7 @@ export declare const decisionsRepository: {
             comment: string | null;
             aiScore: number | null;
             campaignId: string | null;
-        } | null;
+        }) | null;
         aiJobs: {
             result: Prisma.JsonValue | null;
             id: string;
@@ -93,6 +102,24 @@ export declare const decisionsRepository: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
+        campaign: ({
+            class: {
+                campusId: string;
+            } | null;
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            classId: string | null;
+            title: string;
+            status: string;
+            professorId: string | null;
+            moduleId: string | null;
+            dueDate: Date;
+            campusId: string | null;
+            description: string | null;
+            scope: string;
+        }) | null;
         decider: {
             email: string;
             id: string;

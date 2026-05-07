@@ -24,6 +24,33 @@ exports.professorsRepository = {
                 ],
             });
         }
+        if (filters.classId) {
+            andParts.push({
+                modules: {
+                    some: {
+                        classId: filters.classId,
+                    },
+                },
+            });
+        }
+        if (filters.campusId) {
+            andParts.push({
+                modules: {
+                    some: {
+                        class: { campusId: filters.campusId },
+                    },
+                },
+            });
+        }
+        if (filters.campusIds && filters.campusIds.length > 0) {
+            andParts.push({
+                modules: {
+                    some: {
+                        class: { campusId: { in: filters.campusIds } },
+                    },
+                },
+            });
+        }
         const where = { AND: andParts };
         const [items, total] = await Promise.all([
             prisma_1.prisma.professor.findMany({
@@ -49,7 +76,7 @@ exports.professorsRepository = {
                 evaluations: {
                     take: 10,
                     orderBy: { createdAt: 'desc' },
-                    include: { module: true },
+                    include: { module: true, class: { select: { campusId: true } } },
                 },
             },
         });

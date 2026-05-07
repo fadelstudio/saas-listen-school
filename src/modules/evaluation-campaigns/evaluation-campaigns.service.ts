@@ -111,7 +111,14 @@ export const evaluationCampaignsService = {
     return campaign;
   },
 
-  async getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusId?: string, userId?: string) {
+  async getAll(
+    schoolId: string,
+    query: Record<string, unknown>,
+    userRole?: string,
+    userClassId?: string,
+    userCampusIds?: string[],
+    userId?: string
+  ) {
     const pagination = parsePagination(query);
     
     // Default filters
@@ -126,7 +133,7 @@ export const evaluationCampaignsService = {
       // we want campaigns that are (SCHOOL) OR (CAMPUS + userCampusId) OR (CLASS + userClassId)
       const { items, total } = await evaluationCampaignsRepository.findAllForStudent(schoolId, {
         classId: userClassId,
-        campusId: userCampusId,
+        campusIds: userCampusIds,
         status: filters.status || 'ACTIVE',
       }, pagination, userId);
       return buildPaginated(items, total, pagination.page, pagination.limit);
@@ -136,6 +143,14 @@ export const evaluationCampaignsService = {
     // For non-students (ADMIN/MANAGER), use standard filtering
     filters.classId = typeof query.classId === 'string' ? query.classId : undefined;
     filters.campusId = typeof query.campusId === 'string' ? query.campusId : undefined;
+    if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
+        throw new BadRequestError('Requested campus is outside your scope');
+      }
+      if (!filters.campusId) {
+        filters.campusIds = userCampusIds;
+      }
+    }
 
     const { items, total } = await evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
     return buildPaginated(items, total, pagination.page, pagination.limit);

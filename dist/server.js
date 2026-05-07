@@ -6,11 +6,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("./core/config/env"); // Validate env vars at startup — MUST be first
 const app_1 = __importDefault(require("./app"));
 const env_1 = require("./core/config/env");
+const fcm_service_1 = require("./core/push/fcm.service");
 const validateTenantEnv_1 = require("./core/config/validateTenantEnv");
 const purgePendingRegistrations_job_1 = require("./jobs/purgePendingRegistrations.job");
 const PURGE_INTERVAL_MS = 15 * 60 * 1000;
 void (0, validateTenantEnv_1.validateTenantEnvOnStartup)()
     .then(async () => {
+    // Force l'initialisation de FCM au démarrage pour voir les erreurs
+    console.log("🔍 Vérification de la configuration FCM...");
+    if (fcm_service_1.fcmService.isEnabled()) {
+        console.log("✅ FCM est prêt.");
+    }
+    else {
+        console.warn("⚠️ FCM est désactivé ou mal configuré (Vérifie FIREBASE_SERVICE_ACCOUNT_JSON)");
+    }
     const runPurge = () => {
         void (0, purgePendingRegistrations_job_1.purgeStaleUnverifiedRegistrations)()
             .then((n) => {
@@ -22,9 +31,10 @@ void (0, validateTenantEnv_1.validateTenantEnvOnStartup)()
     };
     runPurge();
     setInterval(runPurge, PURGE_INTERVAL_MS);
-    const server = app_1.default.listen(env_1.env.PORT, () => {
-        console.log(`🚀 Server running on http://localhost:${env_1.env.PORT}`);
+    const server = app_1.default.listen(env_1.env.PORT, "0.0.0.0", () => {
+        console.log(`🚀 Server running on http://0.0.0.0:${env_1.env.PORT}`);
         console.log(`   Environment: ${env_1.env.NODE_ENV}`);
+        console.log(`   Local Access: http://localhost:${env_1.env.PORT}`);
         console.log(`   Documentation: http://localhost:${env_1.env.PORT}/api-docs`);
     });
     function shutdown(s, signal) {

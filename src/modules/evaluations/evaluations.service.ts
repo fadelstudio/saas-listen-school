@@ -8,6 +8,22 @@ import type { CreateEvaluationInput, UpdateEvaluationInput, EvaluationFilters } 
 import { prisma } from '../../core/database/prisma';
 
 export const evaluationsService = {
+  resolveScopedCampusFilter(
+    userRole?: string,
+    userCampusIds?: string[],
+    requestedCampusId?: string
+  ): string[] | undefined {
+    if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole)) return undefined;
+    if (!userCampusIds || userCampusIds.length === 0) return undefined;
+    if (requestedCampusId) {
+      if (!userCampusIds.includes(requestedCampusId)) {
+        throw new ForbiddenError('Requested campus is outside your scope');
+      }
+      return [requestedCampusId];
+    }
+    return userCampusIds;
+  },
+
   async create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null) {
     let finalInput = { ...input };
 
@@ -66,9 +82,17 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  async getById(id: string, userRole?: string, schoolId?: string | null) {
+  async getById(id: string, userRole?: string, schoolId?: string | null, scopedCampusIds?: string[]) {
     const evaluation = await evaluationsRepository.findById(id, schoolId ?? null);
     if (!evaluation) throw new NotFoundError('Evaluation');
+    if (
+      scopedCampusIds &&
+      scopedCampusIds.length > 0 &&
+      evaluation.class?.campusId &&
+      !scopedCampusIds.includes(evaluation.class.campusId)
+    ) {
+      throw new ForbiddenError('You do not have access to this evaluation');
+    }
 
     // Scrub evaluator if anonymous and requester is not admin
     if (evaluation.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
@@ -79,7 +103,7 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null) {
+  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]) {
     const pagination = parsePagination(query);
     const filters: EvaluationFilters = {
       status:      query.status as EvaluationStatus | undefined,
@@ -92,6 +116,11 @@ export const evaluationsService = {
       startDate:   query.startDate as string | undefined,
       endDate:     query.endDate as string | undefined,
     };
+    const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
+    if (scopedCampusIds && scopedCampusIds.length > 0) {
+      delete filters.campusId;
+      filters.campusIds = scopedCampusIds;
+    }
     const { items, total } = await evaluationsRepository.findAll(filters, pagination, schoolId ?? null);
 
     // Filter anonymous evaluators for non-admins
@@ -131,7 +160,7 @@ export const evaluationsService = {
     return evaluationsRepository.delete(id, schoolId ?? null);
   },
 
-  async getStats(query: Record<string, unknown>, schoolId?: string | null) {
+  async getStats(query: Record<string, unknown>, schoolId?: string | null, userRole?: string, userCampusIds?: string[]) {
     const filters: EvaluationFilters = {
       reportId:    query.reportId as string | undefined,
       professorId: query.professorId as string | undefined,
@@ -141,6 +170,11 @@ export const evaluationsService = {
       startDate:   query.startDate as string | undefined,
       endDate:     query.endDate as string | undefined,
     };
+    const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
+    if (scopedCampusIds && scopedCampusIds.length > 0) {
+      delete filters.campusId;
+      filters.campusIds = scopedCampusIds;
+    }
     return evaluationsRepository.getAggregatedStats(filters, schoolId ?? null);
   },
 

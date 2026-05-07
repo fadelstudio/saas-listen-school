@@ -6,5 +6,6 @@ export declare const systemController: {
     getAiStatus(req: Request, res: Response, next: NextFunction): Promise<void>;
     getAiModels(_req: Request, res: Response, next: NextFunction): Promise<void>;
     updateLogo(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getPublicFormData(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=system.controller.d.ts.map

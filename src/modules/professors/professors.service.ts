@@ -42,13 +42,19 @@ async function enrichProfessorWithAvatar(p: ProfessorRow) {
 }
 
 export const professorsService = {
-  async getAll(schoolId: string, query: Record<string, unknown>) {
+  async getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userCampusIds?: string[]) {
     const pagination = parsePagination(query);
     const filters: ProfessorFilters = {
       search: query.search as string | undefined,
       classId: query.classId as string | undefined,
       campusId: query.campusId as string | undefined,
     };
+    if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
+        throw new ForbiddenError('Requested campus is outside your scope');
+      }
+      if (!filters.campusId) filters.campusIds = userCampusIds;
+    }
 
 
     const { items, total } = await professorsRepository.findAll(schoolId, filters, pagination);
@@ -56,9 +62,18 @@ export const professorsService = {
     return buildPaginated(enriched, total, pagination.page, pagination.limit);
   },
 
-  async getById(id: string, schoolId: string) {
+  async getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {
     const professor = await professorsRepository.findById(id, schoolId);
     if (!professor) throw new NotFoundError('Professor');
+    if (
+      ['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+      userCampusIds &&
+      userCampusIds.length > 0 &&
+      professor.evaluations.length > 0
+    ) {
+      const hasScopedEval = professor.evaluations.some((e) => e.class?.campusId && userCampusIds.includes(e.class.campusId));
+      if (!hasScopedEval) throw new NotFoundError('Professor');
+    }
     return enrichProfessorWithAvatar(professor as ProfessorRow);
   },
 

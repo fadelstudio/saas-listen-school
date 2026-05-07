@@ -1,5 +1,6 @@
 import type { CreateEvaluationInput, UpdateEvaluationInput } from './evaluations.types';
 export declare const evaluationsService: {
+    resolveScopedCampusFilter(userRole?: string, userCampusIds?: string[], requestedCampusId?: string): string[] | undefined;
     create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null): Promise<{
         module: {
             code: string | null;
@@ -50,6 +51,7 @@ export declare const evaluationsService: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -62,7 +64,7 @@ export declare const evaluationsService: {
         aiScore: number | null;
         campaignId: string | null;
     }>;
-    getById(id: string, userRole?: string, schoolId?: string | null): Promise<{
+    getById(id: string, userRole?: string, schoolId?: string | null, scopedCampusIds?: string[]): Promise<{
         module: {
             code: string | null;
             name: string;
@@ -149,6 +151,7 @@ export declare const evaluationsService: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -161,7 +164,7 @@ export declare const evaluationsService: {
         aiScore: number | null;
         campaignId: string | null;
     }>;
-    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
         module: {
             code: string | null;
             name: string;
@@ -200,6 +203,7 @@ export declare const evaluationsService: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -222,6 +226,7 @@ export declare const evaluationsService: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -235,7 +240,7 @@ export declare const evaluationsService: {
         campaignId: string | null;
     }>;
     delete(id: string, userRole: string, schoolId?: string | null): Promise<import("@prisma/client").Prisma.BatchPayload>;
-    getStats(query: Record<string, unknown>, schoolId?: string | null): Promise<import("./evaluations.types").EvaluationStats>;
+    getStats(query: Record<string, unknown>, schoolId?: string | null, userRole?: string, userCampusIds?: string[]): Promise<import("./evaluations.types").EvaluationStats>;
     triggerAiScoring(id: string, userRole: string, schoolId?: string | null): Promise<{
         queued: boolean;
         evaluationId: string;

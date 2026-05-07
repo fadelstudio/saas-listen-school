@@ -56,6 +56,7 @@ export declare const evaluationsRepository: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: Prisma.JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -155,6 +156,7 @@ export declare const evaluationsRepository: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: Prisma.JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -207,6 +209,7 @@ export declare const evaluationsRepository: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: Prisma.JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -231,6 +234,7 @@ export declare const evaluationsRepository: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: Prisma.JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;
@@ -255,6 +259,7 @@ export declare const evaluationsRepository: {
         isAnonymous: boolean;
         professorId: string;
         moduleId: string;
+        deviceMetadata: Prisma.JsonValue | null;
         reportId: string | null;
         evaluatorId: string | null;
         score: number | null;

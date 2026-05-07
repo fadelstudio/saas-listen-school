@@ -108,6 +108,19 @@ exports.reportsRouter.post('/', (0, dynamicAuth_middleware_1.dynamicAuthMiddlewa
 exports.reportsRouter.get('/', auth_middleware_1.authMiddleware, (0, validate_middleware_1.validate)({ query: reports_schema_1.reportQuerySchema }), reports_controller_1.reportsController.getAll);
 /**
  * @swagger
+ * /api/reports/my-reports:
+ *   get:
+ *     summary: "Mes signalements"
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste de mes signalements
+ */
+exports.reportsRouter.get('/my-reports', auth_middleware_1.authMiddleware, reports_controller_1.reportsController.getMyReports);
+/**
+ * @swagger
  * /api/reports/{id}:
  *   get:
  *     summary: "Voir un signalement par ID"

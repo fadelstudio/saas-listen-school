@@ -20,7 +20,7 @@ exports.reportsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await reports_service_1.reportsService.getAll(req.query, req.user?.role, req.schoolId);
+            const result = await reports_service_1.reportsService.getAll(req.query, req.user?.role, req.schoolId, req.user?.campusIds);
             res.sendSuccess('Reports fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -36,7 +36,7 @@ exports.reportsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const report = await reports_service_1.reportsService.getById(req.params.id, req.user?.role, req.schoolId);
+            const report = await reports_service_1.reportsService.getById(req.params.id, req.user?.role, req.schoolId, req.user?.campusIds);
             res.sendSuccess('Report fetched', report);
         }
         catch (error) {
@@ -82,6 +82,23 @@ exports.reportsController = {
                 throw new AppError_1.BadRequestError('school context is required');
             const result = await reports_service_1.reportsService.triggerAiAnalysis(req.params.id, req.user.role, req.schoolId);
             res.sendSuccess('AI analysis job queued', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async getMyReports(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const userId = req.user.userId;
+            const result = await reports_service_1.reportsService.getMyReports(userId, req.query, req.schoolId);
+            res.sendSuccess('My reports fetched', result.items, 200, {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: result.totalPages
+            });
         }
         catch (error) {
             next(error);

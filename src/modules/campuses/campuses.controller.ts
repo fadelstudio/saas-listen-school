@@ -7,7 +7,7 @@ export const campusesController = {
     try {
       const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
-      const result = await campusesService.getAll(schoolId, req.query);
+      const result = await campusesService.getAll(schoolId, req.query, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Campuses fetched', result.items, 200, {
         total: result.total,
         page: result.page,
@@ -23,7 +23,7 @@ export const campusesController = {
     try {
       const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
-      const campus = await campusesService.getById(req.params.id as string, schoolId);
+      const campus = await campusesService.getById(req.params.id as string, schoolId, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Campus fetched', campus);
     } catch (error) {
       next(error);
@@ -72,7 +72,7 @@ export const campusesController = {
     try {
       const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
-      const classes = await campusesService.getClasses(req.params.id as string, schoolId);
+      const classes = await campusesService.getClasses(req.params.id as string, schoolId, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Classes for campus fetched', classes);
     } catch (error) {
       next(error);
@@ -83,7 +83,7 @@ export const campusesController = {
     try {
       const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
-      const students = await campusesService.getStudents(req.params.id as string, schoolId);
+      const students = await campusesService.getStudents(req.params.id as string, schoolId, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Students for campus fetched', students);
     } catch (error) {
       next(error);
@@ -105,7 +105,7 @@ export const campusesController = {
     try {
       const schoolId = req.schoolId;
       if (!schoolId) throw new BadRequestError('schoolId context missing');
-      const professors = await campusesService.getProfessors(req.params.id as string, schoolId);
+      const professors = await campusesService.getProfessors(req.params.id as string, schoolId, req.user?.role, req.user?.campusIds);
       res.sendSuccess('Professors for campus fetched', professors);
     } catch (error) {
       next(error);

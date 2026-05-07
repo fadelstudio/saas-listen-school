@@ -39,7 +39,22 @@ const client_1 = require("@prisma/client");
 const AppError_1 = require("../../core/errors/AppError");
 const notifications_service_1 = require("../notifications/notifications.service");
 exports.analyticsService = {
-    async getDashboardStats(schoolId, campusId) {
+    resolveScopedCampusIds(userRole, userCampusIds, requestedCampusId) {
+        if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole)) {
+            return requestedCampusId ? [requestedCampusId] : undefined;
+        }
+        if (!userCampusIds || userCampusIds.length === 0) {
+            return requestedCampusId ? [requestedCampusId] : undefined;
+        }
+        if (requestedCampusId) {
+            if (!userCampusIds.includes(requestedCampusId)) {
+                throw new AppError_1.BadRequestError('Requested campus is outside your scope');
+            }
+            return [requestedCampusId];
+        }
+        return userCampusIds;
+    },
+    async getDashboardStats(schoolId, campusIds) {
         const now = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -47,15 +62,15 @@ exports.analyticsService = {
         sixtyDaysAgo.setDate(now.getDate() - 60);
         const userWhere = {
             schoolId,
-            ...(campusId && { campuses: { some: { id: campusId } } })
+            ...(campusIds && campusIds.length > 0 && { campuses: { some: { id: { in: campusIds } } } })
         };
         const reportWhere = {
             schoolId,
-            ...(campusId && { class: { campusId } })
+            ...(campusIds && campusIds.length > 0 && { class: { campusId: { in: campusIds } } })
         };
         const evaluationWhere = {
             schoolId,
-            ...(campusId && { class: { campusId } })
+            ...(campusIds && campusIds.length > 0 && { class: { campusId: { in: campusIds } } })
         };
         try {
             const [totalUsers, totalStudents, totalReports, totalEvaluations, avgScore, reportsByType, 
@@ -115,15 +130,15 @@ exports.analyticsService = {
                 prisma_1.prisma.user.count({ where: { ...userWhere, createdAt: { gte: thirtyDaysAgo } } })
             ]);
             // Use raw query for decisions to bypass Enum validation issues
-            const decisionsByStatusRaw = campusId
+            const decisionsByStatusRaw = campusIds && campusIds.length > 0
                 ? await prisma_1.prisma.$queryRaw `
             SELECT status, CAST(COUNT(*) AS INTEGER) as count 
             FROM decisions 
             WHERE "schoolId" = ${schoolId} 
             AND (
-              "evaluationId" IN (SELECT id FROM evaluations WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId}))
+              "evaluationId" IN (SELECT id FROM evaluations WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" IN (${client_1.Prisma.join(campusIds)})))
               OR
-              "reportId" IN (SELECT id FROM reports WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId}))
+              "reportId" IN (SELECT id FROM reports WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" IN (${client_1.Prisma.join(campusIds)})))
             )
             GROUP BY status
           `
@@ -159,7 +174,7 @@ exports.analyticsService = {
             throw err; // Re-throw to be caught by global handler but logged here
         }
     },
-    async getTimeSeriesStats(schoolId, period = 'week', campusId) {
+    async getTimeSeriesStats(schoolId, period = 'week', campusIds) {
         const now = new Date();
         let startDate = new Date();
         if (period === 'day')
@@ -190,7 +205,7 @@ exports.analyticsService = {
       FROM date_series ds
       LEFT JOIN reports r ON DATE_TRUNC(${interval}, r."createdAt") = ds.date 
         AND r."schoolId" = ${schoolId}
-        ${campusId ? client_1.Prisma.sql `AND r."classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId})` : client_1.Prisma.empty}
+        ${campusIds && campusIds.length > 0 ? client_1.Prisma.sql `AND r."classId" IN (SELECT id FROM classes WHERE "campusId" IN (${client_1.Prisma.join(campusIds)}))` : client_1.Prisma.empty}
       GROUP BY ds.date
       ORDER BY ds.date ASC
     `;

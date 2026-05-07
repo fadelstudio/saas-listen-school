@@ -6,7 +6,23 @@ import { notificationService } from '../notifications/notifications.service';
 
 
 export const analyticsService = {
-  async getDashboardStats(schoolId: string, campusId?: string) {
+  resolveScopedCampusIds(userRole?: string, userCampusIds?: string[], requestedCampusId?: string): string[] | undefined {
+    if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole)) {
+      return requestedCampusId ? [requestedCampusId] : undefined;
+    }
+    if (!userCampusIds || userCampusIds.length === 0) {
+      return requestedCampusId ? [requestedCampusId] : undefined;
+    }
+    if (requestedCampusId) {
+      if (!userCampusIds.includes(requestedCampusId)) {
+        throw new BadRequestError('Requested campus is outside your scope');
+      }
+      return [requestedCampusId];
+    }
+    return userCampusIds;
+  },
+
+  async getDashboardStats(schoolId: string, campusIds?: string[]) {
     const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -15,17 +31,17 @@ export const analyticsService = {
 
     const userWhere: Prisma.UserWhereInput = { 
       schoolId, 
-      ...(campusId && { campuses: { some: { id: campusId } } }) 
+      ...(campusIds && campusIds.length > 0 && { campuses: { some: { id: { in: campusIds } } } }) 
     };
 
     const reportWhere: Prisma.ReportWhereInput = { 
       schoolId,
-      ...(campusId && { class: { campusId } })
+      ...(campusIds && campusIds.length > 0 && { class: { campusId: { in: campusIds } } })
     };
 
     const evaluationWhere: Prisma.EvaluationWhereInput = { 
       schoolId,
-      ...(campusId && { class: { campusId } })
+      ...(campusIds && campusIds.length > 0 && { class: { campusId: { in: campusIds } } })
     };
 
     try {
@@ -96,15 +112,15 @@ export const analyticsService = {
       ]);
 
       // Use raw query for decisions to bypass Enum validation issues
-      const decisionsByStatusRaw = campusId 
+      const decisionsByStatusRaw = campusIds && campusIds.length > 0
         ? await prisma.$queryRaw<any[]>`
             SELECT status, CAST(COUNT(*) AS INTEGER) as count 
             FROM decisions 
             WHERE "schoolId" = ${schoolId} 
             AND (
-              "evaluationId" IN (SELECT id FROM evaluations WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId}))
+              "evaluationId" IN (SELECT id FROM evaluations WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" IN (${Prisma.join(campusIds)})))
               OR
-              "reportId" IN (SELECT id FROM reports WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId}))
+              "reportId" IN (SELECT id FROM reports WHERE "classId" IN (SELECT id FROM classes WHERE "campusId" IN (${Prisma.join(campusIds)})))
             )
             GROUP BY status
           `
@@ -141,7 +157,11 @@ export const analyticsService = {
     }
   },
 
-  async getTimeSeriesStats(schoolId: string, period: 'day' | 'week' | 'month' | 'year' = 'week', campusId?: string) {
+  async getTimeSeriesStats(
+    schoolId: string,
+    period: 'day' | 'week' | 'month' | 'year' = 'week',
+    campusIds?: string[]
+  ) {
     const now = new Date();
     let startDate = new Date();
 
@@ -170,7 +190,7 @@ export const analyticsService = {
       FROM date_series ds
       LEFT JOIN reports r ON DATE_TRUNC(${interval}, r."createdAt") = ds.date 
         AND r."schoolId" = ${schoolId}
-        ${campusId ? Prisma.sql`AND r."classId" IN (SELECT id FROM classes WHERE "campusId" = ${campusId})` : Prisma.empty}
+        ${campusIds && campusIds.length > 0 ? Prisma.sql`AND r."classId" IN (SELECT id FROM classes WHERE "campusId" IN (${Prisma.join(campusIds)}))` : Prisma.empty}
       GROUP BY ds.date
       ORDER BY ds.date ASC
     `;

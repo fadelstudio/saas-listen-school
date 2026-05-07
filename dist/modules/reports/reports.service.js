@@ -9,7 +9,21 @@ const queue_1 = require("../../core/config/queue");
 const prisma_1 = require("../../core/database/prisma");
 const audit_service_1 = require("../audit/audit.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const logger_1 = require("../../utils/logger");
 exports.reportsService = {
+    resolveScopedCampusFilter(userRole, userCampusIds, requestedCampusId) {
+        if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole))
+            return undefined;
+        if (!userCampusIds || userCampusIds.length === 0)
+            return undefined;
+        if (requestedCampusId) {
+            if (!userCampusIds.includes(requestedCampusId)) {
+                throw new AppError_1.ForbiddenError('Requested campus is outside your scope');
+            }
+            return [requestedCampusId];
+        }
+        return userCampusIds;
+    },
     async create(input, userId, schoolId) {
         let finalInput = { ...input };
         // 1. User Context auto-fill
@@ -56,9 +70,16 @@ exports.reportsService = {
         }
         // 4. Notify School Managers/Admins
         if (resolvedSchoolId) {
+            const isSuggestion = finalInput.type === 'SUGGESTION';
+            const notifTitle = isSuggestion
+                ? `💡 Nouvelle suggestion : "${report.title}"`
+                : `🚨 Nouveau signalement : "${report.title}"`;
+            const notifMessage = isSuggestion
+                ? `Un étudiant a soumis une suggestion.`
+                : `Un nouveau signalement de type ${report.type?.replace('_', ' ')} a été reçu.`;
             notifications_service_1.notificationService.sendBroadcast(resolvedSchoolId, {
-                title: 'Nouveau signalement',
-                message: `Un nouveau signalement "${report.title}" a été reçu.`,
+                title: notifTitle,
+                message: notifMessage,
                 targetRoles: ['ADMIN', 'MANAGER'],
                 url: `/dashboard/reports/${report.id}`,
             }).catch(err => console.warn('[Notification] Failed to notify managers', err));
@@ -75,10 +96,16 @@ exports.reportsService = {
         }
         return report;
     },
-    async getById(id, userRole, schoolId) {
+    async getById(id, userRole, schoolId, scopedCampusIds) {
         const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
         if (!report)
             throw new AppError_1.NotFoundError('Report');
+        if (scopedCampusIds &&
+            scopedCampusIds.length > 0 &&
+            report.class?.campusId &&
+            !scopedCampusIds.includes(report.class.campusId)) {
+            throw new AppError_1.ForbiddenError('You do not have access to this report');
+        }
         // Scrub author if anonymous and requester is not admin
         if (report.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
             report.author = null;
@@ -86,7 +113,7 @@ exports.reportsService = {
         }
         return report;
     },
-    async getAll(query, userRole, schoolId) {
+    async getAll(query, userRole, schoolId, userCampusIds) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
@@ -100,6 +127,11 @@ exports.reportsService = {
             endDate: query.endDate,
             search: query.search,
         };
+        const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
+        if (scopedCampusIds && scopedCampusIds.length > 0) {
+            delete filters.campusId;
+            filters.campusIds = scopedCampusIds;
+        }
         const { items, total } = await reports_repository_1.reportsRepository.findAll(filters, pagination, schoolId ?? null);
         // Filter anonymous authors for non-admins
         if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
@@ -155,15 +187,29 @@ exports.reportsService = {
         const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
         if (report) {
             const uti = report.deviceMetadata?.uti;
+            const isSuggestion = report.type === 'SUGGESTION';
+            const notifTitle = isSuggestion
+                ? `💡 Mise à jour de votre suggestion`
+                : `📢 Mise à jour de votre signalement`;
+            const notifMessage = isSuggestion
+                ? `Votre suggestion "${report.title}" a changé de statut : ${status}.`
+                : `Votre signalement "${report.title}" a changé de statut : ${status}.`;
             notifications_service_1.notificationService.create({
-                title: '📢 Mise à jour de votre signalement',
-                message: `Le statut de votre signalement "${report.title}" vient de passer à : ${status}.`,
+                title: notifTitle,
+                message: notifMessage,
                 type: 'REPORT_STATUS_CHANGED',
                 userId: report.authorId,
                 targetDeviceUti: uti,
                 schoolId: report.schoolId,
                 url: `/dashboard/reports/${report.id}`,
-            }).catch(err => console.warn('[Notification] Failed to notify author', err));
+            }).then(() => {
+                logger_1.logger.info('[ReportsService] Notification sent to author', {
+                    reportId: report.id,
+                    authorId: report.authorId,
+                    uti,
+                    isSuggestion,
+                });
+            }).catch(err => logger_1.logger.warn('[Notification] Failed to notify author', { error: err }));
         }
         return result;
     },
@@ -203,6 +249,15 @@ exports.reportsService = {
             console.warn('⚠️ Could not enqueue AI report analysis (Redis down?):', error);
         }
         return { queued: true, reportId: id };
+    },
+    async getMyReports(userId, query, schoolId) {
+        const pagination = (0, pagination_1.parsePagination)(query);
+        const filters = {
+            ...query,
+            authorId: userId,
+        };
+        const { items, total } = await reports_repository_1.reportsRepository.findAll(filters, pagination, schoolId ?? null);
+        return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
 };
 //# sourceMappingURL=reports.service.js.map

@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authController = void 0;
 const auth_service_1 = require("./auth.service");
 const AppError_1 = require("../../core/errors/AppError");
+const notifications_service_1 = require("../notifications/notifications.service");
+const logger_1 = require("../../utils/logger");
 exports.authController = {
     async register(req, res, next) {
         try {
@@ -25,6 +27,12 @@ exports.authController = {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
             const result = await auth_service_1.authService.login(req.body, req.schoolId);
+            // Fusion invité → compte : déclenchée via UTI si fourni dans le corps de la requête
+            // On n'attend pas la fusion pour répondre (fire-and-forget)
+            const uti = req.body.uti;
+            if (uti && 'user' in result && result.user?.id) {
+                notifications_service_1.notificationService.updateFcmToken(result.user.id, '', uti).catch(err => logger_1.logger.warn('[Login] Fusion UTI→compte échouée (non bloquant)', { uti, error: err?.message }));
+            }
             res.sendSuccess('Login successful', result);
         }
         catch (error) {

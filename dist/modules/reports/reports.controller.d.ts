@@ -7,5 +7,6 @@ export declare const reportsController: {
     updateStatus(req: Request, res: Response, next: NextFunction): Promise<void>;
     remove(req: Request, res: Response, next: NextFunction): Promise<void>;
     analyze(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getMyReports(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=reports.controller.d.ts.map

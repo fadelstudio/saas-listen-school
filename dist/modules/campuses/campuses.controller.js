@@ -9,7 +9,7 @@ exports.campusesController = {
             const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId context missing');
-            const result = await campuses_service_1.campusesService.getAll(schoolId, req.query);
+            const result = await campuses_service_1.campusesService.getAll(schoolId, req.query, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Campuses fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -26,7 +26,7 @@ exports.campusesController = {
             const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId context missing');
-            const campus = await campuses_service_1.campusesService.getById(req.params.id, schoolId);
+            const campus = await campuses_service_1.campusesService.getById(req.params.id, schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Campus fetched', campus);
         }
         catch (error) {
@@ -78,7 +78,7 @@ exports.campusesController = {
             const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId context missing');
-            const classes = await campuses_service_1.campusesService.getClasses(req.params.id, schoolId);
+            const classes = await campuses_service_1.campusesService.getClasses(req.params.id, schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Classes for campus fetched', classes);
         }
         catch (error) {
@@ -90,7 +90,7 @@ exports.campusesController = {
             const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId context missing');
-            const students = await campuses_service_1.campusesService.getStudents(req.params.id, schoolId);
+            const students = await campuses_service_1.campusesService.getStudents(req.params.id, schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Students for campus fetched', students);
         }
         catch (error) {
@@ -114,7 +114,7 @@ exports.campusesController = {
             const schoolId = req.schoolId;
             if (!schoolId)
                 throw new AppError_1.BadRequestError('schoolId context missing');
-            const professors = await campuses_service_1.campusesService.getProfessors(req.params.id, schoolId);
+            const professors = await campuses_service_1.campusesService.getProfessors(req.params.id, schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Professors for campus fetched', professors);
         }
         catch (error) {

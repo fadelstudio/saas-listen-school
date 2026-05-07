@@ -117,6 +117,7 @@ export declare const evaluationCampaignsRepository: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: Prisma.JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -285,5 +286,16 @@ export declare const evaluationCampaignsRepository: {
             analysisId: string | null;
         }) | null;
     } | null>;
+    findAllForStudent(schoolId: string, filters: {
+        classId?: string;
+        campusIds?: string[];
+        status?: string;
+    }, pagination: {
+        skip: number;
+        limit: number;
+    }, userId?: string): Promise<{
+        items: any[];
+        total: number;
+    }>;
 };
 //# sourceMappingURL=evaluation-campaigns.repository.d.ts.map

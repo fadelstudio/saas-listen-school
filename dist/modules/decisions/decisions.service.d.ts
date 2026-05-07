@@ -1,6 +1,7 @@
 import { DecisionStatus } from '@prisma/client';
 import type { CreateDecisionInput, UpdateDecisionInput } from './decisions.types';
 export declare const decisionsService: {
+    resolveScopedCampusIds(userRole?: string, userCampusIds?: string[]): string[] | undefined;
     create(input: CreateDecisionInput, userId: string, userRole: string, schoolId?: string | null): Promise<{
         report: {
             type: import("@prisma/client").$Enums.ReportType;
@@ -35,8 +36,12 @@ export declare const decisionsService: {
         aiSuggestion: string | null;
         analysisId: string | null;
     }>;
-    getById(id: string, schoolId?: string | null): Promise<{
-        report: {
+    getById(id: string, schoolId?: string | null, scopedCampusIds?: string[]): Promise<{
+        report: ({
+            class: {
+                campusId: string;
+            } | null;
+        } & {
             type: import("@prisma/client").$Enums.ReportType;
             attachments: import("@prisma/client/runtime/client").JsonValue | null;
             id: string;
@@ -55,8 +60,12 @@ export declare const decisionsService: {
             moduleId: string | null;
             deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
             aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
-        } | null;
-        evaluation: {
+        }) | null;
+        evaluation: ({
+            class: {
+                campusId: string;
+            };
+        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -66,6 +75,7 @@ export declare const decisionsService: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
@@ -77,7 +87,7 @@ export declare const decisionsService: {
             comment: string | null;
             aiScore: number | null;
             campaignId: string | null;
-        } | null;
+        }) | null;
         aiJobs: {
             result: import("@prisma/client/runtime/client").JsonValue | null;
             id: string;
@@ -91,6 +101,24 @@ export declare const decisionsService: {
             errorMessage: string | null;
             decisionId: string | null;
         }[];
+        campaign: ({
+            class: {
+                campusId: string;
+            } | null;
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            classId: string | null;
+            title: string;
+            status: string;
+            professorId: string | null;
+            moduleId: string | null;
+            dueDate: Date;
+            campusId: string | null;
+            description: string | null;
+            scope: string;
+        }) | null;
         decider: {
             email: string;
             id: string;
@@ -115,7 +143,7 @@ export declare const decisionsService: {
         aiSuggestion: string | null;
         analysisId: string | null;
     }>;
-    getAll(query: Record<string, unknown>, schoolId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, schoolId?: string | null, userRole?: string, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
         decider: {
             id: string;
             firstName: string;

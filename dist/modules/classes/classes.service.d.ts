@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 export declare const classesService: {
-    getAll(schoolId: string, query: Record<string, unknown>): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userCampusIds?: string[], userClassId?: string | null): Promise<import("../../utils/pagination").PaginatedResult<{
         campus: {
             code: string | null;
             name: string;
@@ -47,7 +47,7 @@ export declare const classesService: {
         levelId: string;
         campusId: string;
     }>>;
-    getById(id: string, schoolId: string): Promise<{
+    getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         campus: {
             code: string | null;
             name: string;
@@ -193,7 +193,7 @@ export declare const classesService: {
         campusId: string;
     }>;
     delete(id: string, schoolId: string): Promise<void>;
-    getStudents(id: string, schoolId: string): Promise<{
+    getStudents(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         email: string;
         id: string;
         firstName: string;

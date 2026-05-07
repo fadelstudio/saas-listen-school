@@ -44,6 +44,7 @@ exports.authRepository = {
                 passwordHash: data.passwordHash,
                 firstName: data.firstName,
                 lastName: data.lastName,
+                sex: data.sex,
                 campuses: data.campusId ? { connect: [{ id: data.campusId }] } : undefined,
                 classId: data.classId,
                 schoolId: data.schoolId,

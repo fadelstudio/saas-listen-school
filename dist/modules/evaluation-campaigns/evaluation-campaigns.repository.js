@@ -35,6 +35,7 @@ exports.evaluationCampaignsRepository = {
             AND: [
                 tenant,
                 ...(filters.classId ? [{ classId: filters.classId }] : []),
+                ...(filters.campusIds && filters.campusIds.length > 0 ? [{ campusId: { in: filters.campusIds } }] : []),
                 ...(filters.campusId ? [{ campusId: filters.campusId }] : []),
                 ...(filters.scope ? [{ scope: filters.scope }] : []),
                 ...(filters.status ? [{ status: filters.status }] : []),
@@ -146,6 +147,48 @@ exports.evaluationCampaignsRepository = {
             },
             decision,
         };
+    },
+    async findAllForStudent(schoolId, filters, pagination, userId) {
+        const tenant = campaignInSchool(schoolId);
+        const where = {
+            AND: [
+                tenant,
+                {
+                    OR: [
+                        { scope: 'SCHOOL' },
+                        ...(filters.campusIds && filters.campusIds.length > 0
+                            ? [{ AND: [{ scope: 'CAMPUS' }, { campusId: { in: filters.campusIds } }] }]
+                            : []),
+                        ...(filters.classId ? [{ AND: [{ scope: 'CLASS' }, { classId: filters.classId }] }] : []),
+                    ],
+                },
+                ...(filters.status ? [{ status: filters.status }] : []),
+            ],
+        };
+        const [items, total] = await Promise.all([
+            prisma_1.prisma.evaluationCampaign.findMany({
+                where,
+                skip: pagination.skip,
+                take: pagination.limit,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    class: true,
+                    module: true,
+                    professor: true,
+                    _count: { select: { evaluations: true } },
+                    ...(userId ? { evaluations: { where: { evaluatorId: userId }, select: { id: true } } } : {}),
+                },
+            }),
+            prisma_1.prisma.evaluationCampaign.count({ where }),
+        ]);
+        const itemsWithStatus = items.map(item => {
+            const { evaluations, ...rest } = item;
+            return {
+                ...rest,
+                hasEvaluated: evaluations ? evaluations.length > 0 : false,
+            };
+        });
+        return { items: itemsWithStatus, total };
     },
 };
 //# sourceMappingURL=evaluation-campaigns.repository.js.map

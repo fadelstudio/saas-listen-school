@@ -9,7 +9,7 @@ declare const envSchema: z.ZodObject<{
     DATABASE_URL: z.ZodString;
     JWT_SECRET: z.ZodString;
     DEFAULT_PASSWORD_RESET: z.ZodDefault<z.ZodString>;
-    LOGIN_OTP_ENABLED: z.ZodDefault<z.ZodCoercedBoolean<unknown>>;
+    LOGIN_OTP_ENABLED: z.ZodDefault<z.ZodPipe<z.ZodTransform<boolean | undefined, unknown>, z.ZodCoercedBoolean<unknown>>>;
     PENDING_REGISTRATION_TTL_MINUTES: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     SUPABASE_URL: z.ZodString;
     SUPABASE_KEY: z.ZodString;
@@ -26,12 +26,20 @@ declare const envSchema: z.ZodObject<{
     MAIL_PROVIDER: z.ZodDefault<z.ZodEnum<{
         console: "console";
         resend: "resend";
+        smtp: "smtp";
     }>>;
     RESEND_API_KEY: z.ZodOptional<z.ZodString>;
     EMAIL_FROM: z.ZodDefault<z.ZodString>;
+    SMTP_HOST: z.ZodOptional<z.ZodString>;
+    SMTP_PORT: z.ZodOptional<z.ZodCoercedNumber<unknown>>;
+    SMTP_USER: z.ZodOptional<z.ZodString>;
+    SMTP_PASS: z.ZodOptional<z.ZodString>;
+    SMTP_SECURE: z.ZodDefault<z.ZodPipe<z.ZodTransform<boolean | undefined, unknown>, z.ZodCoercedBoolean<unknown>>>;
     OTP_SITE_NAME: z.ZodOptional<z.ZodString>;
     OTP_EMAIL_SUBJECT: z.ZodOptional<z.ZodString>;
     OTP_HELP_URL: z.ZodOptional<z.ZodString>;
+    OTP_FALLBACK_ENABLED: z.ZodDefault<z.ZodPipe<z.ZodTransform<boolean | undefined, unknown>, z.ZodCoercedBoolean<unknown>>>;
+    OTP_FALLBACK_CODE: z.ZodOptional<z.ZodString>;
     DEFAULT_SCHOOL_SLUG: z.ZodOptional<z.ZodString>;
     TENANT_RESOLUTION_MODE: z.ZodDefault<z.ZodEnum<{
         strict: "strict";

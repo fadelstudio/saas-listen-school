@@ -1,4 +1,14 @@
 import { z } from 'zod';
+export declare const NotificationTypeEnum: z.ZodEnum<{
+    AI_FAILURE: "AI_FAILURE";
+    EVALUATION_CAMPAIGN: "EVALUATION_CAMPAIGN";
+    EVALUATION_CAMPAIGN_REMINDER: "EVALUATION_CAMPAIGN_REMINDER";
+    SYSTEM: "SYSTEM";
+    BROADCAST: "BROADCAST";
+    NEW_REPORT: "NEW_REPORT";
+    REPORT_STATUS_CHANGED: "REPORT_STATUS_CHANGED";
+    WELCOME: "WELCOME";
+}>;
 export declare const notificationsSchema: {
     sendBroadcast: z.ZodObject<{
         title: z.ZodString;
@@ -28,6 +38,9 @@ export declare const notificationsSchema: {
             EVALUATION_CAMPAIGN_REMINDER: "EVALUATION_CAMPAIGN_REMINDER";
             SYSTEM: "SYSTEM";
             BROADCAST: "BROADCAST";
+            NEW_REPORT: "NEW_REPORT";
+            REPORT_STATUS_CHANGED: "REPORT_STATUS_CHANGED";
+            WELCOME: "WELCOME";
         }>>;
     }, z.core.$strip>;
     params: z.ZodObject<{

@@ -41,11 +41,19 @@ export const professorsRepository = {
 
     if (filters.campusId) {
       andParts.push({
-        school: {
-          campuses: {
-            some: {
-              id: filters.campusId,
-            },
+        modules: {
+          some: {
+            class: { campusId: filters.campusId },
+          },
+        },
+      });
+    }
+
+    if (filters.campusIds && filters.campusIds.length > 0) {
+      andParts.push({
+        modules: {
+          some: {
+            class: { campusId: { in: filters.campusIds } },
           },
         },
       });
@@ -80,7 +88,7 @@ export const professorsRepository = {
         evaluations: {
           take: 10,
           orderBy: { createdAt: 'desc' },
-          include: { module: true },
+          include: { module: true, class: { select: { campusId: true } } },
         },
       },
     });

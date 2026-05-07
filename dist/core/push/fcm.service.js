@@ -32,23 +32,91 @@ function initFirebase() {
         }
         let serviceAccount;
         if (jsonEnv) {
-            serviceAccount = JSON.parse(jsonEnv);
+            try {
+                let cleanJson = jsonEnv.trim();
+                if (cleanJson.startsWith('"') && cleanJson.endsWith('"')) {
+                    cleanJson = cleanJson.substring(1, cleanJson.length - 1);
+                }
+                cleanJson = cleanJson.replace(/\\"/g, '"');
+                let projectId = '';
+                let clientEmail = '';
+                let privateKey = '';
+                try {
+                    // Tentative 1 : Parsing propre (après un peu de nettoyage)
+                    // On évite le replace(/\n/g) massif ici pour ne pas casser la clé
+                    const cleanForParse = cleanJson.replace(/\n/g, '\\n');
+                    const parsed = JSON.parse(cleanForParse);
+                    projectId = parsed.project_id || parsed.projectId || '';
+                    clientEmail = parsed.client_email || parsed.clientEmail || '';
+                    privateKey = parsed.private_key || parsed.privateKey || '';
+                }
+                catch (parseErr) {
+                    // Tentative 2 : "God Mode" (Regex). Si JSON.parse crashe (ex: Bad control character)
+                    // on va chercher directement les chaînes avec une regex.
+                    logger_1.logger.warn('[FCM] JSON.parse a échoué, passage en mode Regex (God Mode)...');
+                    const extract = (key) => {
+                        const regex = new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`);
+                        const match = jsonEnv.match(regex);
+                        return match ? match[1] : null;
+                    };
+                    projectId = extract('project_id') || extract('projectId') || '';
+                    clientEmail = extract('client_email') || extract('clientEmail') || '';
+                    privateKey = extract('private_key') || extract('privateKey') || '';
+                }
+                if (!projectId || !clientEmail || !privateKey) {
+                    logger_1.logger.error('[FCM] Impossible d\'extraire les clés via JSON ou Regex.');
+                    _disabled = true;
+                    return false;
+                }
+                // On nettoie la clé et on reconstruit un PEM parfait ("God Mode 2.0")
+                privateKey = privateKey.replace(/\\+n/g, '\n').replace(/\\r/g, '').replace(/\\"/g, '');
+                const pemMatch = privateKey.match(/-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----/s);
+                if (pemMatch) {
+                    // Extraction du contenu Base64 en retirant TOUS les espaces/sauts de ligne
+                    const base64 = pemMatch[1].replace(/\s+/g, '');
+                    // Découpage en blocs de 64 caractères (standard PEM)
+                    const formattedBase64 = base64.match(/.{1,64}/g)?.join('\n') || base64;
+                    // Reconstruction de la clé
+                    privateKey = `-----BEGIN PRIVATE KEY-----\n${formattedBase64}\n-----END PRIVATE KEY-----\n`;
+                }
+                serviceAccount = {
+                    projectId,
+                    clientEmail,
+                    privateKey,
+                };
+                logger_1.logger.info('[FCM] JSON parsé et clé privée formatée avec succès (God Mode).');
+            }
+            catch (err) {
+                logger_1.logger.error('[FCM] Erreur FATALE.', { error: err.message });
+                _disabled = true;
+                return false;
+            }
         }
         else {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             serviceAccount = require(pathEnv);
         }
-        if (!firebase_admin_1.default.apps.length) {
-            firebase_admin_1.default.initializeApp({
-                credential: firebase_admin_1.default.credential.cert(serviceAccount),
-            });
+        try {
+            if (!firebase_admin_1.default.apps.length) {
+                firebase_admin_1.default.initializeApp({
+                    credential: firebase_admin_1.default.credential.cert(serviceAccount),
+                });
+            }
+            _messaging = firebase_admin_1.default.messaging();
+            logger_1.logger.info('[FCM] Firebase Admin SDK initialisé avec succès.');
+            return true;
         }
-        _messaging = firebase_admin_1.default.messaging();
-        logger_1.logger.info('[FCM] Firebase Admin SDK initialisé avec succès.');
-        return true;
+        catch (authErr) {
+            logger_1.logger.error('[FCM] Erreur d\'authentification Google (clé invalide ?).', {
+                message: authErr.message,
+                code: authErr.code
+            });
+            _disabled = true;
+            return false;
+        }
     }
     catch (err) {
-        logger_1.logger.error('[FCM] Échec de l\'initialisation Firebase. Le push FCM est désactivé.', { error: err });
+        logger_1.logger.error('[FCM] Erreur inattendue lors de l\'initialisation.', { error: err.message });
         _disabled = true;
         return false;
     }
@@ -95,8 +163,8 @@ exports.fcmService = {
                 },
                 webpush: {
                     notification: {
-                        icon: '/icon-192x192.png',
-                        badge: '/badge-72x72.png',
+                        icon: '/images/logo-icon.svg',
+                        badge: '/images/favicon.ico',
                     },
                 },
             });
@@ -121,7 +189,7 @@ exports.fcmService = {
     async sendToMultipleDevices(payload) {
         if (!this.isEnabled() || !_messaging)
             return 0;
-        const validTokens = payload.tokens.filter(t => t?.trim().length > 0);
+        const validTokens = [...new Set(payload.tokens.filter(t => t?.trim().length > 0))];
         if (validTokens.length === 0)
             return 0;
         // Firebase multicast max 500 tokens par appel

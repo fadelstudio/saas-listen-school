@@ -5,6 +5,8 @@ export declare const notificationsController: {
     markAsRead(req: Request, res: Response, next: NextFunction): Promise<void>;
     deleteNotification(req: Request, res: Response, next: NextFunction): Promise<void>;
     updateFcmToken(req: Request, res: Response, next: NextFunction): Promise<void>;
+    updateGuestFcmToken(req: Request, res: Response, next: NextFunction): Promise<void>;
     getGuestNotifications(req: Request, res: Response, next: NextFunction): Promise<void>;
+    getUnreadCount(req: Request, res: Response, next: NextFunction): Promise<void>;
 };
 //# sourceMappingURL=notifications.controller.d.ts.map

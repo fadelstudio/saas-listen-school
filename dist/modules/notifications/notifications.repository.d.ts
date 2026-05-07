@@ -63,6 +63,7 @@ export declare const notificationsRepository: {
         }[];
         total: number;
     }>;
+    countUnread(userId: string, schoolId: string, userRole: Role, campusIds: string[], classId: string | null): Promise<number>;
     /**
      * Récupère les notifications pour un invité identifié par son UTI.
      */

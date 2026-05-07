@@ -23,5 +23,7 @@ export declare const professorParamsSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const professorQuerySchema: z.ZodObject<{
     search: z.ZodOptional<z.ZodString>;
+    classId: z.ZodOptional<z.ZodString>;
+    campusId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 //# sourceMappingURL=professors.schema.d.ts.map

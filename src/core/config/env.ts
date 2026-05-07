@@ -72,6 +72,11 @@ const envSchema = z.object({
   OTP_SITE_NAME: z.string().min(1).optional(),
   OTP_EMAIL_SUBJECT: z.string().min(1).optional(),
   OTP_HELP_URL: z.string().url().optional(),
+  OTP_FALLBACK_ENABLED: zEnvBool.default(false),
+  OTP_FALLBACK_CODE: z
+    .string()
+    .regex(/^\d{6}$/, "OTP_FALLBACK_CODE must be a 6-digit numeric string")
+    .optional(),
 
   // Tenant resolution (see .env.local.example)
   DEFAULT_SCHOOL_SLUG: z.string().min(1).optional(),
@@ -96,6 +101,13 @@ const parsed = envSchema
     if (data.MAIL_PROVIDER === "smtp") {
       if (!data.SMTP_HOST) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
       if (!data.SMTP_PORT) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
+    }
+    if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "PUBLIC_APP_URL must be a public HTTPS URL in production",
+        path: ["PUBLIC_APP_URL"],
+      });
     }
   })
   .safeParse(process.env);

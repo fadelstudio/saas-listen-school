@@ -123,18 +123,44 @@ exports.evaluationCampaignsService = {
                 targetUserIds: studentIds,
                 campaignId: campaign.id,
                 schoolId,
+            }).then(() => {
+                logger_1.logger.info('[CampaignService] Targeted notifications sent', {
+                    campaignId: campaign.id,
+                    studentCount: studentIds.length
+                });
             }).catch((e) => logger_1.logger.error('Failed to send campaign notifications (bulk)', { error: e }));
         }
         return campaign;
     },
-    async getAll(schoolId, query) {
+    async getAll(schoolId, query, userRole, userClassId, userCampusIds, userId) {
         const pagination = (0, pagination_1.parsePagination)(query);
+        // Default filters
         const filters = {
-            classId: typeof query.classId === 'string' ? query.classId : undefined,
-            campusId: typeof query.campusId === 'string' ? query.campusId : undefined,
             scope: typeof query.scope === 'string' ? query.scope : undefined,
             status: typeof query.status === 'string' ? query.status : undefined,
         };
+        // If student, we force a complex OR filter to include all relevant scopes
+        if (userRole === 'STUDENT') {
+            // For students, we don't just filter by classId in an AND way, 
+            // we want campaigns that are (SCHOOL) OR (CAMPUS + userCampusId) OR (CLASS + userClassId)
+            const { items, total } = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findAllForStudent(schoolId, {
+                classId: userClassId,
+                campusIds: userCampusIds,
+                status: filters.status || 'ACTIVE',
+            }, pagination, userId);
+            return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
+        }
+        // For non-students (ADMIN/MANAGER), use standard filtering
+        filters.classId = typeof query.classId === 'string' ? query.classId : undefined;
+        filters.campusId = typeof query.campusId === 'string' ? query.campusId : undefined;
+        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
+                throw new AppError_1.BadRequestError('Requested campus is outside your scope');
+            }
+            if (!filters.campusId) {
+                filters.campusIds = userCampusIds;
+            }
+        }
         const { items, total } = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
@@ -205,6 +231,11 @@ exports.evaluationCampaignsService = {
             targetUserIds: missingIds,
             campaignId: campaign.id,
             schoolId,
+        }).then(() => {
+            logger_1.logger.info('[CampaignService] Reminders sent', {
+                campaignId: campaign.id,
+                studentCount: missingIds.length
+            });
         }).catch((e) => logger_1.logger.error('Failed to send campaign reminders (bulk)', { error: e }));
     },
     async generatePostDeadlineAnalysis(id, userId, schoolId) {
@@ -262,7 +293,7 @@ exports.evaluationCampaignsService = {
         });
         // 5. Notify admins that the AI report is ready
         notifications_service_1.notificationService.sendBroadcast(schoolId, {
-            title: '🤖 Rapport IA généré — action requise',
+            title: '🤖 Rapport IA  généré — action requise',
             message: `L'analyse IA de la campagne "${campaign.title}" est prête. Une décision proposée a été générée automatiquement. Vérifiez et validez.`,
             targetRoles: ['ADMIN', 'MANAGER'],
             url: `/dashboard/decisions/${decision.id}`,

@@ -30,6 +30,7 @@ export declare const academicModulesService: {
                 bio: string | null;
                 address: string | null;
                 avatarPath: string | null;
+                sex: import("@prisma/client").$Enums.Sex;
                 role: import("@prisma/client").$Enums.Role;
                 isActive: boolean;
                 fcmToken: string | null;
@@ -48,6 +49,7 @@ export declare const academicModulesService: {
             isAnonymous: boolean;
             professorId: string;
             moduleId: string;
+            deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
             reportId: string | null;
             evaluatorId: string | null;
             score: number | null;
