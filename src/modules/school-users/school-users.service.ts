@@ -334,13 +334,17 @@ export const schoolUsersService = {
       throw new ForbiddenError('Access denied: different school');
     }
     if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
-       const hasCommon = await prisma.user.findFirst({
-         where: { 
-           id: targetId,
-           campuses: { some: { id: { in: admin.campuses.map(c => c.id) } } }
-         }
-       });
-       if (!hasCommon) throw new ForbiddenError('Access denied: different campus');
+      const allowedIds = admin.campuses.map(c => c.id);
+      const isMyCampus = await prisma.user.findFirst({
+        where: { 
+          id: targetId,
+          OR: [
+            { campuses: { some: { id: { in: allowedIds } } } },
+            { class: { campusId: { in: allowedIds } } }
+          ]
+        }
+      });
+      if (!isMyCampus) throw new ForbiddenError('Access denied: user outside your campus scope');
     }
     if (target.role === Role.SUPERADMIN) {
       throw new ForbiddenError('Cannot modify super administrator');
@@ -459,6 +463,20 @@ export const schoolUsersService = {
       throw new ForbiddenError('Access denied');
     }
 
+    if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
+       const allowedIds = admin.campuses.map(c => c.id);
+       const isMyCampus = await prisma.user.findFirst({
+         where: { 
+           id: targetId,
+           OR: [
+             { campuses: { some: { id: { in: allowedIds } } } },
+             { class: { campusId: { in: allowedIds } } }
+           ]
+         }
+       });
+       if (!isMyCampus) throw new ForbiddenError('Access denied: user outside your campus scope');
+    }
+
     return enrichSchoolUserWithAvatar(target);
   },
 
@@ -475,13 +493,17 @@ export const schoolUsersService = {
       throw new ForbiddenError('Access denied: different school');
     }
     if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
-       const hasCommon = await prisma.user.findFirst({
-         where: { 
-           id: targetId,
-           campuses: { some: { id: { in: admin.campuses.map(c => c.id) } } }
-         }
-       });
-       if (!hasCommon) throw new ForbiddenError('Access denied: different campus');
+      const allowedIds = admin.campuses.map(c => c.id);
+      const isMyCampus = await prisma.user.findFirst({
+        where: { 
+          id: targetId,
+          OR: [
+            { campuses: { some: { id: { in: allowedIds } } } },
+            { class: { campusId: { in: allowedIds } } }
+          ]
+        }
+      });
+      if (!isMyCampus) throw new ForbiddenError('Access denied: user outside your campus scope');
     }
     if (target.role === Role.SUPERADMIN) {
       throw new ForbiddenError('Cannot reset super administrator password');
@@ -535,13 +557,17 @@ export const schoolUsersService = {
       throw new ForbiddenError('Access denied: different school');
     }
     if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
-       const hasCommon = await prisma.user.findFirst({
-         where: { 
-           id: targetId,
-           campuses: { some: { id: { in: admin.campuses.map(c => c.id) } } }
-         }
-       });
-       if (!hasCommon) throw new ForbiddenError('Access denied: different campus');
+      const allowedIds = admin.campuses.map(c => c.id);
+      const isMyCampus = await prisma.user.findFirst({
+        where: { 
+          id: targetId,
+          OR: [
+            { campuses: { some: { id: { in: allowedIds } } } },
+            { class: { campusId: { in: allowedIds } } }
+          ]
+        }
+      });
+      if (!isMyCampus) throw new ForbiddenError('Access denied: user outside your campus scope');
     }
     
     // Deactivate instead of hard delete to preserve history?
