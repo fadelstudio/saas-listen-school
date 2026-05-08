@@ -201,7 +201,15 @@ export const schoolUsersService = {
 
     // Campus filtering : ADMIN/MANAGER/AGENT/VIEWER restreints par leurs campus
     if (admin.role !== Role.SUPERADMIN && admin.campuses.length > 0) {
-      where.campuses = { some: { id: { in: admin.campuses.map(c => c.id) } } };
+      const allowedIds = admin.campuses.map(c => c.id);
+      where.AND = [
+        {
+          OR: [
+            { campuses: { some: { id: { in: allowedIds } } } },
+            { class: { campusId: { in: allowedIds } } }
+          ]
+        }
+      ];
     } else if (campusId) {
       where.campuses = { some: { id: campusId as string } };
     }
@@ -267,6 +275,7 @@ export const schoolUsersService = {
       }),
       prisma.user.count({ where }),
     ]);
+    ]);
 
     const enriched = await Promise.all(items.map((u) => enrichSchoolUserWithAvatar(u)));
 
@@ -308,6 +317,7 @@ export const schoolUsersService = {
       phone?: string | null;
       bio?: string | null;
       address?: string | null;
+      email?: string;
     }
   ) {
     const admin = await assertStaffAccess(adminUserId, true);
@@ -326,7 +336,7 @@ export const schoolUsersService = {
     if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
       throw new ForbiddenError('Access denied: different school');
     }
-    if (admin.role === Role.ADMIN && admin.campuses.length > 0) {
+    if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
        const hasCommon = await prisma.user.findFirst({
          where: { 
            id: targetId,
@@ -337,6 +347,20 @@ export const schoolUsersService = {
     }
     if (target.role === Role.SUPERADMIN) {
       throw new ForbiddenError('Cannot modify super administrator');
+    }
+
+    if (input.email && input.email !== target.email) {
+      const emailTaken = await prisma.user.findFirst({
+        where: { email: input.email },
+      });
+      if (emailTaken) throw new ConflictError('Email already in use');
+    }
+
+    if (input.matricule && input.matricule !== target.matricule) {
+      const matriculeTaken = await prisma.user.findFirst({
+        where: { matricule: input.matricule, schoolId: admin.schoolId },
+      });
+      if (matriculeTaken) throw new ConflictError('Matricule already in use');
     }
 
     if (input.role) {
@@ -377,6 +401,7 @@ export const schoolUsersService = {
         ...(input.phone !== undefined && { phone: input.phone }),
         ...(input.bio !== undefined && { bio: input.bio }),
         ...(input.address !== undefined && { address: input.address }),
+        ...(input.email !== undefined && { email: input.email }),
         ...(resolvedCampusIds !== undefined && { campuses: { set: resolvedCampusIds.map(id => ({ id })) } }),
       },
       select: {
@@ -452,7 +477,7 @@ export const schoolUsersService = {
     if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
       throw new ForbiddenError('Access denied: different school');
     }
-    if (admin.role === Role.ADMIN && admin.campuses.length > 0) {
+    if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
        const hasCommon = await prisma.user.findFirst({
          where: { 
            id: targetId,
@@ -475,6 +500,14 @@ export const schoolUsersService = {
       prisma.passwordResetToken.deleteMany({ where: { userId: targetId } }),
       prisma.loginOtpChallenge.deleteMany({ where: { userId: targetId } }),
     ]);
+
+    // Send reset email in background (User can still choose their own password)
+    try {
+      const { authService } = await import('../auth/auth.service');
+      await authService.forgotPassword({ email: target.email }, target.schoolId!);
+    } catch (err) {
+      console.warn('[SchoolUsersService] Failed to send reset email:', err);
+    }
 
     if (admin.schoolId) {
       await auditService.log({
@@ -504,7 +537,7 @@ export const schoolUsersService = {
     if (admin.role !== Role.SUPERADMIN && target.schoolId !== admin.schoolId) {
       throw new ForbiddenError('Access denied: different school');
     }
-    if (admin.role === Role.ADMIN && admin.campuses.length > 0) {
+    if (([Role.ADMIN, Role.MANAGER, Role.AGENT] as Role[]).includes(admin.role) && admin.campuses.length > 0) {
        const hasCommon = await prisma.user.findFirst({
          where: { 
            id: targetId,

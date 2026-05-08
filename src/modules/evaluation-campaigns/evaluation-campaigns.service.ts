@@ -93,7 +93,7 @@ export const evaluationCampaignsService = {
 
       await notificationService.create({
         title: `Nouvelle évaluation demandée: ${campaign.title}`,
-        message: detailedCampaign.module 
+        message: detailedCampaign.module
           ? `Votre administration sollicite votre avis pour le module ${detailedCampaign.module.name}. Cliquez ici pour participer.`
           : `Votre administration sollicite votre avis concernant "${campaign.title}". Cliquez ici pour participer.`,
         type: 'EVALUATION_CAMPAIGN',
@@ -101,9 +101,9 @@ export const evaluationCampaignsService = {
         campaignId: campaign.id,
         schoolId,
       }).then(() => {
-        logger.info('[CampaignService] Targeted notifications sent', { 
-          campaignId: campaign.id, 
-          studentCount: studentIds.length 
+        logger.info('[CampaignService] Targeted notifications sent', {
+          campaignId: campaign.id,
+          studentCount: studentIds.length
         });
       }).catch((e) => logger.error('Failed to send campaign notifications (bulk)', { error: e }));
     }
@@ -121,11 +121,11 @@ export const evaluationCampaignsService = {
     userId?: string
   ) {
     const pagination = parsePagination(query);
-    
+
     // Default filters
     const filters: EvaluationCampaignFilters = {
-      scope:    typeof query.scope    === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
-      status:   typeof query.status   === 'string' ? query.status   : undefined,
+      scope: typeof query.scope === 'string' ? (query.scope as EvaluationCampaignFilters['scope']) : undefined,
+      status: typeof query.status === 'string' ? query.status : undefined,
     };
 
     // If student, we force a complex OR filter to include all relevant scopes
@@ -192,10 +192,10 @@ export const evaluationCampaignsService = {
     if (analytics.campaign.status === 'ACTIVE' && new Date(analytics.campaign.dueDate) < now) {
       await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
       analytics.campaign.status = 'COMPLETED';
-      
+
       // Trigger global analysis if no decision exists
       if (!analytics.decision) {
-        this.generatePostDeadlineAnalysis(id, 'SYSTEM', schoolId).catch(err => 
+        this.generatePostDeadlineAnalysis(id, 'SYSTEM', schoolId).catch(err =>
           logger.error('Auto-analysis failed', { error: err })
         );
       }
@@ -231,17 +231,17 @@ export const evaluationCampaignsService = {
 
     await notificationService.create({
       title: `Rappel: Évaluation requise pour ${campaign.title}`,
-      message: campaign.module 
-          ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
-          : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
+      message: campaign.module
+        ? `N'oubliez pas de donner votre avis pour le module ${campaign.module.name}.`
+        : `N'oubliez pas de donner votre avis concernant "${campaign.title}".`,
       type: 'EVALUATION_CAMPAIGN_REMINDER',
       targetUserIds: missingIds,
       campaignId: campaign.id,
       schoolId,
     }).then(() => {
-      logger.info('[CampaignService] Reminders sent', { 
-        campaignId: campaign.id, 
-        studentCount: missingIds.length 
+      logger.info('[CampaignService] Reminders sent', {
+        campaignId: campaign.id,
+        studentCount: missingIds.length
       });
     }).catch((e) => logger.error('Failed to send campaign reminders (bulk)', { error: e }));
 
@@ -253,7 +253,7 @@ export const evaluationCampaignsService = {
     if (!analytics) throw new NotFoundError('EvaluationCampaign');
 
     const { stats, campaign } = analytics;
-    
+
     // 1. Check if a decision already exists
     const existing = await prisma.decision.findFirst({ where: { campaignId: id } as any });
     if (existing) return existing;
@@ -281,7 +281,7 @@ export const evaluationCampaignsService = {
 
     const { aiBalancer } = await import('../../core/ai/AiBalancer');
     const aiRes = await aiBalancer.callAI(prompt, schoolId);
-    
+
     let aiParsed;
     try {
       // Robust extraction as done in the processor
