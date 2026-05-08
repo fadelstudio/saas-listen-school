@@ -166,7 +166,7 @@ export const notificationService = {
         logger.info('[FCM] Push sent to user', { userId: data.userId, notifId });
         userTokenSent = true;
       } else {
-        logger.warn('[FCM] No token found for user', { userId: data.userId });
+        logger.info('[FCM] No token found for user (skipping push)', { userId: data.userId });
       }
       
       // Fallback à l'invité si l'utilisateur n'a pas de token (ex: s'il n'a pas encore login sur l'app)

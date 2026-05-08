@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
 import { logger } from "../../utils/logger";
+import { mailQueue } from "../config/queue";
 // @ts-ignore
 import * as SibApiV3Sdk from "sib-api-v3-sdk";
 
@@ -59,6 +60,30 @@ export async function verifyMailConfiguration(): Promise<boolean> {
  * - `MAIL_PROVIDER=resend`: HTTPS API Resend (`RESEND_API_KEY`, `EMAIL_FROM` vérifié côté Resend).
  */
 export async function sendTransactionalEmail(params: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}): Promise<void> {
+  try {
+    await mailQueue.add("send-email", params);
+    logger.info("[mail:queue] Email queued", { to: params.to, subject: params.subject });
+  } catch (error) {
+    logger.error("[mail:queue] Failed to queue email", { error: (error as Error).message });
+    // Fallback to direct send if queue fails in dev, or just rethrow
+    if (env.NODE_ENV === "development") {
+      logger.warn("[mail:queue] Falling back to direct send in development");
+      return sendTransactionalEmailDirectly(params);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Internal function to send email immediately.
+ * Called by the worker.
+ */
+export async function sendTransactionalEmailDirectly(params: {
   to: string;
   subject: string;
   text: string;

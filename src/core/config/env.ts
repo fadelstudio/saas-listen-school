@@ -57,6 +57,7 @@ const envSchema = z.object({
 
   // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  PUBLIC_WEB_URL: z.string().url().default("https://afien.vercel.app"),
   MAIL_PROVIDER: z.enum(["console", "smtp", "brevo"]).default("console"),
   BREVO_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),

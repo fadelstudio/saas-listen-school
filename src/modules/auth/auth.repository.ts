@@ -1,5 +1,6 @@
 import { User } from '@prisma/client';
 import { prisma } from '../../core/database/prisma';
+import { logger } from '../../utils/logger';
 import { RegisterInput } from './auth.types';
 
 export const authRepository = {
@@ -58,7 +59,7 @@ export const authRepository = {
     }
   ) {
     const verified = data.emailVerified ?? false;
-    console.log('[AuthRepository] Creating user with classId:', data.classId);
+    logger.info('[AuthRepository] Creating user', { classId: data.classId, email: data.email });
     return prisma.user.create({
       data: {
         email: data.email,

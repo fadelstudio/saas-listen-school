@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 
 // Importing the processor starts the BullMQ worker.
 import './ai.processor';
+import './mail.worker';
 import { startCampaignReminderLoop } from './campaign-reminder.worker';
 
 import express from 'express';

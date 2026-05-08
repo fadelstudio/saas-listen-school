@@ -56,6 +56,7 @@ const envSchema = zod_1.z.object({
     ANALYTICS_REPORT_INTERVAL_DAYS: zod_1.z.coerce.number().int().positive().default(30),
     // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
     PUBLIC_APP_URL: zod_1.z.string().url().default("http://localhost:3000"),
+    PUBLIC_WEB_URL: zod_1.z.string().url().default("https://afien.vercel.app"),
     MAIL_PROVIDER: zod_1.z.enum(["console", "smtp", "brevo"]).default("console"),
     BREVO_API_KEY: zod_1.z.string().optional(),
     RESEND_API_KEY: zod_1.z.string().optional(),
@@ -87,23 +88,23 @@ const envSchema = zod_1.z.object({
 });
 const parsed = envSchema
     .superRefine((data, ctx) => {
-    if (data.MAIL_PROVIDER === "smtp") {
-        if (!data.SMTP_HOST)
-            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
-        if (!data.SMTP_PORT)
-            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
-    }
-    if (data.MAIL_PROVIDER === "brevo" && !data.BREVO_API_KEY) {
-        ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "BREVO_API_KEY is required when MAIL_PROVIDER=brevo", path: ["BREVO_API_KEY"] });
-    }
-    if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
-        ctx.addIssue({
-            code: zod_1.z.ZodIssueCode.custom,
-            message: "PUBLIC_APP_URL must be a public HTTPS URL in production",
-            path: ["PUBLIC_APP_URL"],
-        });
-    }
-})
+        if (data.MAIL_PROVIDER === "smtp") {
+            if (!data.SMTP_HOST)
+                ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
+            if (!data.SMTP_PORT)
+                ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
+        }
+        if (data.MAIL_PROVIDER === "brevo" && !data.BREVO_API_KEY) {
+            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "BREVO_API_KEY is required when MAIL_PROVIDER=brevo", path: ["BREVO_API_KEY"] });
+        }
+        if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                message: "PUBLIC_APP_URL must be a public HTTPS URL in production",
+                path: ["PUBLIC_APP_URL"],
+            });
+        }
+    })
     .safeParse(process.env);
 if (!parsed.success) {
     console.error("❌ Invalid environment variables:");

@@ -275,7 +275,7 @@ exports.authService = {
         const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
         await auth_repository_1.authRepository.deletePasswordResetTokensForUser(user.id);
         await auth_repository_1.authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
-        const resetUrl = `${env_1.env.PUBLIC_APP_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+        const resetUrl = `${env_1.env.PUBLIC_WEB_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
         const html = mail_templates_1.mailTemplates.passwordResetTemplate(resetUrl);
         await (0, mail_service_1.sendTransactionalEmail)({
             to: user.email,

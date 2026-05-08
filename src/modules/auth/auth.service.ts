@@ -29,6 +29,7 @@ import { sendTransactionalEmail } from '../../core/email/mail.service';
 import { mailTemplates } from '../../core/email/mail.templates';
 import { uploadsService } from '../uploads/uploads.service';
 import { notificationService } from '../notifications/notifications.service';
+import { logger } from '../../utils/logger';
 
 const SALT_ROUNDS = 12;
 const ACCESS_TOKEN_EXPIRY = '1h';
@@ -159,7 +160,7 @@ async function generateTokens(user: TokenUser) {
 
 export const authService = {
   async register(input: RegisterInput, schoolId: string): Promise<RegisterResult> {
-    console.log('[AuthService] Registering student:', { email: input.email, classId: input.classId, schoolId });
+    logger.info('[AuthService] Registering student', { email: input.email, classId: input.classId, schoolId });
     if (!input.classId) {
       throw new BadRequestError('Student must be assigned to a class');
     }
@@ -257,7 +258,7 @@ export const authService = {
         type: 'LOGIN_WELCOME',
         userId: user.id,
         schoolId: user.schoolId,
-      }).catch(err => console.warn('[Notification] login welcome failed', err));
+      }).catch(err => logger.warn('[Notification] login welcome failed', { error: err.message }));
     }
 
 
@@ -281,8 +282,8 @@ export const authService = {
       subject: env.OTP_EMAIL_SUBJECT || `Code de vérification ${siteName}`,
       text: `Votre code de vérification : ${otp}\nIl expire dans ${otpExpiresMin} minutes.\nAide: ${helpUrl}`,
       html,
-    }).catch((err) => {
-      console.error('Failed to send OTP email:', err);
+    }).catch((err: any) => {
+      logger.error('[AuthService] Failed to queue OTP email', { error: err?.message });
     });
 
     return {
@@ -354,16 +355,16 @@ export const authService = {
     await authRepository.deletePasswordResetTokensForUser(user.id);
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
-    const resetUrl = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+    const resetUrl = `${env.PUBLIC_WEB_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
     const html = mailTemplates.passwordResetTemplate(resetUrl);
 
-    await sendTransactionalEmail({
+    sendTransactionalEmail({
       to: user.email,
       subject: 'Réinitialisation du mot de passe AFI-LISTEN',
       text: `Vous avez demandé une réinitialisation de mot de passe. Ouvrez ce lien (valide 1 heure) : ${resetUrl}`,
       html,
-    }).catch((err) => {
-      console.error('Failed to send password reset email:', err);
+    }).catch((err: any) => {
+      logger.error('[AuthService] Failed to queue password reset email', { error: err?.message });
     });
   },
 
