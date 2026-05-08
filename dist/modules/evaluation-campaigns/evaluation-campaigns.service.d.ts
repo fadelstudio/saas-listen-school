@@ -15,7 +15,7 @@ export declare const evaluationCampaignsService: {
         scope: string;
     }>;
     getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusIds?: string[], userId?: string): Promise<import("../../utils/pagination").PaginatedResult<any>>;
-    getById(id: string, schoolId: string): Promise<{
+    getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         campus: ({
             users: {
                 id: string;
@@ -116,7 +116,7 @@ export declare const evaluationCampaignsService: {
         description: string | null;
         scope: string;
     }>;
-    getAnalytics(id: string, schoolId: string): Promise<{
+    getAnalytics(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         campaign: {
             campus: ({
                 users: {

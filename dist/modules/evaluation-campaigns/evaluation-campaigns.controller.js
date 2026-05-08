@@ -35,7 +35,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.getById(req.params.id, req.schoolId);
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.getById(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Campaign details', campaign);
         }
         catch (error) {
@@ -57,7 +57,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const data = await evaluation_campaigns_service_1.evaluationCampaignsService.getAnalytics(req.params.id, req.schoolId);
+            const data = await evaluation_campaigns_service_1.evaluationCampaignsService.getAnalytics(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds);
             res.sendSuccess('Analytics fetched', data);
         }
         catch (error) {

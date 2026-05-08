@@ -47,7 +47,12 @@ export const evaluationCampaignsController = {
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campaign = await evaluationCampaignsService.getById(req.params.id as string, req.schoolId);
+      const campaign = await evaluationCampaignsService.getById(
+        req.params.id as string, 
+        req.schoolId,
+        req.user?.role,
+        req.user?.campusIds
+      );
       res.sendSuccess('Campaign details', campaign);
     } catch (error) {
       next(error);
@@ -73,7 +78,12 @@ export const evaluationCampaignsController = {
   async getAnalytics(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const data = await evaluationCampaignsService.getAnalytics(req.params.id as string, req.schoolId);
+      const data = await evaluationCampaignsService.getAnalytics(
+        req.params.id as string, 
+        req.schoolId,
+        req.user?.role,
+        req.user?.campusIds
+      );
       res.sendSuccess('Analytics fetched', data);
     } catch (error) {
       next(error);

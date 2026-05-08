@@ -35,8 +35,22 @@ exports.evaluationCampaignsRepository = {
             AND: [
                 tenant,
                 ...(filters.classId ? [{ classId: filters.classId }] : []),
-                ...(filters.campusIds && filters.campusIds.length > 0 ? [{ campusId: { in: filters.campusIds } }] : []),
-                ...(filters.campusId ? [{ campusId: filters.campusId }] : []),
+                ...(filters.campusId
+                    ? [{
+                            OR: [
+                                { campusId: filters.campusId },
+                                { class: { campusId: filters.campusId } }
+                            ]
+                        }]
+                    : []),
+                ...(filters.campusIds && filters.campusIds.length > 0
+                    ? [{
+                            OR: [
+                                { campusId: { in: filters.campusIds } },
+                                { class: { campusId: { in: filters.campusIds } } }
+                            ]
+                        }]
+                    : []),
                 ...(filters.scope ? [{ scope: filters.scope }] : []),
                 ...(filters.status ? [{ status: filters.status }] : []),
             ],

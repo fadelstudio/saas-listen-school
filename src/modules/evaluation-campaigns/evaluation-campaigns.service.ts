@@ -186,9 +186,22 @@ export const evaluationCampaignsService = {
 
 
 
-  async getById(id: string, schoolId: string) {
+  async getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {
     const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
     if (!campaign) throw new NotFoundError('EvaluationCampaign');
+
+    // Scoping check for MANAGER/AGENT/VIEWER
+    if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      const camp = campaign as any;
+      const isGlobal = camp.scope === 'SCHOOL';
+      const isMyCampus = camp.scope === 'CAMPUS' && camp.campusId && userCampusIds.includes(camp.campusId);
+      const isMyClass = camp.scope === 'CLASS' && camp.class?.campusId && userCampusIds.includes(camp.class.campusId);
+      
+      if (!isGlobal && !isMyCampus && !isMyClass) {
+        throw new ForbiddenError('This campaign is outside your campus scope');
+      }
+    }
+
     return campaign;
   },
 
@@ -229,9 +242,21 @@ export const evaluationCampaignsService = {
     return updated;
   },
 
-  async getAnalytics(id: string, schoolId: string) {
+  async getAnalytics(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {
     const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
     if (!analytics) throw new NotFoundError('EvaluationCampaign');
+
+    // Scoping check
+    if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      const camp = analytics.campaign as any;
+      const isGlobal = camp.scope === 'SCHOOL';
+      const isMyCampus = camp.scope === 'CAMPUS' && camp.campusId && userCampusIds.includes(camp.campusId);
+      const isMyClass = camp.scope === 'CLASS' && camp.class?.campusId && userCampusIds.includes(camp.class.campusId);
+      
+      if (!isGlobal && !isMyCampus && !isMyClass) {
+        throw new ForbiddenError('Analytics for this campaign are outside your campus scope');
+      }
+    }
 
     const now = new Date();
     if (analytics.campaign.status === 'ACTIVE' && new Date(analytics.campaign.dueDate) < now) {

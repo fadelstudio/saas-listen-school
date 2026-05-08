@@ -185,10 +185,20 @@ exports.evaluationCampaignsService = {
         const { items, total } = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
-    async getById(id, schoolId) {
+    async getById(id, schoolId, userRole, userCampusIds) {
         const campaign = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findById(id, schoolId);
         if (!campaign)
             throw new AppError_1.NotFoundError('EvaluationCampaign');
+        // Scoping check for MANAGER/AGENT/VIEWER
+        if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            const camp = campaign;
+            const isGlobal = camp.scope === 'SCHOOL';
+            const isMyCampus = camp.scope === 'CAMPUS' && camp.campusId && userCampusIds.includes(camp.campusId);
+            const isMyClass = camp.scope === 'CLASS' && camp.class?.campusId && userCampusIds.includes(camp.class.campusId);
+            if (!isGlobal && !isMyCampus && !isMyClass) {
+                throw new AppError_1.ForbiddenError('This campaign is outside your campus scope');
+            }
+        }
         return campaign;
     },
     async close(id, schoolId, userRole, userCampusIds, userId) {
@@ -225,10 +235,20 @@ exports.evaluationCampaignsService = {
         }).catch(e => logger_1.logger.warn('[Notification] Campaign close notify failed', { error: e }));
         return updated;
     },
-    async getAnalytics(id, schoolId) {
+    async getAnalytics(id, schoolId, userRole, userCampusIds) {
         const analytics = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.getAnalytics(id, schoolId);
         if (!analytics)
             throw new AppError_1.NotFoundError('EvaluationCampaign');
+        // Scoping check
+        if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            const camp = analytics.campaign;
+            const isGlobal = camp.scope === 'SCHOOL';
+            const isMyCampus = camp.scope === 'CAMPUS' && camp.campusId && userCampusIds.includes(camp.campusId);
+            const isMyClass = camp.scope === 'CLASS' && camp.class?.campusId && userCampusIds.includes(camp.class.campusId);
+            if (!isGlobal && !isMyCampus && !isMyClass) {
+                throw new AppError_1.ForbiddenError('Analytics for this campaign are outside your campus scope');
+            }
+        }
         const now = new Date();
         if (analytics.campaign.status === 'ACTIVE' && new Date(analytics.campaign.dueDate) < now) {
             await evaluation_campaigns_repository_1.evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
