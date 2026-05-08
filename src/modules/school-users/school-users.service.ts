@@ -229,6 +229,11 @@ export const schoolUsersService = {
       ];
     }
 
+    // Global policy: Never return students without a class
+    where.NOT = [
+      { role: Role.STUDENT, classId: null }
+    ];
+
     const [items, total] = await Promise.all([
       prisma.user.findMany({
         where,
@@ -335,6 +340,10 @@ export const schoolUsersService = {
     }
 
     let resolvedCampusIds = input.campusIds;
+
+    if (input.classId === null && (input.role === Role.STUDENT || target.role === Role.STUDENT)) {
+      throw new BadRequestError('Students must be assigned to a class');
+    }
 
     if (input.classId) {
       const cls = await prisma.class.findFirst({

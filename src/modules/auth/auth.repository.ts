@@ -6,7 +6,10 @@ export const authRepository = {
   async findByEmail(email: string, schoolId: string) {
     return prisma.user.findFirst({
       where: { email, schoolId },
-      include: { campuses: { select: { id: true } } },
+      include: { 
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } }
+      },
     });
   },
 
@@ -19,7 +22,10 @@ export const authRepository = {
           { matricule: identifier }
         ]
       },
-      include: { campuses: { select: { id: true } } },
+      include: { 
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } }
+      },
     });
   },
 
@@ -36,7 +42,10 @@ export const authRepository = {
   async findById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      include: { campuses: { select: { id: true } } },
+      include: { 
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } }
+      },
     });
   },
 
@@ -49,6 +58,7 @@ export const authRepository = {
     }
   ) {
     const verified = data.emailVerified ?? false;
+    console.log('[AuthRepository] Creating user with classId:', data.classId);
     return prisma.user.create({
       data: {
         email: data.email,
@@ -62,7 +72,10 @@ export const authRepository = {
         emailVerified: verified,
         emailVerifiedAt: verified ? new Date() : null,
       },
-      include: { campuses: { select: { id: true } } },
+      include: { 
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } }
+      },
     });
   },
 
@@ -113,7 +126,10 @@ export const authRepository = {
       where: { token },
       include: { 
         user: { 
-          include: { campuses: { select: { id: true } } } 
+          include: { 
+            campuses: { select: { id: true, name: true } },
+            class: { select: { id: true, name: true } }
+          } 
         } 
       },
     });
@@ -153,7 +169,10 @@ export const authRepository = {
       where: { id },
       include: { 
         user: { 
-          include: { campuses: { select: { id: true } } } 
+          include: { 
+            campuses: { select: { id: true, name: true } },
+            class: { select: { id: true, name: true } }
+          } 
         } 
       },
     });
@@ -185,7 +204,10 @@ export const authRepository = {
       where: { tokenHash },
       include: { 
         user: { 
-          include: { campuses: { select: { id: true } } } 
+          include: { 
+            campuses: { select: { id: true, name: true } },
+            class: { select: { id: true, name: true } }
+          } 
         } 
       },
     });

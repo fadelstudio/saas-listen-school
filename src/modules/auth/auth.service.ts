@@ -66,7 +66,10 @@ function canUseOtpFallback(): boolean {
   return env.OTP_FALLBACK_ENABLED && !!env.OTP_FALLBACK_CODE;
 }
 
-function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
+function toSafeUser(user: User & { 
+  campuses?: { id: string, name?: string }[], 
+  class?: { id: string, name: string } | null 
+}): SafeUser {
   return {
     id: user.id,
     email: user.email,
@@ -82,14 +85,19 @@ function toSafeUser(user: User & { campuses?: { id: string }[] }): SafeUser {
     bio: user.bio,
     address: user.address,
     campusIds: user.campuses?.map((c: any) => c.id) || [],
+    campuses: user.campuses?.map((c: any) => ({ id: c.id, name: c.name || '' })),
     classId: user.classId,
+    class: user.class ? { id: user.class.id, name: user.class.name } : null,
     schoolId: user.schoolId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
 }
 
-async function toSafeUserWithAvatar(user: User & { campuses?: { id: string }[] }): Promise<SafeUser> {
+async function toSafeUserWithAvatar(user: User & { 
+  campuses?: { id: string, name?: string }[], 
+  class?: { id: string, name: string } | null 
+}): Promise<SafeUser> {
   const base = toSafeUser(user);
   const avatarUrl = await uploadsService.getSignedUrlForPath(user.avatarPath);
   return { ...base, avatarUrl };
@@ -150,6 +158,11 @@ async function generateTokens(user: TokenUser) {
 
 export const authService = {
   async register(input: RegisterInput, schoolId: string): Promise<RegisterResult> {
+    console.log('[AuthService] Registering student:', { email: input.email, classId: input.classId, schoolId });
+    if (!input.classId) {
+      throw new BadRequestError('Student must be assigned to a class');
+    }
+
     const existing = await authRepository.findByEmail(input.email, schoolId);
     if (existing) {
       throw new ConflictError('An account with this email already exists');

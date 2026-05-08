@@ -15,7 +15,7 @@ export const registerSchema = z.object({
   sex: z.enum(['UNDEFINED', 'MALE', 'FEMALE']).default('UNDEFINED'),
   matricule: z.union([z.string().max(50), z.literal(''), z.null()]).optional(),
   campusId: idStringSchema.nullish(),
-  classId: idStringSchema.nullish(),
+  classId: idStringSchema,
 });
 
 // ─── Login ────────────────────────────────────────────────────────────────────
