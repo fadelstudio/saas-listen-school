@@ -275,7 +275,6 @@ export const schoolUsersService = {
       }),
       prisma.user.count({ where }),
     ]);
-    ]);
 
     const enriched = await Promise.all(items.map((u) => enrichSchoolUserWithAvatar(u)));
 
