@@ -49,7 +49,7 @@ export const professorsService = {
       classId: query.classId as string | undefined,
       campusId: query.campusId as string | undefined,
     };
-    if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+    if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
       if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
         throw new ForbiddenError('Requested campus is outside your scope');
       }
@@ -66,7 +66,7 @@ export const professorsService = {
     const professor = await professorsRepository.findById(id, schoolId);
     if (!professor) throw new NotFoundError('Professor');
     if (
-      ['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+      ['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') &&
       userCampusIds &&
       userCampusIds.length > 0 &&
       professor.evaluations.length > 0
@@ -89,7 +89,9 @@ export const professorsService = {
       numero?: string | null;
       phone?: string | null;
     },
+    userRole?: string
   ) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     let userId = data.userId;
 
     if (!userId) {
@@ -157,7 +159,9 @@ export const professorsService = {
       numero?: string | null;
       phone?: string | null;
     },
+    userRole?: string
   ) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const patch = {
       ...data,
       ...(data.matricule !== undefined && {
@@ -175,7 +179,8 @@ export const professorsService = {
     return enrichProfessorWithAvatar(updated as ProfessorRow);
   },
 
-  async delete(id: string, schoolId: string) {
+  async delete(id: string, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const ok = await professorsRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Professor');
   },
@@ -188,7 +193,8 @@ export const professorsService = {
   ) {
     const professor = await professorsRepository.findById(professorId, schoolId);
     if (!professor) throw new NotFoundError('Professor');
-    const isStaff = requester.role === Role.ADMIN || requester.role === Role.MANAGER;
+    const isStaff = requester.role === Role.ADMIN || requester.role === Role.MANAGER || requester.role === Role.AGENT;
+    if (requester.role === Role.VIEWER) throw new ForbiddenError('VIEWER role is read-only');
     const isSelfLinked = professor.userId === requester.userId;
     if (!isStaff && !isSelfLinked) {
       throw new ForbiddenError('Not allowed to update this professor profile photo');
@@ -225,7 +231,8 @@ export const professorsService = {
   ) {
     const professor = await professorsRepository.findById(professorId, schoolId);
     if (!professor) throw new NotFoundError('Professor');
-    const isStaff = requester.role === Role.ADMIN || requester.role === Role.MANAGER;
+    const isStaff = requester.role === Role.ADMIN || requester.role === Role.MANAGER || requester.role === Role.AGENT;
+    if (requester.role === Role.VIEWER) throw new ForbiddenError('VIEWER role is read-only');
     const isSelfLinked = professor.userId === requester.userId;
     if (!isStaff && !isSelfLinked) {
       throw new ForbiddenError('Not allowed to update this professor profile photo');

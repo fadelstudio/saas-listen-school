@@ -1,6 +1,6 @@
 import { academicModulesRepository } from './academic-modules.repository';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
-import { NotFoundError } from '../../core/errors/AppError';
+import { NotFoundError, ForbiddenError } from '../../core/errors/AppError';
 import { AcademicModuleFilters } from './academic-modules.types';
 
 export const academicModulesService = {
@@ -20,17 +20,20 @@ export const academicModulesService = {
     return module;
   },
 
-  async create(schoolId: string, data: { name: string; code?: string }) {
+  async create(schoolId: string, data: { name: string; code?: string }, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     return academicModulesRepository.create(schoolId, data);
   },
 
-  async update(id: string, schoolId: string, data: { name?: string; code?: string }) {
+  async update(id: string, schoolId: string, data: { name?: string; code?: string }, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const updated = await academicModulesRepository.update(id, schoolId, data);
     if (!updated) throw new NotFoundError('Academic Module');
     return updated;
   },
 
-  async delete(id: string, schoolId: string) {
+  async delete(id: string, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const ok = await academicModulesRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Academic Module');
   },

@@ -114,6 +114,7 @@ export const evaluationsRepository = {
       ...(filters.campusId && { class: { campusId: filters.campusId } }),
       ...(filters.startDate && { createdAt: { gte: new Date(filters.startDate) } }),
       ...(filters.endDate && { createdAt: { lte: new Date(filters.endDate) } }),
+      ...(filters.campaignId && { campaignId: filters.campaignId }),
     };
 
     const allowedSortFields = ['score', 'createdAt', 'aiScore'];

@@ -19,7 +19,7 @@ export const classesService = {
       levelId: query.levelId as string | undefined,
       search: query.search as string | undefined,
     };
-    if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+    if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
       if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
         throw new BadRequestError('Requested campus is outside your scope');
       }
@@ -37,7 +37,7 @@ export const classesService = {
     const cl = await classesRepository.findById(id, schoolId);
     if (!cl) throw new NotFoundError('Class');
     if (
-      ['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+      ['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') &&
       userCampusIds &&
       userCampusIds.length > 0 &&
       !userCampusIds.includes(cl.campusId)
@@ -47,7 +47,8 @@ export const classesService = {
     return cl;
   },
 
-  async create(schoolId: string, data: { name: string; campusId: string; levelId: string }) {
+  async create(schoolId: string, data: { name: string; campusId: string; levelId: string }, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const campus = await prisma.campus.findFirst({
       where: { id: data.campusId, schoolId },
     });
@@ -61,7 +62,8 @@ export const classesService = {
     return classesRepository.create(data);
   },
 
-  async update(id: string, schoolId: string, data: { name?: string; campusId?: string; levelId?: string }) {
+  async update(id: string, schoolId: string, data: { name?: string; campusId?: string; levelId?: string }, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     if (data.campusId) {
       const campus = await prisma.campus.findFirst({
         where: { id: data.campusId, schoolId },
@@ -81,7 +83,8 @@ export const classesService = {
     return updated;
   },
 
-  async delete(id: string, schoolId: string) {
+  async delete(id: string, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const ok = await classesRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Class');
   },

@@ -31,7 +31,7 @@ export const academicModulesController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const mod = await academicModulesService.create(req.schoolId, req.body);
+      const mod = await academicModulesService.create(req.schoolId, req.body, req.user?.role);
       res.sendSuccess('Academic Module created', mod, 201);
     } catch (error) {
       next(error);
@@ -41,7 +41,7 @@ export const academicModulesController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const mod = await academicModulesService.update(req.params.id as string, req.schoolId, req.body);
+      const mod = await academicModulesService.update(req.params.id as string, req.schoolId, req.body, req.user?.role);
       res.sendSuccess('Academic Module updated', mod);
     } catch (error) {
       next(error);
@@ -51,7 +51,7 @@ export const academicModulesController = {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      await academicModulesService.delete(req.params.id as string, req.schoolId);
+      await academicModulesService.delete(req.params.id as string, req.schoolId, req.user?.role);
       res.sendSuccess('Academic Module deleted', null);
     } catch (error) {
       next(error);

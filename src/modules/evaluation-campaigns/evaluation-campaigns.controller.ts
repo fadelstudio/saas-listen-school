@@ -6,7 +6,7 @@ export const evaluationCampaignsController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campaign = await evaluationCampaignsService.create(req.body, req.schoolId);
+      const campaign = await evaluationCampaignsService.create(req.body, req.schoolId, req.user?.role);
       res.sendSuccess('Evaluation campaign created and students notified', campaign, 201);
     } catch (error) {
       next(error);
@@ -51,7 +51,7 @@ export const evaluationCampaignsController = {
   async close(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campaign = await evaluationCampaignsService.close(req.params.id as string, req.schoolId);
+      const campaign = await evaluationCampaignsService.close(req.params.id as string, req.schoolId, req.user?.role);
       res.sendSuccess('Campaign closed', campaign);
     } catch (error) {
       next(error);
@@ -71,7 +71,7 @@ export const evaluationCampaignsController = {
   async analyze(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const data = await evaluationCampaignsService.generatePostDeadlineAnalysis(req.params.id as string, req.user!.userId, req.schoolId);
+      const data = await evaluationCampaignsService.generatePostDeadlineAnalysis(req.params.id as string, req.user!.userId, req.schoolId, req.user?.role);
       res.sendSuccess('Analysis completed and decision created', data);
     } catch (error) {
       next(error);
@@ -81,7 +81,7 @@ export const evaluationCampaignsController = {
   async remind(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      await evaluationCampaignsService.sendReminders(req.params.id as string, req.schoolId);
+      await evaluationCampaignsService.sendReminders(req.params.id as string, req.schoolId, req.user?.role);
       res.sendSuccess('Reminders sent successfully');
     } catch (error) {
       next(error);

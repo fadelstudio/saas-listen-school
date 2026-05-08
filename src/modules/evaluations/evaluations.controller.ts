@@ -7,7 +7,7 @@ export const evaluationsController = {
     try {
       const userId = req.user?.userId;
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const result = await evaluationsService.create(req.body, userId, req.schoolId);
+      const result = await evaluationsService.create(req.body, userId, req.schoolId, req.user?.role);
       res.sendSuccess('Evaluation created', result, 201);
     } catch (error) { next(error); }
   },
@@ -19,7 +19,8 @@ export const evaluationsController = {
         req.query as Record<string, unknown>,
         req.user?.role,
         req.schoolId,
-        req.user?.campusIds
+        req.user?.campusIds,
+        req.user?.userId
       );
       res.sendSuccess('Evaluations fetched', result.items, 200, {
         total: result.total,

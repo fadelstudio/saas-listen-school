@@ -17,7 +17,7 @@ export const reportsService = {
     userCampusIds?: string[],
     requestedCampusId?: string
   ): string[] | undefined {
-    if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole)) return undefined;
+    if (!userRole || !['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole)) return undefined;
     if (!userCampusIds || userCampusIds.length === 0) return undefined;
     if (requestedCampusId) {
       if (!userCampusIds.includes(requestedCampusId)) {
@@ -28,7 +28,8 @@ export const reportsService = {
     return userCampusIds;
   },
 
-  async create(input: CreateReportInput, userId?: string, schoolId?: string | null) {
+  async create(input: CreateReportInput, userId?: string, schoolId?: string | null, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     let finalInput = { ...input };
 
     // 1. User Context auto-fill
@@ -136,12 +137,12 @@ export const reportsService = {
     return report;
   },
 
-  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]) {
+  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[], userId?: string) {
     const pagination = parsePagination(query);
 
     const filters: ReportFilters = {
       status: query.status as ReportStatus | undefined,
-      authorId: query.authorId as string | undefined,
+      authorId: (userRole === 'STUDENT' && userId) ? userId : (query.authorId as string | undefined),
       campusId: query.campusId as string | undefined,
       classId: query.classId as string | undefined,
       professorId: query.professorId as string | undefined,
@@ -176,8 +177,9 @@ export const reportsService = {
     const report = await reportsRepository.findById(id, schoolId ?? null);
     if (!report) throw new NotFoundError('Report');
 
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     // Only the author or admin/manager can update
-    if (report.authorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
+    if (report.authorId !== userId && !['ADMIN', 'MANAGER', 'AGENT'].includes(userRole)) {
       throw new ForbiddenError('You do not have permission to update this report');
     }
 
@@ -198,8 +200,9 @@ export const reportsService = {
   },
 
   async updateStatus(id: string, status: ReportStatus, userRole: string, schoolId?: string | null, userId?: string) {
-    if (!['ADMIN', 'MANAGER'].includes(userRole)) {
-      throw new ForbiddenError('Only MANAGER or ADMIN can change report status');
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    if (!['ADMIN', 'MANAGER', 'AGENT'].includes(userRole)) {
+      throw new ForbiddenError('Only staff with appropriate role can change report status');
     }
     const exists = await reportsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Report');
@@ -253,8 +256,9 @@ export const reportsService = {
   },
 
   async delete(id: string, userRole: string, schoolId?: string | null, userId?: string) {
-    if (userRole !== 'ADMIN') {
-      throw new ForbiddenError('Only ADMIN can delete reports');
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    if (!['ADMIN', 'MANAGER'].includes(userRole)) {
+      throw new ForbiddenError('Only ADMIN or MANAGER can delete reports');
     }
     const exists = await reportsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Report');

@@ -13,7 +13,7 @@ export const evaluationsService = {
     userCampusIds?: string[],
     requestedCampusId?: string
   ): string[] | undefined {
-    if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole)) return undefined;
+    if (!userRole || !['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole)) return undefined;
     if (!userCampusIds || userCampusIds.length === 0) return undefined;
     if (requestedCampusId) {
       if (!userCampusIds.includes(requestedCampusId)) {
@@ -24,7 +24,8 @@ export const evaluationsService = {
     return userCampusIds;
   },
 
-  async create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null) {
+  async create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     let finalInput = { ...input };
 
     // 1. User context auto-fill (needed before school / class-module resolution)
@@ -103,11 +104,11 @@ export const evaluationsService = {
     return evaluation;
   },
 
-  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]) {
+  async getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[], userId?: string) {
     const pagination = parsePagination(query);
     const filters: EvaluationFilters = {
       status:      query.status as EvaluationStatus | undefined,
-      evaluatorId: query.evaluatorId as string | undefined,
+      evaluatorId: (userRole === 'STUDENT' && userId) ? userId : (query.evaluatorId as string | undefined),
       reportId:    query.reportId as string | undefined,
       professorId: query.professorId as string | undefined,
       moduleId:    query.moduleId as string | undefined,
@@ -115,6 +116,7 @@ export const evaluationsService = {
       campusId:    query.campusId as string | undefined,
       startDate:   query.startDate as string | undefined,
       endDate:     query.endDate as string | undefined,
+      campaignId:  query.campaignId as string | undefined,
     };
     const scopedCampusIds = this.resolveScopedCampusFilter(userRole, userCampusIds, filters.campusId);
     if (scopedCampusIds && scopedCampusIds.length > 0) {
@@ -143,10 +145,11 @@ export const evaluationsService = {
     userRole: string,
     schoolId?: string | null
   ) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const evaluation = await evaluationsRepository.findById(id, schoolId ?? null);
     if (!evaluation) throw new NotFoundError('Evaluation');
 
-    if (evaluation.evaluatorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
+    if (evaluation.evaluatorId !== userId && !['ADMIN', 'MANAGER', 'AGENT'].includes(userRole)) {
       throw new ForbiddenError('You do not have permission to update this evaluation');
     }
 
@@ -154,7 +157,8 @@ export const evaluationsService = {
   },
 
   async delete(id: string, userRole: string, schoolId?: string | null) {
-    if (userRole !== 'ADMIN') throw new ForbiddenError('Only ADMIN can delete evaluations');
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    if (!['ADMIN', 'MANAGER'].includes(userRole)) throw new ForbiddenError('Only ADMIN or MANAGER can delete evaluations');
     const exists = await evaluationsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Evaluation');
     return evaluationsRepository.delete(id, schoolId ?? null);

@@ -28,7 +28,8 @@ async function assertProfessorInSchool(professorId: string, schoolId: string) {
 }
 
 export const evaluationCampaignsService = {
-  async create(data: CreateEvaluationCampaignInput, schoolId: string) {
+  async create(data: CreateEvaluationCampaignInput, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     if (data.scope === 'CLASS') {
       const module = await prisma.module.findFirst({
         where: { id: data.moduleId!, schoolId },
@@ -134,7 +135,7 @@ export const evaluationCampaignsService = {
       const { items, total } = await evaluationCampaignsRepository.findAllForStudent(schoolId, {
         classId: userClassId,
         campusIds: userCampusIds,
-        status: filters.status || 'ACTIVE',
+        status: filters.status || undefined, // Repository already handles ACTIVE/COMPLETED logic if needed
       }, pagination, userId);
       return buildPaginated(items, total, pagination.page, pagination.limit);
     }
@@ -143,7 +144,7 @@ export const evaluationCampaignsService = {
     // For non-students (ADMIN/MANAGER), use standard filtering
     filters.classId = typeof query.classId === 'string' ? query.classId : undefined;
     filters.campusId = typeof query.campusId === 'string' ? query.campusId : undefined;
-    if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+    if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
       if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
         throw new BadRequestError('Requested campus is outside your scope');
       }
@@ -164,7 +165,8 @@ export const evaluationCampaignsService = {
     return campaign;
   },
 
-  async close(id: string, schoolId: string) {
+  async close(id: string, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
     if (!campaign) throw new NotFoundError('EvaluationCampaign');
 
@@ -202,7 +204,8 @@ export const evaluationCampaignsService = {
     return analytics;
   },
 
-  async sendReminders(id: string, schoolId: string) {
+  async sendReminders(id: string, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const campaignRaw = await evaluationCampaignsRepository.findById(id, schoolId);
     if (!campaignRaw) throw new NotFoundError('EvaluationCampaign');
     const campaign = campaignRaw as unknown as {
@@ -244,7 +247,8 @@ export const evaluationCampaignsService = {
 
   },
 
-  async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string) {
+  async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string, userRole?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
     if (!analytics) throw new NotFoundError('EvaluationCampaign');
 

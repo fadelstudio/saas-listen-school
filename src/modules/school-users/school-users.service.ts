@@ -72,14 +72,23 @@ async function resolveCampusesForUser(
   return [];
 }
 
-async function assertCampusAdmin(adminUserId: string) {
+async function assertStaffAccess(adminUserId: string, requireWrite = false) {
   const admin = await prisma.user.findUnique({ 
     where: { id: adminUserId },
     include: { campuses: { select: { id: true } } }
   });
-  if (!admin || !([Role.ADMIN, Role.SUPERADMIN] as Role[]).includes(admin.role)) {
-    throw new ForbiddenError('Only administrators can manage users');
+  
+  if (!admin) throw new ForbiddenError('User not found');
+  
+  const staffRoles: Role[] = [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.VIEWER];
+  if (!staffRoles.includes(admin.role)) {
+    throw new ForbiddenError('Insufficient permissions');
   }
+
+  if (requireWrite && admin.role === Role.VIEWER) {
+    throw new ForbiddenError('VIEWER role is read-only');
+  }
+
   return admin;
 }
 
@@ -101,7 +110,7 @@ export const schoolUsersService = {
       classId?: string;
     }
   ) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId, true);
     const role = input.role as Role;
     if (!ASSIGNABLE.includes(role)) {
       throw new ForbiddenError('Cannot assign this role');
@@ -180,7 +189,7 @@ export const schoolUsersService = {
   },
 
   async list(adminUserId: string, query: Record<string, unknown>) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId);
     const pagination = parsePagination(query);
 
     const { role, campusId, classId, search, isActive } = query;
@@ -190,11 +199,9 @@ export const schoolUsersService = {
       schoolId: admin.schoolId,
     };
 
-    // Campus filtering : ADMIN sans campus = toute l’école ; sinon scope campus
-    if (admin.role === Role.ADMIN) {
-      if (admin.campuses.length > 0) {
-        where.campuses = { some: { id: { in: admin.campuses.map(c => c.id) } } };
-      }
+    // Campus filtering : ADMIN/MANAGER/AGENT/VIEWER restreints par leurs campus
+    if (admin.role !== Role.SUPERADMIN && admin.campuses.length > 0) {
+      where.campuses = { some: { id: { in: admin.campuses.map(c => c.id) } } };
     } else if (campusId) {
       where.campuses = { some: { id: campusId as string } };
     }
@@ -267,7 +274,7 @@ export const schoolUsersService = {
   },
 
   async listStaff(adminUserId: string, query: Record<string, unknown>) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId);
     // Personnel management restricted to ADMIN and SUPERADMIN
     if (!([Role.SUPERADMIN, Role.ADMIN] as Role[]).includes(admin.role)) {
       throw new ForbiddenError('Only administrators can manage the staff');
@@ -303,7 +310,7 @@ export const schoolUsersService = {
       address?: string | null;
     }
   ) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId, true);
     
     const target = await prisma.user.findUnique({ where: { id: targetId } });
     if (!target) throw new NotFoundError('User');
@@ -400,7 +407,7 @@ export const schoolUsersService = {
   },
 
   async getById(adminUserId: string, targetId: string) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId);
     const target = await prisma.user.findUnique({
       where: { id: targetId },
       select: {
@@ -434,7 +441,7 @@ export const schoolUsersService = {
   },
 
   async resetPasswordToDefault(adminUserId: string, targetId: string) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId, true);
     if (targetId === adminUserId) {
       throw new ForbiddenError('Use change-password to update your own password');
     }
@@ -486,7 +493,7 @@ export const schoolUsersService = {
   },
 
   async delete(adminUserId: string, targetId: string) {
-    const admin = await assertCampusAdmin(adminUserId);
+    const admin = await assertStaffAccess(adminUserId, true);
     if (targetId === adminUserId) {
       throw new ForbiddenError('You cannot delete yourself');
     }
