@@ -6,7 +6,13 @@ export const evaluationCampaignsController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campaign = await evaluationCampaignsService.create(req.body, req.schoolId, req.user?.role);
+      const campaign = await evaluationCampaignsService.create(
+        req.body, 
+        req.schoolId, 
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Evaluation campaign created and students notified', campaign, 201);
     } catch (error) {
       next(error);
@@ -51,7 +57,13 @@ export const evaluationCampaignsController = {
   async close(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const campaign = await evaluationCampaignsService.close(req.params.id as string, req.schoolId, req.user?.role);
+      const campaign = await evaluationCampaignsService.close(
+        req.params.id as string, 
+        req.schoolId, 
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Campaign closed', campaign);
     } catch (error) {
       next(error);
@@ -81,7 +93,13 @@ export const evaluationCampaignsController = {
   async remind(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      await evaluationCampaignsService.sendReminders(req.params.id as string, req.schoolId, req.user?.role);
+      await evaluationCampaignsService.sendReminders(
+        req.params.id as string, 
+        req.schoolId, 
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Reminders sent successfully');
     } catch (error) {
       next(error);

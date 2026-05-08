@@ -4,6 +4,7 @@ import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../core/errors/AppError';
 import { ClassFilters } from './classes.types';
 import { prisma } from '../../core/database/prisma';
+import { auditService } from '../audit/audit.service';
 
 export const classesService = {
   async getAll(
@@ -47,29 +48,68 @@ export const classesService = {
     return cl;
   },
 
-  async create(schoolId: string, data: { name: string; campusId: string; levelId: string }, userRole?: string) {
+  async create(
+    schoolId: string, 
+    data: { name: string; campusId: string; levelId: string }, 
+    userRole?: string,
+    userCampusIds?: string[],
+    userId?: string
+  ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    
+    // Scoping check
+    if (userCampusIds && userCampusIds.length > 0 && !userCampusIds.includes(data.campusId)) {
+      throw new ForbiddenError('Requested campus is outside your scope');
+    }
+
     const campus = await prisma.campus.findFirst({
       where: { id: data.campusId, schoolId },
     });
     if (!campus) throw new BadRequestError('Campus does not belong to this school');
+    
     const levelWhere = Prisma.validator<Prisma.AcademicLevelWhereInput>()({
       id: data.levelId,
       schoolId,
     });
     const level = await prisma.academicLevel.findFirst({ where: levelWhere });
     if (!level) throw new BadRequestError('Academic level does not belong to this school');
-    return classesRepository.create(data);
+    
+    const result = await classesRepository.create(data);
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'CREATE_CLASS',
+      entity: 'Class',
+      entityId: result.id,
+      details: { name: result.name, campusId: result.campusId }
+    });
+
+    return result;
   },
 
-  async update(id: string, schoolId: string, data: { name?: string; campusId?: string; levelId?: string }, userRole?: string) {
+  async update(
+    id: string, 
+    schoolId: string, 
+    data: { name?: string; campusId?: string; levelId?: string }, 
+    userRole?: string,
+    userCampusIds?: string[],
+    userId?: string
+  ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+
+    const cl = await this.getById(id, schoolId, userRole, userCampusIds);
+
     if (data.campusId) {
+      if (userCampusIds && userCampusIds.length > 0 && !userCampusIds.includes(data.campusId)) {
+        throw new ForbiddenError('Target campus is outside your scope');
+      }
       const campus = await prisma.campus.findFirst({
         where: { id: data.campusId, schoolId },
       });
       if (!campus) throw new BadRequestError('Campus does not belong to this school');
     }
+
     if (data.levelId) {
       const levelWhere = Prisma.validator<Prisma.AcademicLevelWhereInput>()({
         id: data.levelId,
@@ -78,15 +118,37 @@ export const classesService = {
       const level = await prisma.academicLevel.findFirst({ where: levelWhere });
       if (!level) throw new BadRequestError('Academic level does not belong to this school');
     }
+
     const updated = await classesRepository.update(id, schoolId, data);
     if (!updated) throw new NotFoundError('Class');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'UPDATE_CLASS',
+      entity: 'Class',
+      entityId: id,
+      details: { updatedFields: Object.keys(data) }
+    });
+
     return updated;
   },
 
-  async delete(id: string, schoolId: string, userRole?: string) {
+  async delete(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    
+    await this.getById(id, schoolId, userRole, userCampusIds);
+
     const ok = await classesRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Class');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'DELETE_CLASS',
+      entity: 'Class',
+      entityId: id,
+    });
   },
 
   async getStudents(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {

@@ -31,7 +31,13 @@ export const classModulesController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const assignment = await classModulesService.create(req.schoolId, req.body);
+      const assignment = await classModulesService.create(
+        req.schoolId, 
+        req.body, 
+        req.user?.role, 
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Affectation créée', assignment, 201);
     } catch (err) {
       next(err);
@@ -42,7 +48,14 @@ export const classModulesController = {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
       const { id } = req.params;
-      const assignment = await classModulesService.update(id as string, req.schoolId, req.body);
+      const assignment = await classModulesService.update(
+        id as string, 
+        req.schoolId, 
+        req.body, 
+        req.user?.role, 
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Affectation mise à jour', assignment);
     } catch (err) {
       next(err);
@@ -53,7 +66,13 @@ export const classModulesController = {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
       const { id } = req.params;
-      await classModulesService.delete(id as string, req.schoolId);
+      await classModulesService.delete(
+        id as string, 
+        req.schoolId, 
+        req.user?.role, 
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Affectation supprimée', null);
     } catch (err) {
       next(err);

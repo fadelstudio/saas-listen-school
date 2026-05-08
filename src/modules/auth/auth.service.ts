@@ -30,8 +30,8 @@ import { uploadsService } from '../uploads/uploads.service';
 import { notificationService } from '../notifications/notifications.service';
 
 const SALT_ROUNDS = 12;
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+const ACCESS_TOKEN_EXPIRY = '1h';
+const REFRESH_TOKEN_EXPIRY_DAYS = 30;
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;

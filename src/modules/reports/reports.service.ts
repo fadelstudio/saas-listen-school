@@ -129,7 +129,7 @@ export const reportsService = {
     }
 
     // Scrub author if anonymous and requester is not admin
-    if (report.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+    if (report.isAnonymous && !['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
       report.author = null;
       report.authorId = null;
     }
@@ -161,7 +161,7 @@ export const reportsService = {
     const { items, total } = await reportsRepository.findAll(filters, pagination, schoolId ?? null);
 
     // Filter anonymous authors for non-admins
-    if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+    if (!['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
       items.forEach((item: any) => {
         if (item.isAnonymous) {
           item.author = null;

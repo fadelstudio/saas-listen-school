@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger';
 import { prisma } from '../../core/database/prisma';
 import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
 import type { EvaluationCampaignFilters } from './evaluation-campaigns.types';
+import { auditService } from '../audit/audit.service';
 
 /**
  * Vérifie qu'un professeur appartient à l'école.
@@ -28,8 +29,15 @@ async function assertProfessorInSchool(professorId: string, schoolId: string) {
 }
 
 export const evaluationCampaignsService = {
-  async create(data: CreateEvaluationCampaignInput, schoolId: string, userRole?: string) {
+  async create(
+    data: CreateEvaluationCampaignInput, 
+    schoolId: string, 
+    userRole?: string,
+    userCampusIds?: string[],
+    userId?: string
+  ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    
     if (data.scope === 'CLASS') {
       const module = await prisma.module.findFirst({
         where: { id: data.moduleId!, schoolId },
@@ -39,16 +47,27 @@ export const evaluationCampaignsService = {
       await assertProfessorInSchool(data.professorId!, schoolId);
 
       const cls = await prisma.class.findFirst({
-        where: { id: data.classId!, campus: { schoolId } },
+        where: { 
+          id: data.classId!, 
+          campus: { schoolId },
+          ...(userCampusIds && userCampusIds.length > 0 ? { campusId: { in: userCampusIds } } : {}),
+        },
       });
-      if (!cls) throw new BadRequestError('Class not found in this school');
+      if (!cls) throw new BadRequestError('Class not found or outside your scope');
     }
 
     if (data.scope === 'CAMPUS') {
+      if (userCampusIds && userCampusIds.length > 0 && !userCampusIds.includes(data.campusId!)) {
+        throw new ForbiddenError('Campus is outside your scope');
+      }
       const campus = await prisma.campus.findFirst({
         where: { id: data.campusId!, schoolId },
       });
       if (!campus) throw new BadRequestError('Campus not found in this school');
+    }
+
+    if (data.scope === 'SCHOOL' && userRole !== 'SUPERADMIN' && userRole !== 'ADMIN') {
+      throw new ForbiddenError('Only administrators can create school-wide campaigns');
     }
 
     const campaign = await evaluationCampaignsRepository.create({
@@ -108,6 +127,14 @@ export const evaluationCampaignsService = {
       }).catch((e) => logger.error('Failed to send campaign notifications (bulk)', { error: e }));
     }
 
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'CREATE_CAMPAIGN',
+      entity: 'EvaluationCampaign',
+      entityId: campaign.id,
+      details: { title: campaign.title, scope: campaign.scope }
+    });
 
     return campaign;
   },
@@ -165,13 +192,31 @@ export const evaluationCampaignsService = {
     return campaign;
   },
 
-  async close(id: string, schoolId: string, userRole?: string) {
+  async close(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
     if (!campaign) throw new NotFoundError('EvaluationCampaign');
 
+    // Scoping check
+    if (userCampusIds && userCampusIds.length > 0) {
+      if (campaign.scope === 'CAMPUS' && campaign.campusId && !userCampusIds.includes(campaign.campusId)) {
+        throw new ForbiddenError('This campaign belongs to a campus outside your scope');
+      }
+      if (campaign.scope === 'CLASS' && campaign.class?.campusId && !userCampusIds.includes(campaign.class.campusId)) {
+        throw new ForbiddenError('This campaign belongs to a class outside your scope');
+      }
+    }
+
     const updated = await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
     if (!updated) throw new NotFoundError('EvaluationCampaign');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'CLOSE_CAMPAIGN',
+      entity: 'EvaluationCampaign',
+      entityId: id,
+    });
 
     // Notify admins & managers that the campaign is closed and data is ready
     notificationService.sendBroadcast(schoolId, {
@@ -204,7 +249,7 @@ export const evaluationCampaignsService = {
     return analytics;
   },
 
-  async sendReminders(id: string, schoolId: string, userRole?: string) {
+  async sendReminders(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const campaignRaw = await evaluationCampaignsRepository.findById(id, schoolId);
     if (!campaignRaw) throw new NotFoundError('EvaluationCampaign');
@@ -245,6 +290,13 @@ export const evaluationCampaignsService = {
       });
     }).catch((e) => logger.error('Failed to send campaign reminders (bulk)', { error: e }));
 
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'SEND_CAMPAIGN_REMINDERS',
+      entity: 'EvaluationCampaign',
+      entityId: id,
+    });
   },
 
   async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string, userRole?: string) {

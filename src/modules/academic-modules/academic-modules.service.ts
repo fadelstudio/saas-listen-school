@@ -2,6 +2,7 @@ import { academicModulesRepository } from './academic-modules.repository';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { NotFoundError, ForbiddenError } from '../../core/errors/AppError';
 import { AcademicModuleFilters } from './academic-modules.types';
+import { auditService } from '../audit/audit.service';
 
 export const academicModulesService = {
   async getAll(schoolId: string, query: Record<string, unknown>) {
@@ -20,21 +21,56 @@ export const academicModulesService = {
     return module;
   },
 
-  async create(schoolId: string, data: { name: string; code?: string }, userRole?: string) {
-    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
-    return academicModulesRepository.create(schoolId, data);
+  async create(schoolId: string, data: { name: string; code?: string }, userRole?: string, userId?: string) {
+    if (!['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
+      throw new ForbiddenError('Insufficient permissions to create modules');
+    }
+    const mod = await academicModulesRepository.create(schoolId, data);
+    
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'CREATE_MODULE',
+      entity: 'AcademicModule',
+      entityId: mod.id,
+      details: { name: mod.name, code: mod.code }
+    });
+
+    return mod;
   },
 
-  async update(id: string, schoolId: string, data: { name?: string; code?: string }, userRole?: string) {
-    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+  async update(id: string, schoolId: string, data: { name?: string; code?: string }, userRole?: string, userId?: string) {
+    if (!['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
+      throw new ForbiddenError('Insufficient permissions to update modules');
+    }
     const updated = await academicModulesRepository.update(id, schoolId, data);
     if (!updated) throw new NotFoundError('Academic Module');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'UPDATE_MODULE',
+      entity: 'AcademicModule',
+      entityId: id,
+      details: { updatedFields: Object.keys(data) }
+    });
+
     return updated;
   },
 
-  async delete(id: string, schoolId: string, userRole?: string) {
-    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+  async delete(id: string, schoolId: string, userRole?: string, userId?: string) {
+    if (!['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
+      throw new ForbiddenError('Insufficient permissions to delete modules');
+    }
     const ok = await academicModulesRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Academic Module');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'DELETE_MODULE',
+      entity: 'AcademicModule',
+      entityId: id,
+    });
   },
 };

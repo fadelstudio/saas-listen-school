@@ -1,7 +1,8 @@
 import { classModulesRepository } from './class-modules.repository';
-import { NotFoundError, ConflictError, BadRequestError } from '../../core/errors/AppError';
+import { NotFoundError, ConflictError, BadRequestError, ForbiddenError } from '../../core/errors/AppError';
 import { prisma } from '../../core/database/prisma';
 import { Prisma } from '@prisma/client';
+import { auditService } from '../audit/audit.service';
 
 /**
  * Vérifie que les professeurs appartiennent à l'école.
@@ -43,11 +44,23 @@ export const classModulesService = {
     return assignment;
   },
 
-  async create(schoolId: string, data: { classId: string; moduleId: string; professorIds?: string[] }) {
+  async create(
+    schoolId: string, 
+    data: { classId: string; moduleId: string; professorIds?: string[] },
+    userRole?: string,
+    userCampusIds?: string[],
+    userId?: string
+  ) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+
     const cls = await prisma.class.findFirst({
-      where: { id: data.classId, campus: { schoolId } },
+      where: { 
+        id: data.classId, 
+        campus: { schoolId },
+        ...(userCampusIds && userCampusIds.length > 0 ? { campusId: { in: userCampusIds } } : {}),
+      },
     });
-    if (!cls) throw new BadRequestError('Class not found in this school');
+    if (!cls) throw new BadRequestError('Class not found or outside your scope');
 
     const existing = await classModulesRepository.findByClassAndModule(data.classId, data.moduleId, schoolId);
     if (existing) {
@@ -63,21 +76,86 @@ export const classModulesService = {
       await assertProfessorsInSchool(data.professorIds, schoolId);
     }
 
-    return classModulesRepository.create(data);
+    const assignment = await classModulesRepository.create(data);
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'CREATE_CLASS_MODULE',
+      entity: 'ClassModule',
+      entityId: assignment.id,
+      details: { classId: data.classId, moduleId: data.moduleId }
+    });
+
+    return assignment;
   },
 
-  async update(id: string, schoolId: string, data: { professorIds?: string[] }) {
-    await this.getById(id, schoolId);
+  async update(
+    id: string, 
+    schoolId: string, 
+    data: { professorIds?: string[] },
+    userRole?: string,
+    userCampusIds?: string[],
+    userId?: string
+  ) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+
+    const assignment = await this.getById(id, schoolId);
+    
+    // Scoping check for MANAGER/AGENT
+    if (userCampusIds && userCampusIds.length > 0) {
+      const cls = await prisma.class.findUnique({
+        where: { id: assignment.classId },
+        select: { campusId: true },
+      });
+      if (cls && !userCampusIds.includes(cls.campusId)) {
+        throw new ForbiddenError('This assignment belongs to a class outside your scope');
+      }
+    }
+
     if (data.professorIds?.length) {
       await assertProfessorsInSchool(data.professorIds, schoolId);
     }
     const updated = await classModulesRepository.update(id, schoolId, data);
     if (!updated) throw new NotFoundError('Module Assignment');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'UPDATE_CLASS_MODULE',
+      entity: 'ClassModule',
+      entityId: id,
+      details: { professorIds: data.professorIds }
+    });
+
     return updated;
   },
 
-  async delete(id: string, schoolId: string) {
+  async delete(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+
+    const assignment = await this.getById(id, schoolId);
+    
+    // Scoping check
+    if (userCampusIds && userCampusIds.length > 0) {
+      const cls = await prisma.class.findUnique({
+        where: { id: assignment.classId },
+        select: { campusId: true },
+      });
+      if (cls && !userCampusIds.includes(cls.campusId)) {
+        throw new ForbiddenError('This assignment belongs to a class outside your scope');
+      }
+    }
+
     const ok = await classModulesRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Module Assignment');
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'DELETE_CLASS_MODULE',
+      entity: 'ClassModule',
+      entityId: id,
+    });
   },
 };

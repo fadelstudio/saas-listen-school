@@ -6,6 +6,7 @@ import { parsePagination, buildPaginated } from '../../utils/pagination';
 import { jobQueue } from '../../core/config/queue';
 import type { CreateEvaluationInput, UpdateEvaluationInput, EvaluationFilters } from './evaluations.types';
 import { prisma } from '../../core/database/prisma';
+import { auditService } from '../audit/audit.service';
 
 export const evaluationsService = {
   resolveScopedCampusFilter(
@@ -79,6 +80,14 @@ export const evaluationsService = {
 
     const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
 
+    await auditService.log({
+      schoolId: resolvedSchoolId,
+      userId,
+      action: 'CREATE_EVALUATION',
+      entity: 'Evaluation',
+      entityId: evaluation.id,
+      details: { classId: finalInput.classId, moduleId: finalInput.moduleId }
+    });
 
     return evaluation;
   },
@@ -96,7 +105,7 @@ export const evaluationsService = {
     }
 
     // Scrub evaluator if anonymous and requester is not admin
-    if (evaluation.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+    if (evaluation.isAnonymous && !['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
       evaluation.evaluator = null;
       evaluation.evaluatorId = null;
     }
@@ -126,7 +135,7 @@ export const evaluationsService = {
     const { items, total } = await evaluationsRepository.findAll(filters, pagination, schoolId ?? null);
 
     // Filter anonymous evaluators for non-admins
-    if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+    if (!['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
       items.forEach((item: any) => {
         if (item.isAnonymous) {
           item.evaluator = null;
@@ -153,15 +162,36 @@ export const evaluationsService = {
       throw new ForbiddenError('You do not have permission to update this evaluation');
     }
 
-    return evaluationsRepository.update(id, input, schoolId ?? null);
+    const result = await evaluationsRepository.update(id, input, schoolId ?? null);
+
+    await auditService.log({
+      schoolId: schoolId ?? null,
+      userId,
+      action: 'UPDATE_EVALUATION',
+      entity: 'Evaluation',
+      entityId: id,
+    });
+
+    return result;
   },
 
-  async delete(id: string, userRole: string, schoolId?: string | null) {
+  async delete(id: string, userRole: string, schoolId?: string | null, userId?: string) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     if (!['ADMIN', 'MANAGER'].includes(userRole)) throw new ForbiddenError('Only ADMIN or MANAGER can delete evaluations');
     const exists = await evaluationsRepository.existsById(id, schoolId ?? null);
     if (!exists) throw new NotFoundError('Evaluation');
-    return evaluationsRepository.delete(id, schoolId ?? null);
+    
+    const result = await evaluationsRepository.delete(id, schoolId ?? null);
+
+    await auditService.log({
+      schoolId: schoolId ?? null,
+      userId,
+      action: 'DELETE_EVALUATION',
+      entity: 'Evaluation',
+      entityId: id,
+    });
+
+    return result;
   },
 
   async getStats(query: Record<string, unknown>, schoolId?: string | null, userRole?: string, userCampusIds?: string[]) {

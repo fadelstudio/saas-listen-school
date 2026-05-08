@@ -193,61 +193,59 @@ export const schoolUsersService = {
     const pagination = parsePagination(query);
 
     const { role, campusId, classId, search, isActive } = query;
-
-    const where: any = {
-      // Data isolation by school
-      schoolId: admin.schoolId,
-    };
-
+    const andParts: any[] = [{ schoolId: admin.schoolId }];
+    
     // Campus filtering : ADMIN/MANAGER/AGENT/VIEWER restreints par leurs campus
     if (admin.role !== Role.SUPERADMIN && admin.campuses.length > 0) {
       const allowedIds = admin.campuses.map(c => c.id);
-      where.AND = [
-        {
-          OR: [
-            { campuses: { some: { id: { in: allowedIds } } } },
-            { class: { campusId: { in: allowedIds } } }
-          ]
-        }
-      ];
+      andParts.push({
+        OR: [
+          { campuses: { some: { id: { in: allowedIds } } } },
+          { class: { campusId: { in: allowedIds } } }
+        ]
+      });
     } else if (campusId) {
-      where.campuses = { some: { id: campusId as string } };
+      andParts.push({ campuses: { some: { id: campusId as string } } });
     }
 
     // Filter by role(s)
     if (role) {
-      where.role = role as Role;
+      andParts.push({ role: role as Role });
     } else {
       // Default: don't show SuperAdmins to others
-      where.role = { not: Role.SUPERADMIN };
+      andParts.push({ role: { not: Role.SUPERADMIN } });
     }
 
     // Filter by class
     if (classId) {
-      where.classId = classId as string;
+      andParts.push({ classId: classId as string });
     }
 
     // Filter by activity
     if (isActive !== undefined) {
-      where.isActive = isActive === 'true' || isActive === true;
+      andParts.push({ isActive: isActive === 'true' || isActive === true });
     }
 
     // Search by name, email or matricule
     if (search) {
       const s = search as string;
-      where.OR = [
-        { email: { contains: s, mode: 'insensitive' } },
-        { firstName: { contains: s, mode: 'insensitive' } },
-        { lastName: { contains: s, mode: 'insensitive' } },
-        { matricule: { contains: s, mode: 'insensitive' } },
-        { numero: { contains: s, mode: 'insensitive' } },
-      ];
+      andParts.push({
+        OR: [
+          { email: { contains: s, mode: 'insensitive' } },
+          { firstName: { contains: s, mode: 'insensitive' } },
+          { lastName: { contains: s, mode: 'insensitive' } },
+          { matricule: { contains: s, mode: 'insensitive' } },
+          { numero: { contains: s, mode: 'insensitive' } },
+        ]
+      });
     }
 
     // Global policy: Never return students without a class
-    where.NOT = [
-      { role: Role.STUDENT, classId: null }
-    ];
+    andParts.push({
+      NOT: [{ role: Role.STUDENT, classId: null }]
+    });
+
+    const where = { AND: andParts };
 
     const [items, total] = await Promise.all([
       prisma.user.findMany({

@@ -8,6 +8,7 @@ import { NotFoundError, ForbiddenError, ConflictError } from '../../core/errors/
 import { ProfessorFilters } from './professors.types';
 import { prisma } from '../../core/database/prisma';
 import { uploadsService } from '../uploads/uploads.service';
+import { auditService } from '../audit/audit.service';
 
 function optionalProfileString(v: string | null | undefined): string | null | undefined {
   if (v === undefined) return undefined;
@@ -89,7 +90,9 @@ export const professorsService = {
       numero?: string | null;
       phone?: string | null;
     },
-    userRole?: string
+    userRole?: string,
+    userCampusIds?: string[],
+    requesterId?: string
   ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     let userId = data.userId;
@@ -144,6 +147,16 @@ export const professorsService = {
       numero: optionalProfileString(data.numero as string | null | undefined) ?? null,
       phone: optionalProfileString(data.phone as string | null | undefined) ?? null,
     });
+
+    await auditService.log({
+      schoolId,
+      userId: requesterId,
+      action: 'CREATE_PROFESSOR',
+      entity: 'Professor',
+      entityId: created.id,
+      details: { firstName: created.firstName, lastName: created.lastName, email: created.email }
+    });
+
     return enrichProfessorWithAvatar(created as ProfessorRow);
   },
 
@@ -159,9 +172,15 @@ export const professorsService = {
       numero?: string | null;
       phone?: string | null;
     },
-    userRole?: string
+    userRole?: string,
+    userCampusIds?: string[],
+    requesterId?: string
   ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+
+    // Scoping check
+    await this.getById(id, schoolId, userRole, userCampusIds);
+
     const patch = {
       ...data,
       ...(data.matricule !== undefined && {
@@ -176,13 +195,35 @@ export const professorsService = {
     };
     const updated = await professorsRepository.update(id, schoolId, patch);
     if (!updated) throw new NotFoundError('Professor');
+
+    await auditService.log({
+      schoolId,
+      userId: requesterId,
+      action: 'UPDATE_PROFESSOR',
+      entity: 'Professor',
+      entityId: id,
+      details: { updatedFields: Object.keys(data) }
+    });
+
     return enrichProfessorWithAvatar(updated as ProfessorRow);
   },
 
-  async delete(id: string, schoolId: string, userRole?: string) {
+  async delete(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], requesterId?: string) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    
+    // Scoping check
+    await this.getById(id, schoolId, userRole, userCampusIds);
+
     const ok = await professorsRepository.delete(id, schoolId);
     if (!ok) throw new NotFoundError('Professor');
+
+    await auditService.log({
+      schoolId,
+      userId: requesterId,
+      action: 'DELETE_PROFESSOR',
+      entity: 'Professor',
+      entityId: id,
+    });
   },
 
   async uploadAvatar(

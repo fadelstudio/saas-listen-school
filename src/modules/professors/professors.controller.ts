@@ -32,7 +32,13 @@ export const professorsController = {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const professor = await professorsService.create(req.schoolId, req.body, req.user?.role);
+      const professor = await professorsService.create(
+        req.schoolId, 
+        req.body, 
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Professor created', professor, 201);
     } catch (error) {
       next(error);
@@ -42,7 +48,14 @@ export const professorsController = {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const professor = await professorsService.update(req.params.id as string, req.schoolId, req.body, req.user?.role);
+      const professor = await professorsService.update(
+        req.params.id as string, 
+        req.schoolId, 
+        req.body, 
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Professor updated', professor);
     } catch (error) {
       next(error);
@@ -52,7 +65,13 @@ export const professorsController = {
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      await professorsService.delete(req.params.id as string, req.schoolId, req.user?.role);
+      await professorsService.delete(
+        req.params.id as string, 
+        req.schoolId, 
+        req.user?.role,
+        req.user?.campusIds,
+        req.user?.userId
+      );
       res.sendSuccess('Professor deleted', null);
     } catch (error) {
       next(error);

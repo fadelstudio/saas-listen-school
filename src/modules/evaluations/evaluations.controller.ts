@@ -57,7 +57,7 @@ export const evaluationsController = {
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      await evaluationsService.delete(req.params.id as string, req.user!.role, req.schoolId);
+      await evaluationsService.delete(req.params.id as string, req.user!.role, req.schoolId, req.user?.userId);
       res.sendSuccess('Evaluation deleted', null);
     } catch (error) { next(error); }
   },
