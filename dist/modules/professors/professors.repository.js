@@ -73,6 +73,11 @@ exports.professorsRepository = {
             where: { id, ...professorInSchool(schoolId) },
             include: {
                 user: { select: { id: true, avatarPath: true } },
+                modules: {
+                    include: {
+                        class: { select: { campusId: true } }
+                    }
+                },
                 evaluations: {
                     take: 10,
                     orderBy: { createdAt: 'desc' },

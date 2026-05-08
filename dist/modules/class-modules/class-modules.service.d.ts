@@ -2,7 +2,7 @@ export declare const classModulesService: {
     getAll(schoolId: string, filters: {
         classId?: string;
         moduleId?: string;
-    }): Promise<({
+    }, userRole?: string, userCampusIds?: string[]): Promise<({
         module: {
             code: string | null;
             name: string;
@@ -32,7 +32,7 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
     })[]>;
-    getById(id: string, schoolId: string): Promise<{
+    getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         module: {
             code: string | null;
             name: string;

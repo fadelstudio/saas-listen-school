@@ -41,6 +41,17 @@ export declare const professorsRepository: {
             id: string;
             avatarPath: string | null;
         } | null;
+        modules: ({
+            class: {
+                campusId: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            classId: string;
+            moduleId: string;
+        })[];
         evaluations: ({
             module: {
                 code: string | null;

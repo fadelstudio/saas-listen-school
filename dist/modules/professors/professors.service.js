@@ -62,13 +62,14 @@ exports.professorsService = {
         const professor = await professors_repository_1.professorsRepository.findById(id, schoolId);
         if (!professor)
             throw new AppError_1.NotFoundError('Professor');
-        if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') &&
+        if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') &&
             userCampusIds &&
-            userCampusIds.length > 0 &&
-            professor.evaluations.length > 0) {
+            userCampusIds.length > 0) {
             const hasScopedEval = professor.evaluations.some((e) => e.class?.campusId && userCampusIds.includes(e.class.campusId));
-            if (!hasScopedEval)
-                throw new AppError_1.NotFoundError('Professor');
+            const hasScopedModule = professor.modules?.some((m) => m.class?.campusId && userCampusIds.includes(m.class.campusId));
+            if (!hasScopedEval && !hasScopedModule) {
+                throw new AppError_1.ForbiddenError('Professor outside your campus scope');
+            }
         }
         return enrichProfessorWithAvatar(professor);
     },

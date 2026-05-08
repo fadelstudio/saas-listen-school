@@ -57,7 +57,7 @@ const envSchema = z.object({
 
   // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  MAIL_PROVIDER: z.enum(["console", "resend", "smtp"]).default("console"),
+  MAIL_PROVIDER: z.enum(["console", "smtp"]).default("console"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
 
@@ -91,13 +91,6 @@ const envSchema = z.object({
 
 const parsed = envSchema
   .superRefine((data, ctx) => {
-    if (data.MAIL_PROVIDER === "resend" && !data.RESEND_API_KEY?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "RESEND_API_KEY is required when MAIL_PROVIDER=resend",
-        path: ["RESEND_API_KEY"],
-      });
-    }
     if (data.MAIL_PROVIDER === "smtp") {
       if (!data.SMTP_HOST) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
       if (!data.SMTP_PORT) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });

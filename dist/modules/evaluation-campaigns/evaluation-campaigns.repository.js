@@ -38,6 +38,7 @@ exports.evaluationCampaignsRepository = {
                 ...(filters.campusId
                     ? [{
                             OR: [
+                                { scope: 'SCHOOL' },
                                 { campusId: filters.campusId },
                                 { class: { campusId: filters.campusId } }
                             ]
@@ -46,6 +47,7 @@ exports.evaluationCampaignsRepository = {
                 ...(filters.campusIds && filters.campusIds.length > 0
                     ? [{
                             OR: [
+                                { scope: 'SCHOOL' },
                                 { campusId: { in: filters.campusIds } },
                                 { class: { campusId: { in: filters.campusIds } } }
                             ]

@@ -1,4 +1,3 @@
-import axios from "axios";
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
 import { logger } from "../../utils/logger";
@@ -62,32 +61,12 @@ export async function sendTransactionalEmail(params: {
       }
       return;
     } catch (smtpError) {
-      logger.warn("[mail:smtp] failed, attempting resend fallback", {
+      logger.error("[mail:smtp] failed", {
         error: (smtpError as Error).message,
       });
-      if (!env.RESEND_API_KEY?.trim()) {
-        throw smtpError;
-      }
+      throw smtpError;
     }
   }
-
-  await axios.post(
-    "https://api.resend.com/emails",
-    {
-      from: env.EMAIL_FROM,
-      to: [params.to],
-      subject: params.subject,
-      text: params.text,
-      html: params.html ?? `<pre>${escapeHtml(params.text)}</pre>`,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      timeout: 15_000,
-    }
-  );
 }
 
 function escapeHtml(s: string): string {

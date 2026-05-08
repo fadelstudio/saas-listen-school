@@ -25,7 +25,6 @@ declare const envSchema: z.ZodObject<{
     PUBLIC_APP_URL: z.ZodDefault<z.ZodString>;
     MAIL_PROVIDER: z.ZodDefault<z.ZodEnum<{
         console: "console";
-        resend: "resend";
         smtp: "smtp";
     }>>;
     RESEND_API_KEY: z.ZodOptional<z.ZodString>;

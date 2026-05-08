@@ -13,6 +13,7 @@ exports.classModulesRepository = {
                     classModuleInSchool(schoolId),
                     ...(filters.classId ? [{ classId: filters.classId }] : []),
                     ...(filters.moduleId ? [{ moduleId: filters.moduleId }] : []),
+                    ...(filters.campusIds && filters.campusIds.length > 0 ? [{ class: { campusId: { in: filters.campusIds } } }] : []),
                 ],
             },
             include: {

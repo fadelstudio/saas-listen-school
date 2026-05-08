@@ -2,6 +2,7 @@ export declare const classModulesRepository: {
     findAll(schoolId: string, filters: {
         classId?: string;
         moduleId?: string;
+        campusIds?: string[];
     }): Promise<({
         module: {
             code: string | null;

@@ -6,13 +6,14 @@ const classModuleInSchool = (schoolId: string): Prisma.ClassModuleWhereInput => 
 });
 
 export const classModulesRepository = {
-  async findAll(schoolId: string, filters: { classId?: string; moduleId?: string }) {
+  async findAll(schoolId: string, filters: { classId?: string; moduleId?: string; campusIds?: string[] }) {
     return prisma.classModule.findMany({
       where: {
         AND: [
           classModuleInSchool(schoolId),
           ...(filters.classId ? [{ classId: filters.classId }] : []),
           ...(filters.moduleId ? [{ moduleId: filters.moduleId }] : []),
+          ...(filters.campusIds && filters.campusIds.length > 0 ? [{ class: { campusId: { in: filters.campusIds } } }] : []),
         ],
       },
       include: {

@@ -42,6 +42,7 @@ export const evaluationCampaignsRepository = {
         ...(filters.campusId 
           ? [{
               OR: [
+                { scope: 'SCHOOL' },
                 { campusId: filters.campusId },
                 { class: { campusId: filters.campusId } }
               ]
@@ -51,6 +52,7 @@ export const evaluationCampaignsRepository = {
         ...(filters.campusIds && filters.campusIds.length > 0 
           ? [{
               OR: [
+                { scope: 'SCHOOL' },
                 { campusId: { in: filters.campusIds } },
                 { class: { campusId: { in: filters.campusIds } } }
               ]

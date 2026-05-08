@@ -26,6 +26,7 @@ import {
 } from './auth.types';
 import { Role, User } from '@prisma/client';
 import { sendTransactionalEmail } from '../../core/email/mail.service';
+import { mailTemplates } from '../../core/email/mail.templates';
 import { uploadsService } from '../uploads/uploads.service';
 import { notificationService } from '../notifications/notifications.service';
 
@@ -273,20 +274,7 @@ export const authService = {
     const siteName = env.OTP_SITE_NAME || 'AFI-LISTEN';
     const publicUrl = env.PUBLIC_APP_URL.replace(/\/$/, '');
     const helpUrl = env.OTP_HELP_URL ? env.OTP_HELP_URL : publicUrl;
-    const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #333;">Code de vérification ${siteName}</h2>
-        <p>Bonjour,</p>
-        <p>Voici votre code de sécurité pour confirmer votre inscription. Ce code est valide pendant ${otpExpiresMin} minutes.</p>
-        <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #000; border-radius: 5px; margin: 20px 0;">
-          ${otp}
-        </div>
-        <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email en toute sécurité.</p>
-        <p style="color: #666; font-size: 12px;">Besoin d'aide ? ${helpUrl}</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} ${siteName}. Tous droits réservés.</p>
-      </div>
-    `;
+    const html = mailTemplates.otpTemplate(otp, otpExpiresMin);
 
     await sendTransactionalEmail({
       to: user.email,
@@ -367,20 +355,7 @@ export const authService = {
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
     const resetUrl = `${env.PUBLIC_APP_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
-    const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #333;">Réinitialisation de mot de passe</h2>
-        <p>Bonjour,</p>
-        <p>Vous avez demandé la réinitialisation de votre mot de passe AFI-LISTEN. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien est valide pendant 1 heure.</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background: #000; color: #fff; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
-        </div>
-        <p style="word-break: break-all; color: #999; font-size: 12px;">Si le bouton ne fonctionne pas, copiez ce lien : <br/> ${resetUrl}</p>
-        <p style="color: #666; font-size: 14px; margin-top: 30px;">Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} AFI-LISTEN. Tous droits réservés.</p>
-      </div>
-    `;
+    const html = mailTemplates.passwordResetTemplate(resetUrl);
 
     await sendTransactionalEmail({
       to: user.email,

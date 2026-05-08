@@ -33,13 +33,23 @@ async function assertProfessorsInSchool(professorIds, schoolId) {
     }
 }
 exports.classModulesService = {
-    async getAll(schoolId, filters) {
-        return class_modules_repository_1.classModulesRepository.findAll(schoolId, filters);
+    async getAll(schoolId, filters, userRole, userCampusIds) {
+        const finalFilters = { ...filters };
+        if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            finalFilters.campusIds = userCampusIds;
+        }
+        return class_modules_repository_1.classModulesRepository.findAll(schoolId, finalFilters);
     },
-    async getById(id, schoolId) {
+    async getById(id, schoolId, userRole, userCampusIds) {
         const assignment = await class_modules_repository_1.classModulesRepository.findById(id, schoolId);
         if (!assignment)
             throw new AppError_1.NotFoundError('Module Assignment');
+        // Scoping check
+        if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+            if (assignment.class?.campusId && !userCampusIds.includes(assignment.class.campusId)) {
+                throw new AppError_1.ForbiddenError('This assignment belongs to a class outside your scope');
+            }
+        }
         return assignment;
     },
     async create(schoolId, data, userRole, userCampusIds, userId) {

@@ -34,13 +34,25 @@ async function assertProfessorsInSchool(professorIds: string[], schoolId: string
 }
 
 export const classModulesService = {
-  async getAll(schoolId: string, filters: { classId?: string; moduleId?: string }) {
-    return classModulesRepository.findAll(schoolId, filters);
+  async getAll(schoolId: string, filters: { classId?: string; moduleId?: string }, userRole?: string, userCampusIds?: string[]) {
+    const finalFilters: any = { ...filters };
+    if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      finalFilters.campusIds = userCampusIds;
+    }
+    return classModulesRepository.findAll(schoolId, finalFilters);
   },
 
-  async getById(id: string, schoolId: string) {
+  async getById(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]) {
     const assignment = await classModulesRepository.findById(id, schoolId);
     if (!assignment) throw new NotFoundError('Module Assignment');
+
+    // Scoping check
+    if (['MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+      if (assignment.class?.campusId && !userCampusIds.includes(assignment.class.campusId)) {
+        throw new ForbiddenError('This assignment belongs to a class outside your scope');
+      }
+    }
+
     return assignment;
   },
 

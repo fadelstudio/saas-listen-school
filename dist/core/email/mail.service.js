@@ -4,7 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTransactionalEmail = sendTransactionalEmail;
-const axios_1 = __importDefault(require("axios"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const env_1 = require("../config/env");
 const logger_1 = require("../../utils/logger");
@@ -58,27 +57,12 @@ async function sendTransactionalEmail(params) {
             return;
         }
         catch (smtpError) {
-            logger_1.logger.warn("[mail:smtp] failed, attempting resend fallback", {
+            logger_1.logger.error("[mail:smtp] failed", {
                 error: smtpError.message,
             });
-            if (!env_1.env.RESEND_API_KEY?.trim()) {
-                throw smtpError;
-            }
+            throw smtpError;
         }
     }
-    await axios_1.default.post("https://api.resend.com/emails", {
-        from: env_1.env.EMAIL_FROM,
-        to: [params.to],
-        subject: params.subject,
-        text: params.text,
-        html: params.html ?? `<pre>${escapeHtml(params.text)}</pre>`,
-    }, {
-        headers: {
-            Authorization: `Bearer ${env_1.env.RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-        },
-        timeout: 15000,
-    });
 }
 function escapeHtml(s) {
     return s

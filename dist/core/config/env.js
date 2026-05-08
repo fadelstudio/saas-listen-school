@@ -56,7 +56,7 @@ const envSchema = zod_1.z.object({
     ANALYTICS_REPORT_INTERVAL_DAYS: zod_1.z.coerce.number().int().positive().default(30),
     // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
     PUBLIC_APP_URL: zod_1.z.string().url().default("http://localhost:3000"),
-    MAIL_PROVIDER: zod_1.z.enum(["console", "resend", "smtp"]).default("console"),
+    MAIL_PROVIDER: zod_1.z.enum(["console", "smtp"]).default("console"),
     RESEND_API_KEY: zod_1.z.string().optional(),
     EMAIL_FROM: zod_1.z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
     // SMTP (for dev testing with Mailtrap/Ethereal)
@@ -86,13 +86,6 @@ const envSchema = zod_1.z.object({
 });
 const parsed = envSchema
     .superRefine((data, ctx) => {
-    if (data.MAIL_PROVIDER === "resend" && !data.RESEND_API_KEY?.trim()) {
-        ctx.addIssue({
-            code: zod_1.z.ZodIssueCode.custom,
-            message: "RESEND_API_KEY is required when MAIL_PROVIDER=resend",
-            path: ["RESEND_API_KEY"],
-        });
-    }
     if (data.MAIL_PROVIDER === "smtp") {
         if (!data.SMTP_HOST)
             ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });

@@ -10,7 +10,12 @@ export const classModulesController = {
         classId: req.query.classId as string | undefined,
         moduleId: req.query.moduleId as string | undefined,
       };
-      const assignments = await classModulesService.getAll(req.schoolId, filters);
+      const assignments = await classModulesService.getAll(
+        req.schoolId, 
+        filters,
+        req.user?.role,
+        req.user?.campusIds
+      );
       res.sendSuccess('Affectations récupérées', assignments);
     } catch (err) {
       next(err);
@@ -21,7 +26,12 @@ export const classModulesController = {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
       const { id } = req.params;
-      const assignment = await classModulesService.getById(id as string, req.schoolId);
+      const assignment = await classModulesService.getById(
+        id as string, 
+        req.schoolId,
+        req.user?.role,
+        req.user?.campusIds
+      );
       res.sendSuccess('Affectation récupérée', assignment);
     } catch (err) {
       next(err);

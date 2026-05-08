@@ -14,6 +14,7 @@ const AppError_1 = require("../../core/errors/AppError");
 const auth_repository_1 = require("./auth.repository");
 const client_1 = require("@prisma/client");
 const mail_service_1 = require("../../core/email/mail.service");
+const mail_templates_1 = require("../../core/email/mail.templates");
 const uploads_service_1 = require("../uploads/uploads.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const SALT_ROUNDS = 12;
@@ -208,20 +209,7 @@ exports.authService = {
         const siteName = env_1.env.OTP_SITE_NAME || 'AFI-LISTEN';
         const publicUrl = env_1.env.PUBLIC_APP_URL.replace(/\/$/, '');
         const helpUrl = env_1.env.OTP_HELP_URL ? env_1.env.OTP_HELP_URL : publicUrl;
-        const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #333;">Code de vérification ${siteName}</h2>
-        <p>Bonjour,</p>
-        <p>Voici votre code de sécurité pour confirmer votre inscription. Ce code est valide pendant ${otpExpiresMin} minutes.</p>
-        <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #000; border-radius: 5px; margin: 20px 0;">
-          ${otp}
-        </div>
-        <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé ce code, vous pouvez ignorer cet email en toute sécurité.</p>
-        <p style="color: #666; font-size: 12px;">Besoin d'aide ? ${helpUrl}</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} ${siteName}. Tous droits réservés.</p>
-      </div>
-    `;
+        const html = mail_templates_1.mailTemplates.otpTemplate(otp, otpExpiresMin);
         await (0, mail_service_1.sendTransactionalEmail)({
             to: user.email,
             subject: env_1.env.OTP_EMAIL_SUBJECT || `Code de vérification ${siteName}`,
@@ -288,20 +276,7 @@ exports.authService = {
         await auth_repository_1.authRepository.deletePasswordResetTokensForUser(user.id);
         await auth_repository_1.authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
         const resetUrl = `${env_1.env.PUBLIC_APP_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
-        const html = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #333;">Réinitialisation de mot de passe</h2>
-        <p>Bonjour,</p>
-        <p>Vous avez demandé la réinitialisation de votre mot de passe AFI-LISTEN. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien est valide pendant 1 heure.</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background: #000; color: #fff; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
-        </div>
-        <p style="word-break: break-all; color: #999; font-size: 12px;">Si le bouton ne fonctionne pas, copiez ce lien : <br/> ${resetUrl}</p>
-        <p style="color: #666; font-size: 14px; margin-top: 30px;">Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} AFI-LISTEN. Tous droits réservés.</p>
-      </div>
-    `;
+        const html = mail_templates_1.mailTemplates.passwordResetTemplate(resetUrl);
         await (0, mail_service_1.sendTransactionalEmail)({
             to: user.email,
             subject: 'Réinitialisation du mot de passe AFI-LISTEN',
