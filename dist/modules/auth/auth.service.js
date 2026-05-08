@@ -210,7 +210,7 @@ exports.authService = {
         const publicUrl = env_1.env.PUBLIC_APP_URL.replace(/\/$/, '');
         const helpUrl = env_1.env.OTP_HELP_URL ? env_1.env.OTP_HELP_URL : publicUrl;
         const html = mail_templates_1.mailTemplates.otpTemplate(otp, otpExpiresMin);
-        await (0, mail_service_1.sendTransactionalEmail)({
+        (0, mail_service_1.sendTransactionalEmail)({
             to: user.email,
             subject: env_1.env.OTP_EMAIL_SUBJECT || `Code de vérification ${siteName}`,
             text: `Votre code de vérification : ${otp}\nIl expire dans ${otpExpiresMin} minutes.\nAide: ${helpUrl}`,

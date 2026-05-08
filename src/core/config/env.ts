@@ -57,7 +57,8 @@ const envSchema = z.object({
 
   // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
   PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  MAIL_PROVIDER: z.enum(["console", "smtp"]).default("console"),
+  MAIL_PROVIDER: z.enum(["console", "smtp", "brevo"]).default("console"),
+  BREVO_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().min(1).default("AFI-LISTEN <noreply@localhost>"),
 
@@ -94,6 +95,9 @@ const parsed = envSchema
     if (data.MAIL_PROVIDER === "smtp") {
       if (!data.SMTP_HOST) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
       if (!data.SMTP_PORT) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
+    }
+    if (data.MAIL_PROVIDER === "brevo" && !data.BREVO_API_KEY) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "BREVO_API_KEY is required when MAIL_PROVIDER=brevo", path: ["BREVO_API_KEY"] });
     }
     if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
       ctx.addIssue({

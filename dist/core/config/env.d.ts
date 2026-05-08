@@ -26,7 +26,9 @@ declare const envSchema: z.ZodObject<{
     MAIL_PROVIDER: z.ZodDefault<z.ZodEnum<{
         console: "console";
         smtp: "smtp";
+        brevo: "brevo";
     }>>;
+    BREVO_API_KEY: z.ZodOptional<z.ZodString>;
     RESEND_API_KEY: z.ZodOptional<z.ZodString>;
     EMAIL_FROM: z.ZodDefault<z.ZodString>;
     SMTP_HOST: z.ZodOptional<z.ZodString>;

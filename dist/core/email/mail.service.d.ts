@@ -1,3 +1,4 @@
+export declare function verifyMailConfiguration(): Promise<boolean>;
 /**
  * Sends transactional email.
  * - `MAIL_PROVIDER=console`: log only (dev).
