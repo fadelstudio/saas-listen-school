@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { classesRepository } from './classes.repository';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
-import { NotFoundError, BadRequestError } from '../../core/errors/AppError';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../../core/errors/AppError';
 import { ClassFilters } from './classes.types';
 import { prisma } from '../../core/database/prisma';
 

@@ -1,7 +1,7 @@
 import { evaluationCampaignsRepository } from './evaluation-campaigns.repository';
 import { notificationService } from '../notifications/notifications.service';
 import { parsePagination, buildPaginated } from '../../utils/pagination';
-import { NotFoundError, BadRequestError } from '../../core/errors/AppError';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../../core/errors/AppError';
 import { logger } from '../../utils/logger';
 import { prisma } from '../../core/database/prisma';
 import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
