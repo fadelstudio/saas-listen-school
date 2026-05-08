@@ -6,7 +6,10 @@ exports.authRepository = {
     async findByEmail(email, schoolId) {
         return prisma_1.prisma.user.findFirst({
             where: { email, schoolId },
-            include: { campuses: { select: { id: true } } },
+            include: {
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } }
+            },
         });
     },
     async findByIdentifier(identifier, schoolId) {
@@ -18,7 +21,10 @@ exports.authRepository = {
                     { matricule: identifier }
                 ]
             },
-            include: { campuses: { select: { id: true } } },
+            include: {
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } }
+            },
         });
     },
     /** Pour message d’erreur login : compte connu mais mauvais tenant (x-school-slug). */
@@ -33,11 +39,15 @@ exports.authRepository = {
     async findById(id) {
         return prisma_1.prisma.user.findUnique({
             where: { id },
-            include: { campuses: { select: { id: true } } },
+            include: {
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } }
+            },
         });
     },
     async create(data) {
         const verified = data.emailVerified ?? false;
+        console.log('[AuthRepository] Creating user with classId:', data.classId);
         return prisma_1.prisma.user.create({
             data: {
                 email: data.email,
@@ -51,7 +61,10 @@ exports.authRepository = {
                 emailVerified: verified,
                 emailVerifiedAt: verified ? new Date() : null,
             },
-            include: { campuses: { select: { id: true } } },
+            include: {
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } }
+            },
         });
     },
     async updatePassword(userId, passwordHash) {
@@ -87,7 +100,10 @@ exports.authRepository = {
             where: { token },
             include: {
                 user: {
-                    include: { campuses: { select: { id: true } } }
+                    include: {
+                        campuses: { select: { id: true, name: true } },
+                        class: { select: { id: true, name: true } }
+                    }
                 }
             },
         });
@@ -121,7 +137,10 @@ exports.authRepository = {
             where: { id },
             include: {
                 user: {
-                    include: { campuses: { select: { id: true } } }
+                    include: {
+                        campuses: { select: { id: true, name: true } },
+                        class: { select: { id: true, name: true } }
+                    }
                 }
             },
         });
@@ -148,7 +167,10 @@ exports.authRepository = {
             where: { tokenHash },
             include: {
                 user: {
-                    include: { campuses: { select: { id: true } } }
+                    include: {
+                        campuses: { select: { id: true, name: true } },
+                        class: { select: { id: true, name: true } }
+                    }
                 }
             },
         });

@@ -74,7 +74,7 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
         professorIds?: string[];
-    }): Promise<{
+    }, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
         module: {
             code: string | null;
             name: string;
@@ -114,7 +114,7 @@ export declare const classModulesService: {
     }>;
     update(id: string, schoolId: string, data: {
         professorIds?: string[];
-    }): Promise<{
+    }, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
         module: {
             code: string | null;
             name: string;
@@ -152,6 +152,6 @@ export declare const classModulesService: {
         classId: string;
         moduleId: string;
     }>;
-    delete(id: string, schoolId: string): Promise<void>;
+    delete(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<void>;
 };
 //# sourceMappingURL=class-modules.service.d.ts.map

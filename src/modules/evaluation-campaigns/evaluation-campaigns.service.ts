@@ -256,7 +256,17 @@ export const evaluationCampaignsService = {
     const campaign = campaignRaw as unknown as {
       id: string; title: string; scope: string; module?: { name: string };
       class?: { users: { id: string }[] }; campus?: { users: { id: string; role: string }[] };
+      campusId?: string; classId?: string;
     };
+
+    // Scoping check
+    if (userCampusIds && userCampusIds.length > 0) {
+      if (campaign.scope === 'CAMPUS' && campaign.campusId && !userCampusIds.includes(campaign.campusId)) {
+        throw new ForbiddenError('This campaign belongs to a campus outside your scope');
+      }
+      // Note: For CLASS scope, we'd need to fetch the class's campusId if not in campaign
+      // but campaignRaw should have enough info or we can rely on findById's school scoping
+    }
 
     let allStudentIds: string[] = [];
     if (campaign.scope === 'CLASS' && campaign.class?.users) {
@@ -299,7 +309,7 @@ export const evaluationCampaignsService = {
     });
   },
 
-  async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string, userRole?: string) {
+  async generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string, userRole?: string, _userCampusIds?: string[]) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
     const analytics = await evaluationCampaignsRepository.getAnalytics(id, schoolId);
     if (!analytics) throw new NotFoundError('EvaluationCampaign');

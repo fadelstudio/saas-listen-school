@@ -1,7 +1,7 @@
 import type { CreateEvaluationInput, UpdateEvaluationInput } from './evaluations.types';
 export declare const evaluationsService: {
     resolveScopedCampusFilter(userRole?: string, userCampusIds?: string[], requestedCampusId?: string): string[] | undefined;
-    create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null): Promise<{
+    create(input: CreateEvaluationInput, userId?: string, schoolId?: string | null, userRole?: string): Promise<{
         module: {
             code: string | null;
             name: string;
@@ -164,7 +164,7 @@ export declare const evaluationsService: {
         aiScore: number | null;
         campaignId: string | null;
     }>;
-    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[], userId?: string): Promise<import("../../utils/pagination").PaginatedResult<{
         module: {
             code: string | null;
             name: string;
@@ -239,7 +239,7 @@ export declare const evaluationsService: {
         aiScore: number | null;
         campaignId: string | null;
     }>;
-    delete(id: string, userRole: string, schoolId?: string | null): Promise<import("@prisma/client").Prisma.BatchPayload>;
+    delete(id: string, userRole: string, schoolId?: string | null, userId?: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     getStats(query: Record<string, unknown>, schoolId?: string | null, userRole?: string, userCampusIds?: string[]): Promise<import("./evaluations.types").EvaluationStats>;
     triggerAiScoring(id: string, userRole: string, schoolId?: string | null): Promise<{
         queued: boolean;

@@ -103,7 +103,7 @@ export declare const academicModulesService: {
     create(schoolId: string, data: {
         name: string;
         code?: string;
-    }): Promise<{
+    }, userRole?: string, userId?: string): Promise<{
         _count: {
             classModules: number;
         };
@@ -118,7 +118,7 @@ export declare const academicModulesService: {
     update(id: string, schoolId: string, data: {
         name?: string;
         code?: string;
-    }): Promise<{
+    }, userRole?: string, userId?: string): Promise<{
         code: string | null;
         name: string;
         id: string;
@@ -126,6 +126,6 @@ export declare const academicModulesService: {
         updatedAt: Date;
         schoolId: string;
     }>;
-    delete(id: string, schoolId: string): Promise<void>;
+    delete(id: string, schoolId: string, userRole?: string, userId?: string): Promise<void>;
 };
 //# sourceMappingURL=academic-modules.service.d.ts.map

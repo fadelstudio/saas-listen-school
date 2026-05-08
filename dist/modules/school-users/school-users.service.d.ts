@@ -115,6 +115,7 @@ export declare const schoolUsersService: {
         phone?: string | null;
         bio?: string | null;
         address?: string | null;
+        email?: string;
     }): Promise<{
         email: string;
         id: string;

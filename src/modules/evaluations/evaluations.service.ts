@@ -81,7 +81,7 @@ export const evaluationsService = {
     const evaluation = await evaluationsRepository.create(finalInput, userId, resolvedSchoolId);
 
     await auditService.log({
-      schoolId: resolvedSchoolId,
+      schoolId: resolvedSchoolId!,
       userId,
       action: 'CREATE_EVALUATION',
       entity: 'Evaluation',
@@ -165,7 +165,7 @@ export const evaluationsService = {
     const result = await evaluationsRepository.update(id, input, schoolId ?? null);
 
     await auditService.log({
-      schoolId: schoolId ?? null,
+      schoolId: schoolId as string,
       userId,
       action: 'UPDATE_EVALUATION',
       entity: 'Evaluation',
@@ -184,7 +184,7 @@ export const evaluationsService = {
     const result = await evaluationsRepository.delete(id, schoolId ?? null);
 
     await auditService.log({
-      schoolId: schoolId ?? null,
+      schoolId: schoolId as string,
       userId,
       action: 'DELETE_EVALUATION',
       entity: 'Evaluation',

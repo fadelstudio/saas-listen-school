@@ -8,7 +8,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.create(req.body, req.schoolId);
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.create(req.body, req.schoolId, req.user?.role, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Evaluation campaign created and students notified', campaign, 201);
         }
         catch (error) {
@@ -46,7 +46,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.close(req.params.id, req.schoolId);
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.close(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Campaign closed', campaign);
         }
         catch (error) {
@@ -68,7 +68,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const data = await evaluation_campaigns_service_1.evaluationCampaignsService.generatePostDeadlineAnalysis(req.params.id, req.user.userId, req.schoolId);
+            const data = await evaluation_campaigns_service_1.evaluationCampaignsService.generatePostDeadlineAnalysis(req.params.id, req.user.userId, req.schoolId, req.user?.role);
             res.sendSuccess('Analysis completed and decision created', data);
         }
         catch (error) {
@@ -79,7 +79,7 @@ exports.evaluationCampaignsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            await evaluation_campaigns_service_1.evaluationCampaignsService.sendReminders(req.params.id, req.schoolId);
+            await evaluation_campaigns_service_1.evaluationCampaignsService.sendReminders(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Reminders sent successfully');
         }
         catch (error) {

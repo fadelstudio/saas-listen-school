@@ -134,7 +134,7 @@ export declare const classesService: {
         name: string;
         campusId: string;
         levelId: string;
-    }): Promise<{
+    }, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
         campus: {
             code: string | null;
             name: string;
@@ -165,7 +165,7 @@ export declare const classesService: {
         name?: string;
         campusId?: string;
         levelId?: string;
-    }): Promise<{
+    }, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
         campus: {
             code: string | null;
             name: string;
@@ -192,7 +192,7 @@ export declare const classesService: {
         levelId: string;
         campusId: string;
     }>;
-    delete(id: string, schoolId: string): Promise<void>;
+    delete(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<void>;
     getStudents(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         email: string;
         id: string;

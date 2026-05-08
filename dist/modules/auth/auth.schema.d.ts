@@ -10,8 +10,8 @@ export declare const registerSchema: z.ZodObject<{
         FEMALE: "FEMALE";
     }>>;
     matricule: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodLiteral<"">, z.ZodNull]>>;
-    campusId: z.ZodOptional<z.ZodString>;
-    classId: z.ZodOptional<z.ZodString>;
+    campusId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    classId: z.ZodString;
 }, z.core.$strip>;
 export declare const loginSchema: z.ZodObject<{
     email: z.ZodOptional<z.ZodString>;

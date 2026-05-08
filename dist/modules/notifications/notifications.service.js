@@ -273,21 +273,28 @@ exports.notificationService = {
                     where: { targetDeviceUti: uti, userId: null },
                     data: { userId, targetDeviceUti: null },
                 });
-                // 2. Fusion des rapports anonymes (Safer JSON filtering)
-                // On cherche les rapports dont deviceMetadata contient {"uti": uti}
+                // 2. Fusion des rapports anonymes
+                // On utilise une approche plus simple pour la fusion des rapports si le filtrage JSON complexe pose problème
                 const reportResult = await prisma_1.prisma.report.updateMany({
                     where: {
                         authorId: null,
+                        // On tente une recherche simple dans le JSON si possible, 
+                        // sinon on attrape l'erreur si la syntaxe prisma n'est pas supportée par le driver
                         deviceMetadata: {
                             path: ['uti'],
                             equals: uti,
                         },
                     },
                     data: { authorId: userId },
+                }).catch(err => {
+                    logger_1.logger.warn('[Notification] Échec fusion rapports (JSON path non supporté?)', { error: err.message });
+                    return { count: 0 };
                 });
                 // 3. Nettoyage de l'entrée GuestDevice
-                await db.guestDevice.delete({ where: { uti } }).catch(() => { });
-                logger_1.logger.info('[Notification] Fusion terminée avec succès', {
+                if (db.guestDevice) {
+                    await db.guestDevice.delete({ where: { uti } }).catch(() => { });
+                }
+                logger_1.logger.info('[Notification] Fusion terminée', {
                     userId,
                     uti,
                     notificationsMigrated: notifResult.count,
@@ -298,10 +305,9 @@ exports.notificationService = {
                 logger_1.logger.error('[Notification] Échec de la fusion invité → compte', {
                     userId,
                     uti,
-                    error: err.message,
-                    stack: err.stack
+                    error: err.message
                 });
-                // On ne bloque pas l'update du token FCM si la fusion échoue
+                // On ne bloque JAMAIS l'update du token FCM si la fusion échoue
             }
         }
     },

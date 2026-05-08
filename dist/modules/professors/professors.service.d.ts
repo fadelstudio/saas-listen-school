@@ -21,7 +21,7 @@ export declare const professorsService: {
         matricule?: string | null;
         numero?: string | null;
         phone?: string | null;
-    }): Promise<{
+    }, userRole?: string, _userCampusIds?: string[], requesterId?: string): Promise<{
         avatarUrl: string | null;
         linkedUserId: string | null;
         campusAccess: "ALL";
@@ -35,13 +35,13 @@ export declare const professorsService: {
         matricule?: string | null;
         numero?: string | null;
         phone?: string | null;
-    }): Promise<{
+    }, userRole?: string, userCampusIds?: string[], requesterId?: string): Promise<{
         avatarUrl: string | null;
         linkedUserId: string | null;
         campusAccess: "ALL";
         campusScopeLabel: "TOUS";
     }>;
-    delete(id: string, schoolId: string): Promise<void>;
+    delete(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], requesterId?: string): Promise<void>;
     uploadAvatar(schoolId: string, professorId: string, file: Express.Multer.File, requester: {
         userId: string;
         role: Role;

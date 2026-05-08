@@ -15,8 +15,8 @@ exports.registerSchema = zod_1.z.object({
     lastName: zod_1.z.string().min(1, 'Last name is required').max(50),
     sex: zod_1.z.enum(['UNDEFINED', 'MALE', 'FEMALE']).default('UNDEFINED'),
     matricule: zod_1.z.union([zod_1.z.string().max(50), zod_1.z.literal(''), zod_1.z.null()]).optional(),
-    campusId: idSchema_1.idStringSchema.optional(),
-    classId: idSchema_1.idStringSchema.optional(),
+    campusId: idSchema_1.idStringSchema.nullish(),
+    classId: idSchema_1.idStringSchema,
 });
 // ─── Login ────────────────────────────────────────────────────────────────────
 exports.loginSchema = zod_1.z.object({

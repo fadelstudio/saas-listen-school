@@ -35,7 +35,7 @@ exports.classesController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const cl = await classes_service_1.classesService.create(req.schoolId, req.body);
+            const cl = await classes_service_1.classesService.create(req.schoolId, req.body, req.user?.role, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Class created', cl, 201);
         }
         catch (error) {
@@ -46,7 +46,7 @@ exports.classesController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const cl = await classes_service_1.classesService.update(req.params.id, req.schoolId, req.body);
+            const cl = await classes_service_1.classesService.update(req.params.id, req.schoolId, req.body, req.user?.role, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Class updated', cl);
         }
         catch (error) {
@@ -57,7 +57,7 @@ exports.classesController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            await classes_service_1.classesService.delete(req.params.id, req.schoolId);
+            await classes_service_1.classesService.delete(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Class deleted', null);
         }
         catch (error) {

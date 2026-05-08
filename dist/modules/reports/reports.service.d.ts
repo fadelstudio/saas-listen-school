@@ -2,7 +2,7 @@ import { ReportStatus } from '@prisma/client';
 import type { CreateReportInput, UpdateReportInput } from './reports.types';
 export declare const reportsService: {
     resolveScopedCampusFilter(userRole?: string, userCampusIds?: string[], requestedCampusId?: string): string[] | undefined;
-    create(input: CreateReportInput, userId?: string, schoolId?: string | null): Promise<{
+    create(input: CreateReportInput, userId?: string, schoolId?: string | null, userRole?: string): Promise<{
         module: {
             code: string | null;
             name: string;
@@ -129,7 +129,7 @@ export declare const reportsService: {
         deviceMetadata: import("@prisma/client/runtime/client").JsonValue | null;
         aiAnalysis: import("@prisma/client/runtime/client").JsonValue | null;
     }>;
-    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[]): Promise<import("../../utils/pagination").PaginatedResult<{
+    getAll(query: Record<string, unknown>, userRole?: string, schoolId?: string | null, userCampusIds?: string[], userId?: string): Promise<import("../../utils/pagination").PaginatedResult<{
         module: {
             code: string | null;
             name: string;

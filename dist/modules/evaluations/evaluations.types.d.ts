@@ -35,6 +35,7 @@ export interface EvaluationFilters {
     campusIds?: string[];
     startDate?: string;
     endDate?: string;
+    campaignId?: string;
 }
 export interface EvaluationStats {
     totalCount: number;

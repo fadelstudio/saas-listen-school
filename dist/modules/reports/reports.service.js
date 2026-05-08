@@ -12,7 +12,7 @@ const notifications_service_1 = require("../notifications/notifications.service"
 const logger_1 = require("../../utils/logger");
 exports.reportsService = {
     resolveScopedCampusFilter(userRole, userCampusIds, requestedCampusId) {
-        if (!userRole || !['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole))
+        if (!userRole || !['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole))
             return undefined;
         if (!userCampusIds || userCampusIds.length === 0)
             return undefined;
@@ -24,7 +24,9 @@ exports.reportsService = {
         }
         return userCampusIds;
     },
-    async create(input, userId, schoolId) {
+    async create(input, userId, schoolId, userRole) {
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
         let finalInput = { ...input };
         // 1. User Context auto-fill
         if (userId && !finalInput.classId) {
@@ -107,17 +109,17 @@ exports.reportsService = {
             throw new AppError_1.ForbiddenError('You do not have access to this report');
         }
         // Scrub author if anonymous and requester is not admin
-        if (report.isAnonymous && !['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+        if (report.isAnonymous && !['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
             report.author = null;
             report.authorId = null;
         }
         return report;
     },
-    async getAll(query, userRole, schoolId, userCampusIds) {
+    async getAll(query, userRole, schoolId, userCampusIds, userId) {
         const pagination = (0, pagination_1.parsePagination)(query);
         const filters = {
             status: query.status,
-            authorId: query.authorId,
+            authorId: (userRole === 'STUDENT' && userId) ? userId : query.authorId,
             campusId: query.campusId,
             classId: query.classId,
             professorId: query.professorId,
@@ -134,7 +136,7 @@ exports.reportsService = {
         }
         const { items, total } = await reports_repository_1.reportsRepository.findAll(filters, pagination, schoolId ?? null);
         // Filter anonymous authors for non-admins
-        if (!['ADMIN', 'SUPERADMIN'].includes(userRole || '')) {
+        if (!['ADMIN', 'MANAGER', 'SUPERADMIN'].includes(userRole || '')) {
             items.forEach((item) => {
                 if (item.isAnonymous) {
                     item.author = null;
@@ -148,8 +150,10 @@ exports.reportsService = {
         const report = await reports_repository_1.reportsRepository.findById(id, schoolId ?? null);
         if (!report)
             throw new AppError_1.NotFoundError('Report');
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
         // Only the author or admin/manager can update
-        if (report.authorId !== userId && !['ADMIN', 'MANAGER'].includes(userRole)) {
+        if (report.authorId !== userId && !['ADMIN', 'MANAGER', 'AGENT'].includes(userRole)) {
             throw new AppError_1.ForbiddenError('You do not have permission to update this report');
         }
         const updated = await reports_repository_1.reportsRepository.update(id, input, schoolId ?? null);
@@ -166,8 +170,10 @@ exports.reportsService = {
         return updated;
     },
     async updateStatus(id, status, userRole, schoolId, userId) {
-        if (!['ADMIN', 'MANAGER'].includes(userRole)) {
-            throw new AppError_1.ForbiddenError('Only MANAGER or ADMIN can change report status');
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
+        if (!['ADMIN', 'MANAGER', 'AGENT'].includes(userRole)) {
+            throw new AppError_1.ForbiddenError('Only staff with appropriate role can change report status');
         }
         const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)
@@ -214,8 +220,10 @@ exports.reportsService = {
         return result;
     },
     async delete(id, userRole, schoolId, userId) {
-        if (userRole !== 'ADMIN') {
-            throw new AppError_1.ForbiddenError('Only ADMIN can delete reports');
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
+        if (!['ADMIN', 'MANAGER'].includes(userRole)) {
+            throw new AppError_1.ForbiddenError('Only ADMIN or MANAGER can delete reports');
         }
         const exists = await reports_repository_1.reportsRepository.existsById(id, schoolId ?? null);
         if (!exists)

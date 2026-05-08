@@ -20,7 +20,7 @@ router.use(auth_middleware_1.authMiddleware);
  * @swagger
  * /api/evaluation-campaigns:
  *   post:
- *     summary: "Lancer une nouvelle campagne d'évaluation (ADMIN+)"
+ *     summary: "Lancer une nouvelle campagne d'évaluation (MANAGER+)"
  *     description: Crée une invitation à évaluer pour un groupe d'élèves (classe, campus ou école entière).
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]
@@ -109,7 +109,7 @@ router.get('/:id', (0, validate_middleware_1.validate)({ params: evaluation_camp
  * @swagger
  * /api/evaluation-campaigns/{id}/close:
  *   post:
- *     summary: "Clôturer manuellement une campagne (ADMIN+)"
+ *     summary: "Clôturer manuellement une campagne (MANAGER+)"
  *     description: Empêche toute nouvelle évaluation pour cette campagne.
  *     tags: [Evaluation Campaigns]
  *     security: [{ bearerAuth: [] }]

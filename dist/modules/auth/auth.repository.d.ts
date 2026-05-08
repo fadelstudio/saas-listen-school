@@ -2,7 +2,12 @@ import { User } from '@prisma/client';
 import { RegisterInput } from './auth.types';
 export declare const authRepository: {
     findByEmail(email: string, schoolId: string): Promise<({
+        class: {
+            name: string;
+            id: string;
+        } | null;
         campuses: {
+            name: string;
             id: string;
         }[];
     } & {
@@ -30,7 +35,12 @@ export declare const authRepository: {
         classId: string | null;
     }) | null>;
     findByIdentifier(identifier: string, schoolId: string): Promise<({
+        class: {
+            name: string;
+            id: string;
+        } | null;
         campuses: {
+            name: string;
             id: string;
         }[];
     } & {
@@ -88,7 +98,12 @@ export declare const authRepository: {
         classId: string | null;
     }) | null>;
     findById(id: string): Promise<({
+        class: {
+            name: string;
+            id: string;
+        } | null;
         campuses: {
+            name: string;
             id: string;
         }[];
     } & {
@@ -121,7 +136,12 @@ export declare const authRepository: {
         /** Si false (OTP requis), compte créé mais login interdit jusqu'à verify-otp. */
         emailVerified?: boolean;
     }): Promise<{
+        class: {
+            name: string;
+            id: string;
+        } | null;
         campuses: {
+            name: string;
             id: string;
         }[];
     } & {
@@ -166,7 +186,12 @@ export declare const authRepository: {
     }>;
     findRefreshToken(token: string): Promise<({
         user: {
+            class: {
+                name: string;
+                id: string;
+            } | null;
             campuses: {
+                name: string;
                 id: string;
             }[];
         } & {
@@ -214,7 +239,12 @@ export declare const authRepository: {
     }>;
     findLoginOtpChallengeById(id: string): Promise<({
         user: {
+            class: {
+                name: string;
+                id: string;
+            } | null;
             campuses: {
+                name: string;
                 id: string;
             }[];
         } & {
@@ -276,7 +306,12 @@ export declare const authRepository: {
     }>;
     findPasswordResetByTokenHash(tokenHash: string): Promise<({
         user: {
+            class: {
+                name: string;
+                id: string;
+            } | null;
             campuses: {
+                name: string;
                 id: string;
             }[];
         } & {

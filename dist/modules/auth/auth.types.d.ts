@@ -66,6 +66,14 @@ export interface SafeUser {
     address?: string | null;
     campusIds?: string[];
     classId?: string | null;
+    class?: {
+        id: string;
+        name: string;
+    } | null;
+    campuses?: {
+        id: string;
+        name: string;
+    }[];
     schoolId?: string | null;
     /** URL signée (bucket Supabase) — rafraîchir après expiration via GET /auth/me */
     avatarUrl?: string | null;

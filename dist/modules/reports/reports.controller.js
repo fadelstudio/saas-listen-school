@@ -9,7 +9,7 @@ exports.reportsController = {
             const userId = req.user?.userId; // may be undefined (anonymous)
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const report = await reports_service_1.reportsService.create(req.body, userId, req.schoolId);
+            const report = await reports_service_1.reportsService.create(req.body, userId, req.schoolId, req.user?.role);
             res.sendSuccess('Report created successfully', report, 201);
         }
         catch (error) {
@@ -20,7 +20,7 @@ exports.reportsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await reports_service_1.reportsService.getAll(req.query, req.user?.role, req.schoolId, req.user?.campusIds);
+            const result = await reports_service_1.reportsService.getAll(req.query, req.user?.role, req.schoolId, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Reports fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,

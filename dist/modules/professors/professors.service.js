@@ -13,6 +13,7 @@ const pagination_1 = require("../../utils/pagination");
 const AppError_1 = require("../../core/errors/AppError");
 const prisma_1 = require("../../core/database/prisma");
 const uploads_service_1 = require("../uploads/uploads.service");
+const audit_service_1 = require("../audit/audit.service");
 function optionalProfileString(v) {
     if (v === undefined)
         return undefined;
@@ -46,7 +47,7 @@ exports.professorsService = {
             classId: query.classId,
             campusId: query.campusId,
         };
-        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
+        if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') && userCampusIds && userCampusIds.length > 0) {
             if (filters.campusId && !userCampusIds.includes(filters.campusId)) {
                 throw new AppError_1.ForbiddenError('Requested campus is outside your scope');
             }
@@ -61,7 +62,7 @@ exports.professorsService = {
         const professor = await professors_repository_1.professorsRepository.findById(id, schoolId);
         if (!professor)
             throw new AppError_1.NotFoundError('Professor');
-        if (['ADMIN', 'MANAGER', 'VIEWER'].includes(userRole || '') &&
+        if (['ADMIN', 'MANAGER', 'AGENT', 'VIEWER'].includes(userRole || '') &&
             userCampusIds &&
             userCampusIds.length > 0 &&
             professor.evaluations.length > 0) {
@@ -71,7 +72,9 @@ exports.professorsService = {
         }
         return enrichProfessorWithAvatar(professor);
     },
-    async create(schoolId, data) {
+    async create(schoolId, data, userRole, _userCampusIds, requesterId) {
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
         let userId = data.userId;
         if (!userId) {
             // Chercher un User existant avec cet email dans la même école uniquement
@@ -121,9 +124,21 @@ exports.professorsService = {
             numero: optionalProfileString(data.numero) ?? null,
             phone: optionalProfileString(data.phone) ?? null,
         });
+        await audit_service_1.auditService.log({
+            schoolId,
+            userId: requesterId,
+            action: 'CREATE_PROFESSOR',
+            entity: 'Professor',
+            entityId: created.id,
+            details: { firstName: created.firstName, lastName: created.lastName, email: created.email }
+        });
         return enrichProfessorWithAvatar(created);
     },
-    async update(id, schoolId, data) {
+    async update(id, schoolId, data, userRole, userCampusIds, requesterId) {
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
+        // Scoping check
+        await this.getById(id, schoolId, userRole, userCampusIds);
         const patch = {
             ...data,
             ...(data.matricule !== undefined && {
@@ -139,18 +154,39 @@ exports.professorsService = {
         const updated = await professors_repository_1.professorsRepository.update(id, schoolId, patch);
         if (!updated)
             throw new AppError_1.NotFoundError('Professor');
+        await audit_service_1.auditService.log({
+            schoolId,
+            userId: requesterId,
+            action: 'UPDATE_PROFESSOR',
+            entity: 'Professor',
+            entityId: id,
+            details: { updatedFields: Object.keys(data) }
+        });
         return enrichProfessorWithAvatar(updated);
     },
-    async delete(id, schoolId) {
+    async delete(id, schoolId, userRole, userCampusIds, requesterId) {
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
+        // Scoping check
+        await this.getById(id, schoolId, userRole, userCampusIds);
         const ok = await professors_repository_1.professorsRepository.delete(id, schoolId);
         if (!ok)
             throw new AppError_1.NotFoundError('Professor');
+        await audit_service_1.auditService.log({
+            schoolId,
+            userId: requesterId,
+            action: 'DELETE_PROFESSOR',
+            entity: 'Professor',
+            entityId: id,
+        });
     },
     async uploadAvatar(schoolId, professorId, file, requester) {
         const professor = await professors_repository_1.professorsRepository.findById(professorId, schoolId);
         if (!professor)
             throw new AppError_1.NotFoundError('Professor');
-        const isStaff = requester.role === client_1.Role.ADMIN || requester.role === client_1.Role.MANAGER;
+        const isStaff = requester.role === client_1.Role.ADMIN || requester.role === client_1.Role.MANAGER || requester.role === client_1.Role.AGENT;
+        if (requester.role === client_1.Role.VIEWER)
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
         const isSelfLinked = professor.userId === requester.userId;
         if (!isStaff && !isSelfLinked) {
             throw new AppError_1.ForbiddenError('Not allowed to update this professor profile photo');
@@ -181,7 +217,9 @@ exports.professorsService = {
         const professor = await professors_repository_1.professorsRepository.findById(professorId, schoolId);
         if (!professor)
             throw new AppError_1.NotFoundError('Professor');
-        const isStaff = requester.role === client_1.Role.ADMIN || requester.role === client_1.Role.MANAGER;
+        const isStaff = requester.role === client_1.Role.ADMIN || requester.role === client_1.Role.MANAGER || requester.role === client_1.Role.AGENT;
+        if (requester.role === client_1.Role.VIEWER)
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
         const isSelfLinked = professor.userId === requester.userId;
         if (!isStaff && !isSelfLinked) {
             throw new AppError_1.ForbiddenError('Not allowed to update this professor profile photo');

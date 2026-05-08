@@ -91,7 +91,7 @@ export const professorsService = {
       phone?: string | null;
     },
     userRole?: string,
-    userCampusIds?: string[],
+    _userCampusIds?: string[],
     requesterId?: string
   ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');

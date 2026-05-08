@@ -19,8 +19,8 @@ exports.analyticsRouter = router;
  * @swagger
  * /api/analytics/dashboard:
  *   get:
- *     summary: "[MANAGER+] Statistiques globales du dashboard"
- *     description: Retourne des compteurs et distributions pour les graphiques.
+ *     summary: "[VIEWER+] Statistiques globales du dashboard"
+ *     description: Retourne des compteurs et distributions, automatiquement filtrés par campus attachés au compte.
  *     tags: [Analytics]
  *     security:
  *       - bearerAuth: []

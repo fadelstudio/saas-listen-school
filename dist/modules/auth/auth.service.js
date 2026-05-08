@@ -17,8 +17,8 @@ const mail_service_1 = require("../../core/email/mail.service");
 const uploads_service_1 = require("../uploads/uploads.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const SALT_ROUNDS = 12;
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+const ACCESS_TOKEN_EXPIRY = '1h';
+const REFRESH_TOKEN_EXPIRY_DAYS = 30;
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
@@ -45,7 +45,7 @@ function generateNumericOtp() {
     return String(Math.floor(100000 + Math.random() * 900000));
 }
 function canUseOtpFallback() {
-    return env_1.env.OTP_FALLBACK_ENABLED && env_1.env.MAIL_PROVIDER === 'console' && !!env_1.env.OTP_FALLBACK_CODE;
+    return env_1.env.OTP_FALLBACK_ENABLED && !!env_1.env.OTP_FALLBACK_CODE;
 }
 function toSafeUser(user) {
     return {
@@ -63,7 +63,9 @@ function toSafeUser(user) {
         bio: user.bio,
         address: user.address,
         campusIds: user.campuses?.map((c) => c.id) || [],
+        campuses: user.campuses?.map((c) => ({ id: c.id, name: c.name || '' })),
         classId: user.classId,
+        class: user.class ? { id: user.class.id, name: user.class.name } : null,
         schoolId: user.schoolId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -113,6 +115,10 @@ async function generateTokens(user) {
 }
 exports.authService = {
     async register(input, schoolId) {
+        console.log('[AuthService] Registering student:', { email: input.email, classId: input.classId, schoolId });
+        if (!input.classId) {
+            throw new AppError_1.BadRequestError('Student must be assigned to a class');
+        }
         const existing = await auth_repository_1.authRepository.findByEmail(input.email, schoolId);
         if (existing) {
             throw new AppError_1.ConflictError('An account with this email already exists');

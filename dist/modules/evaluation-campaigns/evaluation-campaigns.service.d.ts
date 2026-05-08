@@ -1,6 +1,6 @@
 import type { CreateEvaluationCampaignInput } from './evaluation-campaigns.schema';
 export declare const evaluationCampaignsService: {
-    create(data: CreateEvaluationCampaignInput, schoolId: string): Promise<{
+    create(data: CreateEvaluationCampaignInput, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -102,7 +102,7 @@ export declare const evaluationCampaignsService: {
         description: string | null;
         scope: string;
     }>;
-    close(id: string, schoolId: string): Promise<{
+    close(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -221,8 +221,8 @@ export declare const evaluationCampaignsService: {
             analysisId: string | null;
         }) | null;
     }>;
-    sendReminders(id: string, schoolId: string): Promise<void>;
-    generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string): Promise<{
+    sendReminders(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<void>;
+    generatePostDeadlineAnalysis(id: string, userId: string, schoolId: string, userRole?: string, _userCampusIds?: string[]): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

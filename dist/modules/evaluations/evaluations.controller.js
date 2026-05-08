@@ -9,7 +9,7 @@ exports.evaluationsController = {
             const userId = req.user?.userId;
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await evaluations_service_1.evaluationsService.create(req.body, userId, req.schoolId);
+            const result = await evaluations_service_1.evaluationsService.create(req.body, userId, req.schoolId, req.user?.role);
             res.sendSuccess('Evaluation created', result, 201);
         }
         catch (error) {
@@ -20,7 +20,7 @@ exports.evaluationsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const result = await evaluations_service_1.evaluationsService.getAll(req.query, req.user?.role, req.schoolId, req.user?.campusIds);
+            const result = await evaluations_service_1.evaluationsService.getAll(req.query, req.user?.role, req.schoolId, req.user?.campusIds, req.user?.userId);
             res.sendSuccess('Evaluations fetched', result.items, 200, {
                 total: result.total,
                 page: result.page,
@@ -58,7 +58,7 @@ exports.evaluationsController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            await evaluations_service_1.evaluationsService.delete(req.params.id, req.user.role, req.schoolId);
+            await evaluations_service_1.evaluationsService.delete(req.params.id, req.user.role, req.schoolId, req.user?.userId);
             res.sendSuccess('Evaluation deleted', null);
         }
         catch (error) {

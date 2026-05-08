@@ -98,7 +98,7 @@ export const classesService = {
   ) {
     if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
 
-    const cl = await this.getById(id, schoolId, userRole, userCampusIds);
+    await this.getById(id, schoolId, userRole, userCampusIds);
 
     if (data.campusId) {
       if (userCampusIds && userCampusIds.length > 0 && !userCampusIds.includes(data.campusId)) {
