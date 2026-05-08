@@ -16,9 +16,9 @@ function getSmtpTransporter() {
       auth:
         env.SMTP_USER && env.SMTP_PASS
           ? {
-              user: env.SMTP_USER,
-              pass: env.SMTP_PASS,
-            }
+            user: env.SMTP_USER,
+            pass: env.SMTP_PASS,
+          }
           : undefined,
       connectionTimeout: 5000,
       greetingTimeout: 5000,
@@ -40,8 +40,8 @@ export async function verifyMailConfiguration(): Promise<boolean> {
       logger.info("[mail:smtp] Connection verified successfully");
       return true;
     } catch (error) {
-      logger.error("[mail:smtp] Verification failed. Check your SMTP credentials and port (try 2525 if 587 is blocked).", { 
-        error: (error as Error).message 
+      logger.error("[mail:smtp] Verification failed. Check your SMTP credentials and port (try 2525 if 587 is blocked).", {
+        error: (error as Error).message
       });
       return false;
     }
@@ -161,3 +161,4 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+
