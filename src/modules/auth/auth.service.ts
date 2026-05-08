@@ -66,9 +66,9 @@ function canUseOtpFallback(): boolean {
   return env.OTP_FALLBACK_ENABLED && !!env.OTP_FALLBACK_CODE;
 }
 
-function toSafeUser(user: User & { 
-  campuses?: { id: string, name?: string }[], 
-  class?: { id: string, name: string } | null 
+function toSafeUser(user: User & {
+  campuses?: { id: string, name?: string }[],
+  class?: { id: string, name: string } | null
 }): SafeUser {
   return {
     id: user.id,
@@ -94,9 +94,9 @@ function toSafeUser(user: User & {
   };
 }
 
-async function toSafeUserWithAvatar(user: User & { 
-  campuses?: { id: string, name?: string }[], 
-  class?: { id: string, name: string } | null 
+async function toSafeUserWithAvatar(user: User & {
+  campuses?: { id: string, name?: string }[],
+  class?: { id: string, name: string } | null
 }): Promise<SafeUser> {
   const base = toSafeUser(user);
   const avatarUrl = await uploadsService.getSignedUrlForPath(user.avatarPath);
