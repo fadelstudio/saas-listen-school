@@ -285,14 +285,31 @@ async function handleChatQuery(payload: AiAnalysisPayload): Promise<AiAnalysisRe
 const aiWorker = new Worker<AiAnalysisPayload>(
   QUEUE_NAMES.AI_ANALYSIS,
   async (job: Job<AiAnalysisPayload>) => {
+    // 1. Verify that referenced IDs exist to avoid Foreign Key violations
+    const { reportId, evaluationId, decisionId } = job.data;
+    const cleanData = { ...job.data };
+
+    if (reportId) {
+      const exists = await prisma.report.findUnique({ where: { id: reportId }, select: { id: true } });
+      if (!exists) cleanData.reportId = undefined;
+    }
+    if (evaluationId) {
+      const exists = await prisma.evaluation.findUnique({ where: { id: evaluationId }, select: { id: true } });
+      if (!exists) cleanData.evaluationId = undefined;
+    }
+    if (decisionId) {
+      const exists = await prisma.decision.findUnique({ where: { id: decisionId }, select: { id: true } });
+      if (!exists) cleanData.decisionId = undefined;
+    }
+
     const aiJob = await prisma.aiJob.create({
       data: {
-        jobType:     job.data.type,
-        status:      AiJobStatus.PROCESSING,
-        payload:     job.data as unknown as Prisma.InputJsonObject,
-        reportId:    job.data.reportId    ?? null,
-        evaluationId: job.data.evaluationId ?? null,
-        decisionId:  job.data.decisionId  ?? null,
+        jobType:      job.data.type,
+        status:       AiJobStatus.PROCESSING,
+        payload:      job.data as unknown as Prisma.InputJsonObject,
+        reportId:     cleanData.reportId     ?? null,
+        evaluationId: cleanData.evaluationId ?? null,
+        decisionId:   cleanData.decisionId   ?? null,
       },
     });
 
