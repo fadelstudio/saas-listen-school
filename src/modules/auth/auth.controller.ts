@@ -50,6 +50,18 @@ export const authController = {
     }
   },
 
+  async verifyRegisterLink(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { challengeId } = req.query as { challengeId: string };
+      if (!challengeId) throw new BadRequestError('challengeId is required');
+      
+      const redirectUrl = await authService.verifyRegisterLink(challengeId);
+      res.redirect(redirectUrl);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
@@ -145,6 +157,15 @@ export const authController = {
       const { challengeId } = req.body;
       const result = await authService.resendOtp(challengeId, req.schoolId);
       res.sendSuccess('New OTP sent successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await authService.resendVerification(req.user!.userId);
+      res.sendSuccess('Verification email sent successfully', result);
     } catch (error) {
       next(error);
     }

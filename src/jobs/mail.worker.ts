@@ -7,14 +7,18 @@ import { logger } from "../utils/logger";
 const worker = new Worker(
   QUEUE_NAMES.EMAIL_SEND,
   async (job: Job) => {
-    const { to, subject, text, html } = job.data;
-    logger.info(`[mail:worker] Processing job ${job.id} for ${to}`);
+    const { to, subject } = job.data;
+    logger.info(`[mail:worker] Starting job ${job.id}`, { to, subject, attempt: job.attemptsMade + 1 });
     
     try {
-      await sendTransactionalEmailDirectly({ to, subject, text, html });
-      logger.info(`[mail:worker] Job ${job.id} completed successfully`);
+      await sendTransactionalEmailDirectly(job.data);
+      logger.info(`[mail:worker] ✅ Job ${job.id} for ${to} completed`);
     } catch (error) {
-      logger.error(`[mail:worker] Job ${job.id} failed:`, { error: (error as Error).message });
+      const errMsg = (error as Error).message;
+      logger.error(`[mail:worker] ❌ Job ${job.id} for ${to} failed: ${errMsg}`, { 
+        stack: (error as Error).stack,
+        data: job.data 
+      });
       throw error; // Let BullMQ handle retries
     }
   },

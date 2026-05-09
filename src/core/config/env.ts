@@ -32,7 +32,7 @@ const envSchema = z.object({
   // Registration OTP (first registration only). Keeps legacy name for compatibility.
   LOGIN_OTP_ENABLED: zEnvBool.default(false),
   /** Comptes créés avec OTP requis mais jamais vérifiés : purge après ce délai (minutes). */
-  PENDING_REGISTRATION_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+  PENDING_REGISTRATION_TTL_MINUTES: z.coerce.number().int().positive().default(1440),
 
   // Supabase
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),

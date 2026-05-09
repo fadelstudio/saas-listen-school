@@ -275,7 +275,10 @@ export const authService = {
     const siteName = env.OTP_SITE_NAME || 'AFI-LISTEN';
     const publicUrl = env.PUBLIC_APP_URL.replace(/\/$/, '');
     const helpUrl = env.OTP_HELP_URL ? env.OTP_HELP_URL : publicUrl;
-    const html = mailTemplates.otpTemplate(otp, otpExpiresMin);
+
+    // Direct link to verify email via the API (one-click)
+    const verifyUrl = `${publicUrl}/api/auth/register/verify-link?challengeId=${challenge.id}`;
+    const html = mailTemplates.otpTemplate(otp, otpExpiresMin, verifyUrl);
 
     sendTransactionalEmail({
       to: user.email,
@@ -340,6 +343,30 @@ export const authService = {
     });
 
     return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(verifiedUser) };
+  },
+
+  async verifyRegisterLink(challengeId: string): Promise<string> {
+    const challenge = await authRepository.findLoginOtpChallengeById(challengeId);
+    if (!challenge || challenge.expiresAt < new Date()) {
+      if (challenge) await authRepository.deleteLoginOtpChallenge(challenge.id);
+      return `${env.PUBLIC_WEB_URL}/verify-error?reason=expired`;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: challenge.userId },
+      include: { school: true },
+    });
+
+    if (!user) return `${env.PUBLIC_WEB_URL}/verify-error?reason=user_not_found`;
+
+    await authRepository.deleteLoginOtpChallenge(challenge.id);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, emailVerifiedAt: new Date() },
+    });
+
+    const slug = user.school?.slug || 'afi';
+    return `${env.PUBLIC_WEB_URL}/${slug}/login?verified=true`;
   },
 
   async forgotPassword(input: ForgotPasswordInput, schoolId: string): Promise<void> {
@@ -508,5 +535,15 @@ export const authService = {
     // Delete all existing challenges to avoid stale ones
     await authRepository.deleteLoginChallengesForUser(oldChallenge.userId);
     return this.sendNewRegisterOtp(oldChallenge.user);
+  },
+
+  async resendVerification(userId: string) {
+    const user = await authRepository.findById(userId);
+    if (!user) throw new NotFoundError('User');
+    if (user.emailVerified) throw new BadRequestError('Email is already verified');
+
+    // Delete existing challenges
+    await authRepository.deleteLoginChallengesForUser(userId);
+    return this.sendNewRegisterOtp(user);
   },
 };

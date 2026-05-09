@@ -85,6 +85,26 @@ authRouter.post(
 
 /**
  * @swagger
+ * /api/auth/register/verify-link:
+ *   get:
+ *     summary: "Vérification un-clic par lien"
+ *     description: Permet de vérifier l'email en cliquant directement sur le lien reçu. Redirige vers le site web.
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       302:
+ *         description: Redirection vers verify-success ou verify-error.
+ */
+authRouter.get('/register/verify-link', authController.verifyRegisterLink);
+
+/**
+ * @swagger
  * /api/auth/register/resend-otp:
  *   post:
  *     summary: "Renvoyer l'OTP d'inscription"
@@ -418,5 +438,20 @@ authRouter.post('/refresh', authController.refresh);
  *         description: Déconnexion réussie.
  */
 authRouter.post('/logout', authController.logout);
+
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     summary: "Renvoyer l'email de vérification (Utilisateur connecté)"
+ *     description: Déclenche l'envoi d'un nouvel OTP pour un utilisateur dont l'email n'est pas encore vérifié.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email envoyé.
+ */
+authRouter.post('/resend-verification', authMiddleware, authController.resendVerification);
 
 export { authRouter };
