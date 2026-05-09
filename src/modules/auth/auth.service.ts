@@ -382,7 +382,8 @@ export const authService = {
     await authRepository.deletePasswordResetTokensForUser(user.id);
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
-    const resetUrl = `${env.PUBLIC_WEB_URL.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+    const slug = user.school?.slug || 'afi';
+    const resetUrl = `${env.PUBLIC_WEB_URL.replace(/\/$/, '')}/${slug}/reset-password?token=${rawToken}`;
     const html = mailTemplates.passwordResetTemplate(resetUrl);
 
     sendTransactionalEmail({

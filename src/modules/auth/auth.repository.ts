@@ -8,6 +8,7 @@ export const authRepository = {
     return prisma.user.findFirst({
       where: { email, schoolId },
       include: { 
+        school: { select: { slug: true } },
         campuses: { select: { id: true, name: true } },
         class: { select: { id: true, name: true } }
       },
@@ -24,6 +25,7 @@ export const authRepository = {
         ]
       },
       include: { 
+        school: { select: { slug: true } },
         campuses: { select: { id: true, name: true } },
         class: { select: { id: true, name: true } }
       },
