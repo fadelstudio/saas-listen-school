@@ -427,20 +427,30 @@ export const evaluationCampaignsService = {
       aiParsed = { summary: aiRes.content, recommendation: 'Analyse manuelle requise', priority: 'MEDIUM' };
     }
 
-    // 4. Create the Decision
-    const decision = await prisma.decision.create({
-      data: {
-        campaignId: id,
-        deciderId: userId,
-        schoolId,
-        title: `Suivi suite à la campagne : ${campaign.title}`,
-        rationale: aiParsed.summary,
-        aiSuggestion: aiParsed.recommendation,
-        status: 'PROPOSED',
-        priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
-      } as any,
-      include: { decider: { select: { firstName: true, lastName: true } } }
-    });
+    // 4. Create the Decision (with concurrency handling)
+    let decision;
+    try {
+      decision = await prisma.decision.create({
+        data: {
+          campaignId: id,
+          deciderId: userId,
+          schoolId,
+          title: `Suivi suite à la campagne : ${campaign.title}`,
+          rationale: aiParsed.summary,
+          aiSuggestion: aiParsed.recommendation,
+          status: 'PROPOSED',
+          priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
+        } as any,
+        include: { decider: { select: { firstName: true, lastName: true } } }
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        logger.warn('[CampaignService] Decision already created concurrently', { campaignId: id });
+        const existingDecision = await prisma.decision.findFirst({ where: { campaignId: id } as any });
+        if (existingDecision) return existingDecision;
+      }
+      throw error;
+    }
 
     // 5. Notify admins that the AI report is ready
     notificationService.sendBroadcast(schoolId, {
