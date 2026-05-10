@@ -1,7 +1,7 @@
 import { NotificationType, SendBroadcastInput, NotificationFilters } from './notifications.types';
 import { Role, PrismaClient } from '@prisma/client';
 import { notificationsRepository } from './notifications.repository';
-import { NotFoundError } from '../../core/errors/AppError';
+import { ForbiddenError, NotFoundError } from '../../core/errors/AppError';
 import { fcmService } from '../../core/push/fcm.service';
 import { prisma } from '../../core/database/prisma';
 import { logger } from '../../utils/logger';
@@ -168,7 +168,7 @@ export const notificationService = {
       } else {
         logger.info('[FCM] No token found for user (skipping push)', { userId: data.userId });
       }
-      
+
       // Fallback à l'invité si l'utilisateur n'a pas de token (ex: s'il n'a pas encore login sur l'app)
       if (!userTokenSent && data.targetDeviceUti) {
         const guest = await db.guestDevice.findUnique({
@@ -249,16 +249,45 @@ export const notificationService = {
   },
 
   /**
-   * Envoie un broadcast ciblé (Admin+).
+   * Envoie un broadcast ciblé (Admin/Manager).
+   *
+   * Isolation MANAGER : un Manager ne peut cibler que ses propres campus.
+   * Si targetCampusIds contient des campus hors de son périmètre, ils sont ignorés.
+   * Un broadcast "tous campus" d'un Manager est automatiquement restreint à ses campus.
    */
-  async sendBroadcast(schoolId: string, data: SendBroadcastInput) {
+  async sendBroadcast(
+    schoolId: string,
+    data: SendBroadcastInput,
+    senderRole?: string,
+    senderCampusIds?: string[],
+  ) {
+    let resolvedCampusIds = data.targetCampusIds;
+
+    // Restriction par rôle sur les campus :
+    // • SUPERADMIN / ADMIN → accès école entière, aucune restriction
+    // • MANAGER, AGENT, PROFESSOR, VIEWER, STUDENT → restreint à leurs propres campus
+    const isSchoolWideRole = !senderRole || ['SUPERADMIN', 'ADMIN'].includes(senderRole);
+
+    if (!isSchoolWideRole && senderCampusIds && senderCampusIds.length > 0) {
+      if (!resolvedCampusIds || resolvedCampusIds.length === 0) {
+        // Broadcast "global" → forcé sur ses campus uniquement
+        resolvedCampusIds = senderCampusIds;
+      } else {
+        // Broadcast ciblé → intersection avec ses campus autorisés
+        resolvedCampusIds = resolvedCampusIds.filter(id => senderCampusIds!.includes(id));
+        if (resolvedCampusIds.length === 0) {
+          throw new ForbiddenError('Vous ne pouvez cibler que vos propres campus.');
+        }
+      }
+    }
+
     const notification = await notificationsRepository.create({
       schoolId,
       title: data.title,
       message: data.message,
       type: 'BROADCAST',
       targetRoles: data.targetRoles,
-      targetCampusIds: data.targetCampusIds,
+      targetCampusIds: resolvedCampusIds,
       targetClassIds: data.targetClassIds,
       targetUserIds: data.targetUserIds,
       url: data.url,
@@ -267,12 +296,13 @@ export const notificationService = {
 
     // FCM broadcast en parallèle
     this._dispatchPush(
-      { ...data, schoolId, type: 'BROADCAST' },
+      { ...data, targetCampusIds: resolvedCampusIds, schoolId, type: 'BROADCAST' },
       notification.id
     ).catch(err => logger.warn('[FCM] Broadcast push failed.', { error: err?.message }));
 
     return notification;
   },
+
 
   /**
    * Récupère les notifications pour un utilisateur connecté.
@@ -363,13 +393,13 @@ export const notificationService = {
     if (uti) {
       try {
         logger.info('[Notification] Début fusion invité → compte', { userId, uti });
-        
+
         // 1. Fusion des notifications
         const notifResult = await prisma.notification.updateMany({
           where: { targetDeviceUti: uti, userId: null },
           data: { userId, targetDeviceUti: null },
         });
-        
+
         // 2. Fusion des rapports anonymes
         // On utilise une approche plus simple pour la fusion des rapports si le filtrage JSON complexe pose problème
         const reportResult = await prisma.report.updateMany({
@@ -394,18 +424,18 @@ export const notificationService = {
             logger.warn('[Notification] Impossible de supprimer le GuestDevice', { uti, error: err.message })
           );
         }
-        
-        logger.info('[Notification] Fusion terminée', { 
-          userId, 
-          uti, 
+
+        logger.info('[Notification] Fusion terminée', {
+          userId,
+          uti,
           notificationsMigrated: notifResult.count,
-          reportsMigrated: reportResult.count 
+          reportsMigrated: reportResult.count
         });
       } catch (err: any) {
-        logger.error('[Notification] Échec de la fusion invité → compte', { 
-          userId, 
-          uti, 
-          error: err.message 
+        logger.error('[Notification] Échec de la fusion invité → compte', {
+          userId,
+          uti,
+          error: err.message
         });
         // On ne bloque JAMAIS l'update du token FCM si la fusion échoue
       }
