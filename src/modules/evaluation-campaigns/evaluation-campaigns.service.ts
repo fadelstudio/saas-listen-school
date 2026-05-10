@@ -223,6 +223,12 @@ export const evaluationCampaignsService = {
     const updated = await evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
     if (!updated) throw new NotFoundError('EvaluationCampaign');
 
+    // Set dueDate to now so that it effectively acts as if deadline arrived
+    await prisma.evaluationCampaign.update({
+      where: { id },
+      data: { dueDate: new Date() }
+    });
+
     await auditService.log({
       schoolId,
       userId,
@@ -238,6 +244,49 @@ export const evaluationCampaignsService = {
       targetRoles: ['ADMIN', 'MANAGER'],
       url: `/dashboard/evaluation-campaigns/${id}`,
     }).catch(e => logger.warn('[Notification] Campaign close notify failed', { error: e }));
+
+    // Trigger analysis automatically to mimic deadline arrival behavior
+    this.generatePostDeadlineAnalysis(id, userId || 'SYSTEM', schoolId, userRole, userCampusIds).catch(err =>
+      logger.error('Auto-analysis failed', { error: err })
+    );
+
+    return updated;
+  },
+
+  async relaunch(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string) {
+    if (userRole === 'VIEWER') throw new ForbiddenError('VIEWER role is read-only');
+    const campaign = await evaluationCampaignsRepository.findById(id, schoolId);
+    if (!campaign) throw new NotFoundError('EvaluationCampaign');
+
+    // Scoping check
+    if (userCampusIds && userCampusIds.length > 0) {
+      if (campaign.scope === 'CAMPUS' && campaign.campusId && !userCampusIds.includes(campaign.campusId)) {
+        throw new ForbiddenError('This campaign belongs to a campus outside your scope');
+      }
+      if (campaign.scope === 'CLASS' && campaign.class?.campusId && !userCampusIds.includes(campaign.class.campusId)) {
+        throw new ForbiddenError('This campaign belongs to a class outside your scope');
+      }
+    }
+
+    // Prolong deadline by 1 week starting from now
+    const newDueDate = new Date();
+    newDueDate.setDate(newDueDate.getDate() + 7);
+
+    const updated = await prisma.evaluationCampaign.update({
+      where: { id },
+      data: { 
+        status: 'ACTIVE',
+        dueDate: newDueDate
+      },
+    });
+
+    await auditService.log({
+      schoolId,
+      userId,
+      action: 'RELAUNCH_CAMPAIGN',
+      entity: 'EvaluationCampaign',
+      entityId: id,
+    });
 
     return updated;
   },

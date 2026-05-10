@@ -66,15 +66,27 @@ export const evaluationsService = {
     }
 
     // 3. Prevent duplicate evaluation for the same campaign
-    if (finalInput.campaignId && userId) {
-      const existing = await prisma.evaluation.findFirst({
-        where: {
-          campaignId: finalInput.campaignId,
-          evaluatorId: userId,
-        },
+    if (finalInput.campaignId) {
+      const campaign = await prisma.evaluationCampaign.findUnique({
+        where: { id: finalInput.campaignId }
       });
-      if (existing) {
-        throw new BadRequestError('Vous avez déjà participé à cette évaluation.');
+      if (!campaign) {
+        throw new BadRequestError('Campaign not found');
+      }
+      if (campaign.status !== 'ACTIVE' || new Date(campaign.dueDate) < new Date()) {
+        throw new BadRequestError('Cette campagne d\'évaluation est clôturée.');
+      }
+
+      if (userId) {
+        const existing = await prisma.evaluation.findFirst({
+          where: {
+            campaignId: finalInput.campaignId,
+            evaluatorId: userId,
+          },
+        });
+        if (existing) {
+          throw new BadRequestError('Vous avez déjà participé à cette évaluation.');
+        }
       }
     }
 

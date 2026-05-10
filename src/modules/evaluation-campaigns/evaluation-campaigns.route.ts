@@ -141,6 +141,34 @@ router.post(
   evaluationCampaignsController.close
 );
 
+/**
+ * @swagger
+ * /api/evaluation-campaigns/{id}/relaunch:
+ *   post:
+ *     summary: "Relancer une campagne clôturée (MANAGER+)"
+ *     description: Réouvre la campagne et prolonge la date de fin d'une semaine.
+ *     tags: [Evaluation Campaigns]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Campagne relancée avec succès
+ *       400:
+ *         description: Erreur lors de la relance
+ *       404:
+ *         description: Campagne non trouvée
+ */
+router.post(
+  '/:id/relaunch',
+  requireRole(Role.ADMIN, Role.MANAGER),
+  validate({ params: evaluationCampaignIdParamsSchema }),
+  evaluationCampaignsController.relaunch
+);
+
 router.get(
   '/:id/analytics',
   validate({ params: evaluationCampaignIdParamsSchema }),
