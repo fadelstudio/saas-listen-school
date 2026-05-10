@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { AppError } from "../errors/AppError";
 import { env } from "../config/env";
 import { Prisma } from "@prisma/client";
+import { logger } from "../../utils/logger";
 
 export function errorMiddleware(
   err: unknown,
@@ -34,7 +35,24 @@ export function errorMiddleware(
     return;
   }
 
-  // Prisma Database Errors (Suppress raw stack trace in output but log for dev)
+  // ── Prisma Driver Adapter errors (e.g. EMAXCONNSESSION from pg adapter) ──
+  // These are NOT PrismaClientKnownRequestError — they come from @prisma/adapter-pg.
+  // They typically indicate pool exhaustion (Supabase transaction-mode cap exceeded).
+  if (
+    err instanceof Error &&
+    (err.constructor.name === "DriverAdapterError" ||
+      err.message?.includes("EMAXCONNSESSION") ||
+      err.message?.includes("max clients reached"))
+  ) {
+    logger.error("[DB] Pool exhausted (DriverAdapterError):", { message: err.message });
+    sendError(
+      "Le service est temporairement surchargé. Veuillez réessayer dans quelques instants.",
+      503,
+    );
+    return;
+  }
+
+
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     console.error("🛠️ Prisma DB Error:", err); // Developer log
     const code = err.code;

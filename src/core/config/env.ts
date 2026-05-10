@@ -24,6 +24,11 @@ const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  /** Direct (non-pooler) URL — used by prisma migrate deploy only. Optional locally. */
+  DIRECT_URL: z.string().optional(),
+  /** Max connections per pool instance — tune per deployment tier. */
+  DB_POOL_MAX: z.coerce.number().int().positive().default(5),
+
 
   // Auth
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),

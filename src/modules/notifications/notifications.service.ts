@@ -388,9 +388,11 @@ export const notificationService = {
           return { count: 0 };
         });
 
-        // 3. Nettoyage de l'entrée GuestDevice
+        // 3. Nettoyage de l'entrée GuestDevice (deleteMany = no-op si absent, jamais d'erreur P2025)
         if (db.guestDevice) {
-          await db.guestDevice.delete({ where: { uti } }).catch(() => {});
+          await db.guestDevice.deleteMany({ where: { uti } }).catch((err: Error) =>
+            logger.warn('[Notification] Impossible de supprimer le GuestDevice', { uti, error: err.message })
+          );
         }
         
         logger.info('[Notification] Fusion terminée', { 

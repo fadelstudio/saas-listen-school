@@ -13,16 +13,19 @@ services:
       - key: PORT
         value: 10000
       # Required (set in Render dashboard as secrets/values):
-      # - DATABASE_URL
+      # - DATABASE_URL (Transaction mode, port 6543: ?pgbouncer=true&connection_limit=5)
+      # - DIRECT_URL   (Session mode, port 5432: used by prisma migrate deploy)
       # - JWT_SECRET
       # - SUPABASE_URL
       # - SUPABASE_KEY
-      # - GEMINI_API_KEY (optional if not used)
-      # - GROQ_API_KEY (optional if not used)
+      # - GEMINI_API_KEY
+      # - GROQ_API_KEY
       # - REDIS_URL (from your Render Redis instance)
       # Optional:
       # - MAX_FILE_SIZE_MB
       # - SIGNED_URL_EXPIRES_IN
+      # - DB_POOL_MAX (default: 5)
+
 
   - type: worker
     name: afi-listen-worker
