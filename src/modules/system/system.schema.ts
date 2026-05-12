@@ -4,6 +4,7 @@ export const updateSystemSettingsSchema = z.object({
   schoolName:             z.string().min(1).optional(),
   authReportsRequired:    z.boolean().optional(),
   authEvaluationsRequired: z.boolean().optional(),
+  authOtpRequired:        z.boolean().optional(),
   aiEnabled:              z.boolean().optional(),
   
   aiConfigs: z.array(z.object({
