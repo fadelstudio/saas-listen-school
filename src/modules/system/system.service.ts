@@ -67,6 +67,23 @@ export const systemService = {
   },
 
   async updateSettings(schoolId: string, data: UpdateSystemSettingsInput): Promise<SystemSettingsResponse> {
+    // Si des configs IA sont envoyées, on gère la persistance des apiKeys sensibles
+    if (data.aiConfigs) {
+      const oldSettings = await this.getSettings(schoolId, true);
+      const oldConfigs = (oldSettings.aiConfigs as any[]) || [];
+
+      data.aiConfigs = data.aiConfigs.map(newCfg => {
+        // Si l'apiKey est vide, on tente de récupérer l'ancienne pour cet ID
+        if (!newCfg.apiKey || newCfg.apiKey === "") {
+          const matchingOld = oldConfigs.find(old => old.id === newCfg.id);
+          if (matchingOld && matchingOld.apiKey) {
+            return { ...newCfg, apiKey: matchingOld.apiKey };
+          }
+        }
+        return newCfg;
+      });
+    }
+
     const updated = await systemRepository.updateSettings(schoolId, data);
     const response = updated as unknown as SystemSettingsResponse;
     settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
