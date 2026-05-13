@@ -52,7 +52,7 @@ function errorMiddleware(err, _req, res, _next) {
             return;
         }
         if (code === 'P2022') {
-            sendError("Database schema is outdated. Please run the latest migrations.", 500);
+            sendError("A database error occurred. Please try again later.", 500);
             return;
         }
         sendError("A database error occurred.", 422);
