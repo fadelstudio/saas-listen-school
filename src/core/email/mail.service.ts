@@ -70,12 +70,9 @@ export async function sendTransactionalEmail(params: {
     logger.info("[mail:queue] Email queued", { to: params.to, subject: params.subject });
   } catch (error) {
     logger.error("[mail:queue] Failed to queue email", { error: (error as Error).message });
-    // Fallback to direct send if queue fails in dev, or just rethrow
-    if (env.NODE_ENV === "development") {
-      logger.warn("[mail:queue] Falling back to direct send in development");
-      return sendTransactionalEmailDirectly(params);
-    }
-    throw error;
+    // Fallback to direct send if queue fails
+    logger.warn("[mail:queue] Falling back to direct send because queue failed");
+    return sendTransactionalEmailDirectly(params);
   }
 }
 

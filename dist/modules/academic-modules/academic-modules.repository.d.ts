@@ -29,7 +29,8 @@ export declare const academicModulesRepository: {
                 updatedAt: Date;
                 schoolId: string | null;
                 phone: string | null;
-                passwordHash: string;
+                passwordHash: string | null;
+                googleId: string | null;
                 firstName: string;
                 lastName: string;
                 matricule: string | null;

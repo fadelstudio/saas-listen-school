@@ -33,8 +33,9 @@ exports.notificationsController = {
     async sendBroadcast(req, res, next) {
         try {
             const schoolId = req.user.schoolId;
-            // req.body est déjà validé par le middleware validate(schema.sendBroadcast)
-            const notification = await notifications_service_1.notificationService.sendBroadcast(schoolId, req.body);
+            const senderRole = req.user.role;
+            const senderCampusIds = req.user.campusIds || [];
+            const notification = await notifications_service_1.notificationService.sendBroadcast(schoolId, req.body, senderRole, senderCampusIds);
             res.sendSuccess('Broadcast envoyé avec succès', notification, 201);
         }
         catch (error) {

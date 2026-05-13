@@ -56,9 +56,13 @@ export declare const notificationService: {
         url?: string | null;
     }, notifId: string): Promise<void>;
     /**
-     * Envoie un broadcast ciblé (Admin+).
+     * Envoie un broadcast ciblé (Admin/Manager).
+     *
+     * Isolation MANAGER : un Manager ne peut cibler que ses propres campus.
+     * Si targetCampusIds contient des campus hors de son périmètre, ils sont ignorés.
+     * Un broadcast "tous campus" d'un Manager est automatiquement restreint à ses campus.
      */
-    sendBroadcast(schoolId: string, data: SendBroadcastInput): Promise<{
+    sendBroadcast(schoolId: string, data: SendBroadcastInput, senderRole?: string, senderCampusIds?: string[]): Promise<{
         type: string;
         message: string;
         url: string | null;

@@ -116,6 +116,20 @@ export declare const evaluationCampaignsService: {
         description: string | null;
         scope: string;
     }>;
+    relaunch(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        classId: string | null;
+        title: string;
+        status: string;
+        professorId: string | null;
+        moduleId: string | null;
+        dueDate: Date;
+        campusId: string | null;
+        description: string | null;
+        scope: string;
+    }>;
     getAnalytics(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
         campaign: {
             campus: ({
@@ -239,6 +253,6 @@ export declare const evaluationCampaignsService: {
         dueDate: Date | null;
         aiSuggestion: string | null;
         analysisId: string | null;
-    }>;
+    } | null>;
 };
 //# sourceMappingURL=evaluation-campaigns.service.d.ts.map

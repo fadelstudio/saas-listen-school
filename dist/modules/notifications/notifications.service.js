@@ -113,7 +113,7 @@ exports.notificationService = {
                 userTokenSent = true;
             }
             else {
-                logger_1.logger.warn('[FCM] No token found for user', { userId: data.userId });
+                logger_1.logger.info('[FCM] No token found for user (skipping push)', { userId: data.userId });
             }
             // Fallback à l'invité si l'utilisateur n'a pas de token (ex: s'il n'a pas encore login sur l'app)
             if (!userTokenSent && data.targetDeviceUti) {
@@ -193,23 +193,45 @@ exports.notificationService = {
         }
     },
     /**
-     * Envoie un broadcast ciblé (Admin+).
+     * Envoie un broadcast ciblé (Admin/Manager).
+     *
+     * Isolation MANAGER : un Manager ne peut cibler que ses propres campus.
+     * Si targetCampusIds contient des campus hors de son périmètre, ils sont ignorés.
+     * Un broadcast "tous campus" d'un Manager est automatiquement restreint à ses campus.
      */
-    async sendBroadcast(schoolId, data) {
+    async sendBroadcast(schoolId, data, senderRole, senderCampusIds) {
+        let resolvedCampusIds = data.targetCampusIds;
+        // Restriction par rôle sur les campus :
+        // • SUPERADMIN / ADMIN → accès école entière, aucune restriction
+        // • MANAGER, AGENT, PROFESSOR, VIEWER, STUDENT → restreint à leurs propres campus
+        const isSchoolWideRole = !senderRole || ['SUPERADMIN', 'ADMIN'].includes(senderRole);
+        if (!isSchoolWideRole && senderCampusIds && senderCampusIds.length > 0) {
+            if (!resolvedCampusIds || resolvedCampusIds.length === 0) {
+                // Broadcast "global" → forcé sur ses campus uniquement
+                resolvedCampusIds = senderCampusIds;
+            }
+            else {
+                // Broadcast ciblé → intersection avec ses campus autorisés
+                resolvedCampusIds = resolvedCampusIds.filter(id => senderCampusIds.includes(id));
+                if (resolvedCampusIds.length === 0) {
+                    throw new AppError_1.ForbiddenError('Vous ne pouvez cibler que vos propres campus.');
+                }
+            }
+        }
         const notification = await notifications_repository_1.notificationsRepository.create({
             schoolId,
             title: data.title,
             message: data.message,
             type: 'BROADCAST',
             targetRoles: data.targetRoles,
-            targetCampusIds: data.targetCampusIds,
+            targetCampusIds: resolvedCampusIds,
             targetClassIds: data.targetClassIds,
             targetUserIds: data.targetUserIds,
             url: data.url,
             attachments: data.attachments,
         });
         // FCM broadcast en parallèle
-        this._dispatchPush({ ...data, schoolId, type: 'BROADCAST' }, notification.id).catch(err => logger_1.logger.warn('[FCM] Broadcast push failed.', { error: err?.message }));
+        this._dispatchPush({ ...data, targetCampusIds: resolvedCampusIds, schoolId, type: 'BROADCAST' }, notification.id).catch(err => logger_1.logger.warn('[FCM] Broadcast push failed.', { error: err?.message }));
         return notification;
     },
     /**
@@ -290,9 +312,9 @@ exports.notificationService = {
                     logger_1.logger.warn('[Notification] Échec fusion rapports (JSON path non supporté?)', { error: err.message });
                     return { count: 0 };
                 });
-                // 3. Nettoyage de l'entrée GuestDevice
+                // 3. Nettoyage de l'entrée GuestDevice (deleteMany = no-op si absent, jamais d'erreur P2025)
                 if (db.guestDevice) {
-                    await db.guestDevice.delete({ where: { uti } }).catch(() => { });
+                    await db.guestDevice.deleteMany({ where: { uti } }).catch((err) => logger_1.logger.warn('[Notification] Impossible de supprimer le GuestDevice', { uti, error: err.message }));
                 }
                 logger_1.logger.info('[Notification] Fusion terminée', {
                     userId,

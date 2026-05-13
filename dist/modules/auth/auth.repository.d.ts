@@ -2,6 +2,9 @@ import { User } from '@prisma/client';
 import { RegisterInput } from './auth.types';
 export declare const authRepository: {
     findByEmail(email: string, schoolId: string): Promise<({
+        school: {
+            slug: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -17,7 +20,8 @@ export declare const authRepository: {
         updatedAt: Date;
         schoolId: string | null;
         phone: string | null;
-        passwordHash: string;
+        passwordHash: string | null;
+        googleId: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -35,6 +39,9 @@ export declare const authRepository: {
         classId: string | null;
     }) | null>;
     findByIdentifier(identifier: string, schoolId: string): Promise<({
+        school: {
+            slug: string;
+        } | null;
         class: {
             name: string;
             id: string;
@@ -50,7 +57,8 @@ export declare const authRepository: {
         updatedAt: Date;
         schoolId: string | null;
         phone: string | null;
-        passwordHash: string;
+        passwordHash: string | null;
+        googleId: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -80,7 +88,8 @@ export declare const authRepository: {
         updatedAt: Date;
         schoolId: string | null;
         phone: string | null;
-        passwordHash: string;
+        passwordHash: string | null;
+        googleId: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -97,6 +106,158 @@ export declare const authRepository: {
         currentSessionId: string | null;
         classId: string | null;
     }) | null>;
+    findByGoogleId(googleId: string): Promise<({
+        school: {
+            slug: string;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+        } | null;
+        campuses: {
+            name: string;
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string | null;
+        googleId: string | null;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        bio: string | null;
+        address: string | null;
+        avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
+        classId: string | null;
+    }) | null>;
+    /** Email est unique globalement sur `users` (recherche insensible à la casse). */
+    findByEmailGlobal(email: string): Promise<({
+        school: {
+            slug: string;
+        } | null;
+        class: {
+            name: string;
+            id: string;
+        } | null;
+        campuses: {
+            name: string;
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string | null;
+        googleId: string | null;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        bio: string | null;
+        address: string | null;
+        avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
+        classId: string | null;
+    }) | null>;
+    createStudentFromGoogle(data: {
+        email: string;
+        firstName: string;
+        lastName: string;
+        schoolId: string;
+        classId: string;
+        campusId: string;
+        googleId: string;
+        emailVerified: boolean;
+    }): Promise<{
+        class: {
+            name: string;
+            id: string;
+        } | null;
+        campuses: {
+            name: string;
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string | null;
+        googleId: string | null;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        bio: string | null;
+        address: string | null;
+        avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
+        classId: string | null;
+    }>;
+    updateStudentClassAndCampus(userId: string, classId: string, campusId: string): Promise<{
+        class: {
+            name: string;
+            id: string;
+        } | null;
+        campuses: {
+            name: string;
+            id: string;
+        }[];
+    } & {
+        email: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        schoolId: string | null;
+        phone: string | null;
+        passwordHash: string | null;
+        googleId: string | null;
+        firstName: string;
+        lastName: string;
+        matricule: string | null;
+        numero: string | null;
+        bio: string | null;
+        address: string | null;
+        avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
+        role: import("@prisma/client").$Enums.Role;
+        isActive: boolean;
+        fcmToken: string | null;
+        emailVerified: boolean;
+        emailVerifiedAt: Date | null;
+        currentSessionId: string | null;
+        classId: string | null;
+    }>;
     findById(id: string): Promise<({
         class: {
             name: string;
@@ -113,7 +274,8 @@ export declare const authRepository: {
         updatedAt: Date;
         schoolId: string | null;
         phone: string | null;
-        passwordHash: string;
+        passwordHash: string | null;
+        googleId: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -151,7 +313,8 @@ export declare const authRepository: {
         updatedAt: Date;
         schoolId: string | null;
         phone: string | null;
-        passwordHash: string;
+        passwordHash: string | null;
+        googleId: string | null;
         firstName: string;
         lastName: string;
         matricule: string | null;
@@ -201,7 +364,8 @@ export declare const authRepository: {
             updatedAt: Date;
             schoolId: string | null;
             phone: string | null;
-            passwordHash: string;
+            passwordHash: string | null;
+            googleId: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
@@ -254,7 +418,8 @@ export declare const authRepository: {
             updatedAt: Date;
             schoolId: string | null;
             phone: string | null;
-            passwordHash: string;
+            passwordHash: string | null;
+            googleId: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;
@@ -321,7 +486,8 @@ export declare const authRepository: {
             updatedAt: Date;
             schoolId: string | null;
             phone: string | null;
-            passwordHash: string;
+            passwordHash: string | null;
+            googleId: string | null;
             firstName: string;
             lastName: string;
             matricule: string | null;

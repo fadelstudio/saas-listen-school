@@ -94,6 +94,10 @@ export declare const notificationsRepository: {
         }[];
         total: number;
     }>;
+    /**
+     * Marquer comme lue — vérifie que la notification appartient à l'utilisateur.
+     * Couvre : direct (userId), ciblé (targetUserIds), broadcast (userId null sans cible UTI).
+     */
     markAsRead(id: string, userId: string): Promise<Prisma.BatchPayload>;
     markAsReadForGuest(id: string, uti: string): Promise<Prisma.BatchPayload>;
     findById(id: string): Promise<{

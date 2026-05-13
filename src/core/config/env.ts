@@ -32,6 +32,12 @@ const envSchema = z.object({
 
   // Auth
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+  /**
+   * Client IDs Google OAuth (champ `aud` du id_token), séparés par des virgules.
+   * Ex. Web client + clients iOS/Android si plusieurs apps émettent des jetons.
+   * Sans cette variable, `POST /api/auth/google` renvoie une erreur explicite.
+   */
+  GOOGLE_OAUTH_CLIENT_IDS: z.string().optional(),
   /** Mot de passe appliqué par un admin lors de `POST .../reset-password-default` (compte utilisateur). */
   DEFAULT_PASSWORD_RESET: z.string().min(8).default("ListenReset1!"),
   // Registration OTP (first registration only). Keeps legacy name for compatibility.

@@ -39,6 +39,38 @@ export const authController = {
     }
   },
 
+  async googleStart(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await authService.googleStart(req.body.idToken, req.schoolId);
+      if ('step' in result && result.step === 'GOOGLE_SELECT_CLASS') {
+        res.sendSuccess('Choose your class to finish Google sign-in', result);
+        return;
+      }
+      if ('step' in result && result.step === 'REGISTER_OTP_REQUIRED') {
+        res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
+        return;
+      }
+      res.sendSuccess('Google sign-in successful', result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async googleComplete(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.schoolId) throw new BadRequestError('school context is required');
+      const result = await authService.googleComplete(req.body, req.schoolId);
+      if ('step' in result && result.step === 'REGISTER_OTP_REQUIRED') {
+        res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
+        return;
+      }
+      res.sendSuccess('Google sign-in completed', result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
 
   async verifyRegisterOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

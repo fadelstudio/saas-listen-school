@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resendOtpSchema = exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.verifyLoginOtpSchema = exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.googleAuthCompleteSchema = exports.googleAuthStartSchema = exports.resendOtpSchema = exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.verifyLoginOtpSchema = exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const idSchema_1 = require("../../utils/idSchema");
 // ─── Register ─────────────────────────────────────────────────────────────────
@@ -31,7 +31,8 @@ exports.loginSchema = zod_1.z.object({
 // ─── Change Password ──────────────────────────────────────────────────────────
 exports.changePasswordSchema = zod_1.z
     .object({
-    currentPassword: zod_1.z.string().min(1, 'Current password is required'),
+    /** Obligatoire si le compte a déjà un mot de passe local ; omissible pour compte Google-only. */
+    currentPassword: zod_1.z.string().optional(),
     newPassword: zod_1.z
         .string()
         .min(8, 'New password must be at least 8 characters')
@@ -81,5 +82,13 @@ exports.resetPasswordSchema = zod_1.z
 });
 exports.resendOtpSchema = zod_1.z.object({
     challengeId: idSchema_1.idStringSchema,
+});
+exports.googleAuthStartSchema = zod_1.z.object({
+    idToken: zod_1.z.string().min(20, 'Google id_token is required'),
+});
+exports.googleAuthCompleteSchema = zod_1.z.object({
+    pendingToken: zod_1.z.string().min(20, 'pendingToken is required'),
+    classId: idSchema_1.idStringSchema,
+    campusId: idSchema_1.idStringSchema.nullish(),
 });
 //# sourceMappingURL=auth.schema.js.map

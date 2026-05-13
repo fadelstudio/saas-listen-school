@@ -2,11 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authRepository = void 0;
 const prisma_1 = require("../../core/database/prisma");
+const logger_1 = require("../../utils/logger");
 exports.authRepository = {
     async findByEmail(email, schoolId) {
         return prisma_1.prisma.user.findFirst({
             where: { email, schoolId },
             include: {
+                school: { select: { slug: true } },
                 campuses: { select: { id: true, name: true } },
                 class: { select: { id: true, name: true } }
             },
@@ -22,6 +24,7 @@ exports.authRepository = {
                 ]
             },
             include: {
+                school: { select: { slug: true } },
                 campuses: { select: { id: true, name: true } },
                 class: { select: { id: true, name: true } }
             },
@@ -36,6 +39,63 @@ exports.authRepository = {
             include: { school: { select: { slug: true, name: true } } },
         });
     },
+    async findByGoogleId(googleId) {
+        return prisma_1.prisma.user.findUnique({
+            where: { googleId },
+            include: {
+                school: { select: { slug: true } },
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } },
+            },
+        });
+    },
+    /** Email est unique globalement sur `users` (recherche insensible à la casse). */
+    async findByEmailGlobal(email) {
+        return prisma_1.prisma.user.findFirst({
+            where: { email: { equals: email.trim(), mode: 'insensitive' } },
+            include: {
+                school: { select: { slug: true } },
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } },
+            },
+        });
+    },
+    async createStudentFromGoogle(data) {
+        logger_1.logger.info('[AuthRepository] Creating Google student user', { email: data.email, classId: data.classId });
+        return prisma_1.prisma.user.create({
+            data: {
+                email: data.email,
+                passwordHash: null,
+                googleId: data.googleId,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                sex: 'UNDEFINED',
+                role: 'STUDENT',
+                campuses: { connect: [{ id: data.campusId }] },
+                classId: data.classId,
+                schoolId: data.schoolId,
+                emailVerified: data.emailVerified,
+                emailVerifiedAt: data.emailVerified ? new Date() : null,
+            },
+            include: {
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } },
+            },
+        });
+    },
+    async updateStudentClassAndCampus(userId, classId, campusId) {
+        return prisma_1.prisma.user.update({
+            where: { id: userId },
+            data: {
+                classId,
+                campuses: { set: [{ id: campusId }] },
+            },
+            include: {
+                campuses: { select: { id: true, name: true } },
+                class: { select: { id: true, name: true } },
+            },
+        });
+    },
     async findById(id) {
         return prisma_1.prisma.user.findUnique({
             where: { id },
@@ -47,7 +107,7 @@ exports.authRepository = {
     },
     async create(data) {
         const verified = data.emailVerified ?? false;
-        console.log('[AuthRepository] Creating user with classId:', data.classId);
+        logger_1.logger.info('[AuthRepository] Creating user', { classId: data.classId, email: data.email });
         return prisma_1.prisma.user.create({
             data: {
                 email: data.email,

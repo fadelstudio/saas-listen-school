@@ -7,7 +7,10 @@ declare const envSchema: z.ZodObject<{
     }>>;
     PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     DATABASE_URL: z.ZodString;
+    DIRECT_URL: z.ZodOptional<z.ZodString>;
+    DB_POOL_MAX: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     JWT_SECRET: z.ZodString;
+    GOOGLE_OAUTH_CLIENT_IDS: z.ZodOptional<z.ZodString>;
     DEFAULT_PASSWORD_RESET: z.ZodDefault<z.ZodString>;
     LOGIN_OTP_ENABLED: z.ZodDefault<z.ZodPipe<z.ZodTransform<boolean | undefined, unknown>, z.ZodCoercedBoolean<unknown>>>;
     PENDING_REGISTRATION_TTL_MINUTES: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
@@ -23,6 +26,7 @@ declare const envSchema: z.ZodObject<{
     SIGNED_URL_EXPIRES_IN: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     ANALYTICS_REPORT_INTERVAL_DAYS: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     PUBLIC_APP_URL: z.ZodDefault<z.ZodString>;
+    PUBLIC_WEB_URL: z.ZodDefault<z.ZodString>;
     MAIL_PROVIDER: z.ZodDefault<z.ZodEnum<{
         console: "console";
         smtp: "smtp";

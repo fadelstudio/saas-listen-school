@@ -35,7 +35,8 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
+    /** Obligatoire si le compte a déjà un mot de passe local ; omissible pour compte Google-only. */
+    currentPassword: z.string().optional(),
     newPassword: z
       .string()
       .min(8, 'New password must be at least 8 characters')
@@ -91,6 +92,16 @@ export const resetPasswordSchema = z
 
 export const resendOtpSchema = z.object({
   challengeId: idStringSchema,
+});
+
+export const googleAuthStartSchema = z.object({
+  idToken: z.string().min(20, 'Google id_token is required'),
+});
+
+export const googleAuthCompleteSchema = z.object({
+  pendingToken: z.string().min(20, 'pendingToken is required'),
+  classId: idStringSchema,
+  campusId: idStringSchema.nullish(),
 });
 
 

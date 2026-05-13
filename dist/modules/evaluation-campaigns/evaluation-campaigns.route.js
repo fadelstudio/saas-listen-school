@@ -123,6 +123,28 @@ router.get('/:id', (0, validate_middleware_1.validate)({ params: evaluation_camp
  *         description: Campagne clôturée avec succès
  */
 router.post('/:id/close', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.close);
+/**
+ * @swagger
+ * /api/evaluation-campaigns/{id}/relaunch:
+ *   post:
+ *     summary: "Relancer une campagne clôturée (MANAGER+)"
+ *     description: Réouvre la campagne et prolonge la date de fin d'une semaine.
+ *     tags: [Evaluation Campaigns]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Campagne relancée avec succès
+ *       400:
+ *         description: Erreur lors de la relance
+ *       404:
+ *         description: Campagne non trouvée
+ */
+router.post('/:id/relaunch', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.relaunch);
 router.get('/:id/analytics', (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.getAnalytics);
 router.post('/:id/remind', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.remind);
 router.post('/:id/analyze', (0, auth_middleware_1.requireRole)(client_1.Role.ADMIN, client_1.Role.MANAGER), (0, validate_middleware_1.validate)({ params: evaluation_campaigns_schema_1.evaluationCampaignIdParamsSchema }), evaluation_campaigns_controller_1.evaluationCampaignsController.analyze);

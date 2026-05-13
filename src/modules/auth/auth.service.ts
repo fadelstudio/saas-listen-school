@@ -23,7 +23,10 @@ import {
   ForgotPasswordInput,
   ResetPasswordInput,
   VerifyRegisterOtpInput,
+  GoogleCompleteInput,
+  GoogleAuthResult,
 } from './auth.types';
+import { isGoogleAuthConfigured, verifyGoogleIdToken } from './google-id-token';
 import { Role, User } from '@prisma/client';
 import { sendTransactionalEmail } from '../../core/email/mail.service';
 import { mailTemplates } from '../../core/email/mail.templates';
@@ -37,6 +40,61 @@ const REFRESH_TOKEN_EXPIRY_DAYS = 30;
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
+const GOOGLE_PENDING_PURPOSE = 'google_student_pending' as const;
+const GOOGLE_PENDING_EXPIRY_SEC = 15 * 60;
+
+type GooglePendingJwt = {
+  purpose: typeof GOOGLE_PENDING_PURPOSE;
+  kind: 'new' | 'link';
+  googleSub: string;
+  schoolId: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  userId?: string;
+};
+
+function signGooglePendingJwt(payload: Omit<GooglePendingJwt, 'purpose'>): string {
+  return jwt.sign(
+    { ...payload, purpose: GOOGLE_PENDING_PURPOSE },
+    env.JWT_SECRET,
+    { expiresIn: GOOGLE_PENDING_EXPIRY_SEC }
+  );
+}
+
+function verifyGooglePendingJwt(token: string): GooglePendingJwt {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET) as GooglePendingJwt;
+    if (decoded.purpose !== GOOGLE_PENDING_PURPOSE) {
+      throw new UnauthorizedError('Invalid pending token');
+    }
+    return decoded;
+  } catch (e) {
+    if (e instanceof UnauthorizedError) throw e;
+    throw new UnauthorizedError('Invalid or expired pending token');
+  }
+}
+
+async function assertClassBelongsToSchool(
+  schoolId: string,
+  classId: string,
+  campusId: string | null | undefined
+): Promise<{ resolvedCampusId: string }> {
+  const cls = await prisma.class.findFirst({
+    where: {
+      id: classId,
+      campus: { schoolId },
+    },
+    select: { campusId: true },
+  });
+  if (!cls) {
+    throw new BadRequestError('Invalid class for this school');
+  }
+  if (campusId && campusId !== cls.campusId) {
+    throw new BadRequestError('The selected class does not belong to this campus');
+  }
+  return { resolvedCampusId: cls.campusId };
+}
 
 async function isRegisterOtpRequiredForSchool(schoolId: string | null): Promise<boolean> {
   // 1) ENV can force OTP for registration globally
@@ -77,7 +135,7 @@ function toSafeUser(user: User & {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    sex: (user as any).sex || 'UNDEFINED',
+    sex: (user as any).sex || 'MALE',
     role: user.role,
     isActive: user.isActive,
     emailVerified: user.emailVerified,
@@ -91,6 +149,7 @@ function toSafeUser(user: User & {
     classId: user.classId,
     class: user.class ? { id: user.class.id, name: user.class.name } : null,
     schoolId: user.schoolId,
+    hasPassword: !!(user as { passwordHash?: string | null }).passwordHash,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -235,6 +294,10 @@ export const authService = {
       throw new UnauthorizedError(
         'Email not verified. Use the code sent to your inbox or request a new code from the registration flow.',
       );
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedError('This account uses Google sign-in. Please use the Google button.');
     }
 
     const isValidPassword = await bcrypt.compare(input.password, user.passwordHash);
@@ -453,9 +516,15 @@ export const authService = {
       throw new NotFoundError('User');
     }
 
-    const isValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
-    if (!isValid) {
-      throw new UnauthorizedError('Current password is incorrect');
+    if (user.passwordHash) {
+      const current = input.currentPassword ?? '';
+      if (!current) {
+        throw new BadRequestError('Current password is required');
+      }
+      const isValid = await bcrypt.compare(current, user.passwordHash);
+      if (!isValid) {
+        throw new UnauthorizedError('Current password is incorrect');
+      }
     }
 
     const newHash = await bcrypt.hash(input.newPassword, SALT_ROUNDS);
@@ -523,6 +592,228 @@ export const authService = {
     }
     const updated = await authRepository.updateAvatarPath(userId, null);
     return toSafeUserWithAvatar(updated);
+  },
+
+  async googleStart(idToken: string, schoolId: string): Promise<GoogleAuthResult> {
+    if (!isGoogleAuthConfigured()) {
+      throw new BadRequestError('Google sign-in is not configured on this server');
+    }
+
+    let g: Awaited<ReturnType<typeof verifyGoogleIdToken>>;
+    try {
+      g = await verifyGoogleIdToken(idToken);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn('[AuthService] Google token verification failed', { message: msg });
+      throw new UnauthorizedError('Invalid Google credentials');
+    }
+
+    if (!g.emailVerified) {
+      throw new BadRequestError(
+        'Your Google account email must be verified before you can sign in',
+      );
+    }
+
+    const lowerEmail = g.email.trim().toLowerCase();
+
+    const byGoogle = await authRepository.findByGoogleId(g.sub);
+    if (byGoogle) {
+      if (byGoogle.schoolId !== schoolId) {
+        const slug = byGoogle.school?.slug || 'another school';
+        throw new UnauthorizedError(
+          `This Google account is already linked to another school (${slug}). Open that school’s portal.`,
+        );
+      }
+      if (!byGoogle.isActive) {
+        throw new UnauthorizedError('Account is deactivated. Contact an administrator.');
+      }
+      if (!byGoogle.emailVerified) {
+        throw new UnauthorizedError(
+          'Email not verified. Complete verification or contact support.',
+        );
+      }
+      if (byGoogle.role === Role.STUDENT && !byGoogle.classId) {
+        return {
+          step: 'GOOGLE_SELECT_CLASS',
+          pendingToken: signGooglePendingJwt({
+            kind: 'link',
+            googleSub: g.sub,
+            schoolId,
+            userId: byGoogle.id,
+          }),
+          expiresInSeconds: GOOGLE_PENDING_EXPIRY_SEC,
+        };
+      }
+
+      const { accessToken, refreshToken } = await generateTokens({
+        id: byGoogle.id,
+        role: byGoogle.role,
+        schoolId: byGoogle.schoolId,
+        campusIds: byGoogle.campuses?.map((c) => c.id) || [],
+        classId: byGoogle.classId,
+      });
+
+      if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+        notificationService
+          .create({
+            title: 'Connexion réussie',
+            message: `Bienvenue, ${byGoogle.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+            type: 'LOGIN_WELCOME',
+            userId: byGoogle.id,
+            schoolId: byGoogle.schoolId,
+          })
+          .catch((err) =>
+            logger.warn('[Notification] login welcome failed', { error: (err as Error)?.message }),
+          );
+      }
+
+      return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(byGoogle) };
+    }
+
+    const existing = await authRepository.findByEmailGlobal(lowerEmail);
+    if (existing) {
+      if (existing.schoolId !== schoolId) {
+        const slug = existing.school?.slug || 'another tenant';
+        throw new UnauthorizedError(
+          `This email is registered with another school (${slug}). Use the correct school URL or header x-school-slug.`,
+        );
+      }
+      if (existing.passwordHash && !existing.googleId) {
+        throw new ConflictError(
+          'An account with this email already exists. Sign in with your password or use forgot password.',
+        );
+      }
+      if (existing.googleId && existing.googleId !== g.sub) {
+        throw new ConflictError('This email is already linked to a different Google account.');
+      }
+      if (!existing.passwordHash && !existing.googleId) {
+        throw new BadRequestError('This account cannot use Google sign-in. Contact support.');
+      }
+      throw new ConflictError('Unable to start Google sign-in with this email. Try signing in again.');
+    }
+
+    return {
+      step: 'GOOGLE_SELECT_CLASS',
+      pendingToken: signGooglePendingJwt({
+        kind: 'new',
+        googleSub: g.sub,
+        schoolId,
+        email: lowerEmail,
+        firstName: g.firstName,
+        lastName: g.lastName,
+      }),
+      expiresInSeconds: GOOGLE_PENDING_EXPIRY_SEC,
+    };
+  },
+
+  async googleComplete(input: GoogleCompleteInput, schoolId: string): Promise<GoogleAuthResult> {
+    const pending = verifyGooglePendingJwt(input.pendingToken);
+    if (pending.schoolId !== schoolId) {
+      throw new UnauthorizedError('Invalid session for this school context');
+    }
+
+    const { resolvedCampusId } = await assertClassBelongsToSchool(
+      schoolId,
+      input.classId,
+      input.campusId,
+    );
+
+    if (pending.kind === 'link' && pending.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: pending.userId },
+        include: {
+          campuses: { select: { id: true, name: true } },
+          class: { select: { id: true, name: true } },
+        },
+      });
+      if (!user || user.googleId !== pending.googleSub || user.schoolId !== schoolId) {
+        throw new UnauthorizedError('Invalid or expired Google sign-in session');
+      }
+      if (user.role !== Role.STUDENT) {
+        throw new BadRequestError('Only students use the class selection step.');
+      }
+
+      const updated = await authRepository.updateStudentClassAndCampus(
+        user.id,
+        input.classId,
+        resolvedCampusId,
+      );
+
+      const { accessToken, refreshToken } = await generateTokens({
+        id: updated.id,
+        role: updated.role,
+        schoolId: updated.schoolId,
+        campusIds: updated.campuses?.map((c) => c.id) || [],
+        classId: updated.classId,
+      });
+
+      if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+        notificationService
+          .create({
+            title: 'Connexion réussie',
+            message: `Bienvenue, ${updated.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+            type: 'LOGIN_WELCOME',
+            userId: updated.id,
+            schoolId: updated.schoolId,
+          })
+          .catch((err) =>
+            logger.warn('[Notification] login welcome failed', { error: (err as Error)?.message }),
+          );
+      }
+
+      return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(updated) };
+    }
+
+    if (pending.kind === 'new') {
+      if (!pending.email || pending.firstName === undefined || pending.lastName === undefined) {
+        throw new UnauthorizedError('Invalid pending token payload');
+      }
+
+      const dup = await authRepository.findByEmailGlobal(pending.email);
+      if (dup) {
+        throw new ConflictError('An account was created with this email meanwhile. Sign in again.');
+      }
+
+      const otpRequired = await isRegisterOtpRequiredForSchool(schoolId);
+      const user = await authRepository.createStudentFromGoogle({
+        email: pending.email,
+        firstName: pending.firstName,
+        lastName: pending.lastName,
+        schoolId,
+        classId: input.classId,
+        campusId: resolvedCampusId,
+        googleId: pending.googleSub,
+        emailVerified: !otpRequired,
+      });
+
+      if (!otpRequired) {
+        const { accessToken, refreshToken } = await generateTokens({
+          id: user.id,
+          role: user.role,
+          schoolId: user.schoolId,
+          campusIds: user.campuses?.map((c) => c.id) || [],
+          classId: user.classId,
+        });
+        if (process.env.NOTIFY_ON_LOGIN !== 'false') {
+          notificationService
+            .create({
+              title: 'Connexion réussie',
+              message: `Bienvenue, ${user.firstName} ! Vous êtes connecté(e) à votre espace AFI-LISTEN.`,
+              type: 'LOGIN_WELCOME',
+              userId: user.id,
+              schoolId: user.schoolId,
+            })
+            .catch((err) =>
+              logger.warn('[Notification] login welcome failed', { error: (err as Error)?.message }),
+            );
+        }
+        return { token: accessToken, refreshToken, user: await toSafeUserWithAvatar(user) };
+      }
+
+      return this.sendNewRegisterOtp(user);
+    }
+
+    throw new UnauthorizedError('Invalid Google sign-in session');
   },
 
   async resendOtp(challengeId: string, schoolId: string) {

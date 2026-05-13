@@ -1,1 +1,1 @@
-{"version":3,"file":"mail.templates.d.ts","sourceRoot":"","sources":["../../../src/core/email/mail.templates.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,aAAa;IACxB;;OAEG;wBACiB,MAAM,SAAS,MAAM;qBAwGxB,MAAM,cAAc,MAAM;oCAmBX,MAAM;8BAsBZ,MAAM;CAcjC,CAAC"}
+{"version":3,"file":"mail.templates.d.ts","sourceRoot":"","sources":["../../../src/core/email/mail.templates.ts"],"names":[],"mappings":"AAEA,eAAO,MAAM,aAAa;IACxB;;OAEG;wBACiB,MAAM,SAAS,MAAM;qBAwGxB,MAAM,cAAc,MAAM,cAAc,MAAM;oCA0B/B,MAAM;8BAsBZ,MAAM;CAcjC,CAAC"}

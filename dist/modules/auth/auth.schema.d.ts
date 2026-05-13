@@ -20,7 +20,7 @@ export declare const loginSchema: z.ZodObject<{
     uti: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export declare const changePasswordSchema: z.ZodObject<{
-    currentPassword: z.ZodString;
+    currentPassword: z.ZodOptional<z.ZodString>;
     newPassword: z.ZodString;
     confirmPassword: z.ZodString;
 }, z.core.$strip>;
@@ -52,6 +52,14 @@ export declare const resetPasswordSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const resendOtpSchema: z.ZodObject<{
     challengeId: z.ZodString;
+}, z.core.$strip>;
+export declare const googleAuthStartSchema: z.ZodObject<{
+    idToken: z.ZodString;
+}, z.core.$strip>;
+export declare const googleAuthCompleteSchema: z.ZodObject<{
+    pendingToken: z.ZodString;
+    classId: z.ZodString;
+    campusId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
 export type RegisterSchema = z.infer<typeof registerSchema>;
 export type LoginSchema = z.infer<typeof loginSchema>;

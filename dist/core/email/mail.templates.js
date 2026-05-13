@@ -108,7 +108,7 @@ exports.mailTemplates = {
 </html>
     `;
     },
-    otpTemplate(otp, expiresMin) {
+    otpTemplate(otp, expiresMin, verifyUrl) {
         const content = `
       <h2 style="color: #333; margin-top: 0;">Vérification de votre compte</h2>
       <p>Bonjour,</p>
@@ -120,6 +120,13 @@ exports.mailTemplates = {
       
       <p>Ce code est valide pendant <strong>${expiresMin} minutes</strong>. Pour votre sécurité, ne partagez jamais ce code avec qui que ce soit.</p>
       
+      ${verifyUrl ? `
+      <div style="text-align: center; margin: 30px 0;">
+        <p>Vous avez perdu votre session ? Cliquez sur le bouton ci-dessous pour reprendre :</p>
+        <a href="${verifyUrl}" class="btn">Vérifier mon compte</a>
+      </div>
+      ` : ''}
+
       <div class="divider"></div>
       
       <p class="help-text">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité.</p>

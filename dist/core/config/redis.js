@@ -8,6 +8,7 @@ function getRedisOptions() {
     return {
         host: env_1.env.REDIS_HOST,
         port: env_1.env.REDIS_PORT,
+        db: 0,
         lazyConnect: true,
         enableOfflineQueue: false,
         // BullMQ recommends disabling request retries at client level.

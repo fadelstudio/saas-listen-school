@@ -38,9 +38,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyMailConfiguration = verifyMailConfiguration;
 exports.sendTransactionalEmail = sendTransactionalEmail;
+exports.sendTransactionalEmailDirectly = sendTransactionalEmailDirectly;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const env_1 = require("../config/env");
 const logger_1 = require("../../utils/logger");
+const queue_1 = require("../config/queue");
 // @ts-ignore
 const SibApiV3Sdk = __importStar(require("sib-api-v3-sdk"));
 let smtpTransporter = null;
@@ -95,6 +97,22 @@ async function verifyMailConfiguration() {
  * - `MAIL_PROVIDER=resend`: HTTPS API Resend (`RESEND_API_KEY`, `EMAIL_FROM` vérifié côté Resend).
  */
 async function sendTransactionalEmail(params) {
+    try {
+        await queue_1.mailQueue.add("send-email", params);
+        logger_1.logger.info("[mail:queue] Email queued", { to: params.to, subject: params.subject });
+    }
+    catch (error) {
+        logger_1.logger.error("[mail:queue] Failed to queue email", { error: error.message });
+        // Fallback to direct send if queue fails
+        logger_1.logger.warn("[mail:queue] Falling back to direct send because queue failed");
+        return sendTransactionalEmailDirectly(params);
+    }
+}
+/**
+ * Internal function to send email immediately.
+ * Called by the worker.
+ */
+async function sendTransactionalEmailDirectly(params) {
     if (env_1.env.MAIL_PROVIDER === "console") {
         logger_1.logger.info("[mail:console]", {
             to: params.to,

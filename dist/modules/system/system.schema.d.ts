@@ -3,6 +3,7 @@ export declare const updateSystemSettingsSchema: z.ZodObject<{
     schoolName: z.ZodOptional<z.ZodString>;
     authReportsRequired: z.ZodOptional<z.ZodBoolean>;
     authEvaluationsRequired: z.ZodOptional<z.ZodBoolean>;
+    authOtpRequired: z.ZodOptional<z.ZodBoolean>;
     aiEnabled: z.ZodOptional<z.ZodBoolean>;
     aiConfigs: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;

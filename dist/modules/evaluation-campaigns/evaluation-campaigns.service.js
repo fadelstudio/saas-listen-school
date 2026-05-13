@@ -169,6 +169,12 @@ exports.evaluationCampaignsService = {
                 campusIds: userCampusIds,
                 status: filters.status || undefined, // Repository already handles ACTIVE/COMPLETED logic if needed
             }, pagination, userId);
+            const now = new Date();
+            items.forEach((c) => {
+                if (c.status === 'ACTIVE' && new Date(c.dueDate) < now) {
+                    c.status = 'COMPLETED';
+                }
+            });
             return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
         }
         // For non-students (ADMIN/MANAGER), use standard filtering
@@ -183,6 +189,12 @@ exports.evaluationCampaignsService = {
             }
         }
         const { items, total } = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
+        const now = new Date();
+        items.forEach((c) => {
+            if (c.status === 'ACTIVE' && new Date(c.dueDate) < now) {
+                c.status = 'COMPLETED';
+            }
+        });
         return (0, pagination_1.buildPaginated)(items, total, pagination.page, pagination.limit);
     },
     async getById(id, schoolId, userRole, userCampusIds) {
@@ -219,6 +231,11 @@ exports.evaluationCampaignsService = {
         const updated = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.updateStatus(id, schoolId, 'COMPLETED');
         if (!updated)
             throw new AppError_1.NotFoundError('EvaluationCampaign');
+        // Set dueDate to now so that it effectively acts as if deadline arrived
+        await prisma_1.prisma.evaluationCampaign.update({
+            where: { id },
+            data: { dueDate: new Date() }
+        });
         await audit_service_1.auditService.log({
             schoolId,
             userId,
@@ -233,6 +250,42 @@ exports.evaluationCampaignsService = {
             targetRoles: ['ADMIN', 'MANAGER'],
             url: `/dashboard/evaluation-campaigns/${id}`,
         }).catch(e => logger_1.logger.warn('[Notification] Campaign close notify failed', { error: e }));
+        // Trigger analysis automatically to mimic deadline arrival behavior
+        this.generatePostDeadlineAnalysis(id, userId || 'SYSTEM', schoolId, userRole, userCampusIds).catch(err => logger_1.logger.error('Auto-analysis failed', { error: err }));
+        return updated;
+    },
+    async relaunch(id, schoolId, userRole, userCampusIds, userId) {
+        if (userRole === 'VIEWER')
+            throw new AppError_1.ForbiddenError('VIEWER role is read-only');
+        const campaign = await evaluation_campaigns_repository_1.evaluationCampaignsRepository.findById(id, schoolId);
+        if (!campaign)
+            throw new AppError_1.NotFoundError('EvaluationCampaign');
+        // Scoping check
+        if (userCampusIds && userCampusIds.length > 0) {
+            if (campaign.scope === 'CAMPUS' && campaign.campusId && !userCampusIds.includes(campaign.campusId)) {
+                throw new AppError_1.ForbiddenError('This campaign belongs to a campus outside your scope');
+            }
+            if (campaign.scope === 'CLASS' && campaign.class?.campusId && !userCampusIds.includes(campaign.class.campusId)) {
+                throw new AppError_1.ForbiddenError('This campaign belongs to a class outside your scope');
+            }
+        }
+        // Prolong deadline by 1 week starting from now
+        const newDueDate = new Date();
+        newDueDate.setDate(newDueDate.getDate() + 7);
+        const updated = await prisma_1.prisma.evaluationCampaign.update({
+            where: { id },
+            data: {
+                status: 'ACTIVE',
+                dueDate: newDueDate
+            },
+        });
+        await audit_service_1.auditService.log({
+            schoolId,
+            userId,
+            action: 'RELAUNCH_CAMPAIGN',
+            entity: 'EvaluationCampaign',
+            entityId: id,
+        });
         return updated;
     },
     async getAnalytics(id, schoolId, userRole, userCampusIds) {
@@ -325,6 +378,28 @@ exports.evaluationCampaignsService = {
         const existing = await prisma_1.prisma.decision.findFirst({ where: { campaignId: id } });
         if (existing)
             return existing;
+        // Resolve system user for decision if needed
+        let finalUserId = userId;
+        if (!finalUserId || finalUserId === 'SYSTEM') {
+            const admin = await prisma_1.prisma.user.findFirst({
+                where: { role: 'ADMIN', schoolId },
+            });
+            if (admin) {
+                finalUserId = admin.id;
+            }
+            else {
+                const superAdmin = await prisma_1.prisma.user.findFirst({
+                    where: { role: 'SUPERADMIN' },
+                });
+                if (superAdmin) {
+                    finalUserId = superAdmin.id;
+                }
+                else {
+                    logger_1.logger.warn('[CampaignService] No admin/superadmin found to act as decider. Skipping decision creation.');
+                    return null; // Cannot create decision without a valid deciderId
+                }
+            }
+        }
         // 2. Build context for AI
         const context = `
       Campagne: ${campaign.title}
@@ -355,20 +430,32 @@ exports.evaluationCampaignsService = {
         catch (e) {
             aiParsed = { summary: aiRes.content, recommendation: 'Analyse manuelle requise', priority: 'MEDIUM' };
         }
-        // 4. Create the Decision
-        const decision = await prisma_1.prisma.decision.create({
-            data: {
-                campaignId: id,
-                deciderId: userId,
-                schoolId,
-                title: `Suivi suite à la campagne : ${campaign.title}`,
-                rationale: aiParsed.summary,
-                aiSuggestion: aiParsed.recommendation,
-                status: 'PROPOSED',
-                priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
-            },
-            include: { decider: { select: { firstName: true, lastName: true } } }
-        });
+        // 4. Create the Decision (with concurrency handling)
+        let decision;
+        try {
+            decision = await prisma_1.prisma.decision.create({
+                data: {
+                    campaignId: id,
+                    deciderId: finalUserId,
+                    schoolId,
+                    title: `Suivi suite à la campagne : ${campaign.title}`,
+                    rationale: aiParsed.summary,
+                    aiSuggestion: aiParsed.recommendation,
+                    status: 'PROPOSED',
+                    priority: aiParsed.priority === 'HIGH' ? 'HIGH' : (aiParsed.priority === 'LOW' ? 'LOW' : 'MEDIUM'),
+                },
+                include: { decider: { select: { firstName: true, lastName: true } } }
+            });
+        }
+        catch (error) {
+            if (error.code === 'P2002') {
+                logger_1.logger.warn('[CampaignService] Decision already created concurrently', { campaignId: id });
+                const existingDecision = await prisma_1.prisma.decision.findFirst({ where: { campaignId: id } });
+                if (existingDecision)
+                    return existingDecision;
+            }
+            throw error;
+        }
         // 5. Notify admins that the AI report is ready
         notifications_service_1.notificationService.sendBroadcast(schoolId, {
             title: '🤖 Rapport IA  généré — action requise',

@@ -3,7 +3,7 @@ export declare const mailTemplates: {
      * Layout de base professionnel et moderne
      */
     baseLayout(content: string, title: string): string;
-    otpTemplate(otp: string, expiresMin: number): string;
+    otpTemplate(otp: string, expiresMin: number, verifyUrl?: string): string;
     passwordResetTemplate(resetUrl: string): string;
     welcomeTemplate(userName: string): string;
 };

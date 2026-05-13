@@ -7,13 +7,14 @@ require("../core/config/env"); // validate env vars at startup
 const logger_1 = require("../utils/logger");
 // Importing the processor starts the BullMQ worker.
 require("./ai.processor");
+require("./mail.worker");
 const campaign_reminder_worker_1 = require("./campaign-reminder.worker");
 const express_1 = __importDefault(require("express"));
 logger_1.logger.info('Worker running (AI processor)');
 (0, campaign_reminder_worker_1.startCampaignReminderLoop)();
 // Minimal health-check server to satisfy platforms like Railway/Render
 const healthApp = (0, express_1.default)();
-const port = process.env.WORKER_PORT || 8081; // Use 8081 as fallback for worker, avoid clashing with API on PORT
+const port = process.env.PORT || 8081; // Use PORT for Railway health check
 healthApp.get(['/', '/health'], (_req, res) => res.status(200).send('Worker is healthy'));
 healthApp.listen(port, () => {
     logger_1.logger.info(`Worker health-check server listening on port ${port}`);

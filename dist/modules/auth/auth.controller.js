@@ -39,12 +39,58 @@ exports.authController = {
             next(error);
         }
     },
+    async googleStart(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const result = await auth_service_1.authService.googleStart(req.body.idToken, req.schoolId);
+            if ('step' in result && result.step === 'GOOGLE_SELECT_CLASS') {
+                res.sendSuccess('Choose your class to finish Google sign-in', result);
+                return;
+            }
+            if ('step' in result && result.step === 'REGISTER_OTP_REQUIRED') {
+                res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
+                return;
+            }
+            res.sendSuccess('Google sign-in successful', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async googleComplete(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const result = await auth_service_1.authService.googleComplete(req.body, req.schoolId);
+            if ('step' in result && result.step === 'REGISTER_OTP_REQUIRED') {
+                res.sendSuccess('Account created. OTP sent to your email for verification.', result, 201);
+                return;
+            }
+            res.sendSuccess('Google sign-in completed', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
     async verifyRegisterOtp(req, res, next) {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
             const result = await auth_service_1.authService.verifyRegisterOtp(req.body, req.schoolId);
             res.sendSuccess('Registration verified. Login successful.', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async verifyRegisterLink(req, res, next) {
+        try {
+            const { challengeId } = req.query;
+            if (!challengeId)
+                throw new AppError_1.BadRequestError('challengeId is required');
+            const redirectUrl = await auth_service_1.authService.verifyRegisterLink(challengeId);
+            res.redirect(redirectUrl);
         }
         catch (error) {
             next(error);
@@ -147,6 +193,15 @@ exports.authController = {
             const { challengeId } = req.body;
             const result = await auth_service_1.authService.resendOtp(challengeId, req.schoolId);
             res.sendSuccess('New OTP sent successfully', result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    async resendVerification(req, res, next) {
+        try {
+            const result = await auth_service_1.authService.resendVerification(req.user.userId);
+            res.sendSuccess('Verification email sent successfully', result);
         }
         catch (error) {
             next(error);

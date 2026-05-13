@@ -70,6 +70,25 @@ authRouter.post('/register', (0, validate_middleware_1.validate)({ body: auth_sc
 authRouter.post('/register/verify-otp', (0, validate_middleware_1.validate)({ body: auth_schema_1.verifyLoginOtpSchema }), auth_controller_1.authController.verifyRegisterOtp);
 /**
  * @swagger
+ * /api/auth/register/verify-link:
+ *   get:
+ *     summary: "Vérification un-clic par lien"
+ *     description: Permet de vérifier l'email en cliquant directement sur le lien reçu. Redirige vers le site web.
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: challengeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       302:
+ *         description: Redirection vers verify-success ou verify-error.
+ */
+authRouter.get('/register/verify-link', auth_controller_1.authController.verifyRegisterLink);
+/**
+ * @swagger
  * /api/auth/register/resend-otp:
  *   post:
  *     summary: "Renvoyer l'OTP d'inscription"
@@ -124,6 +143,55 @@ authRouter.post('/register/resend-otp', (0, validate_middleware_1.validate)({ bo
  *         description: Authentification réussie. Retourne l'AccessToken et le RefreshToken.
  */
 authRouter.post('/login', (0, validate_middleware_1.validate)({ body: auth_schema_1.loginSchema }), auth_controller_1.authController.login);
+/**
+ * @swagger
+ * /api/auth/google:
+ *   post:
+ *     summary: "Connexion / inscription Google (étape 1)"
+ *     description: >
+ *       Vérifie le `id_token` Google. Si le compte existe et est complet, renvoie les tokens.
+ *       Sinon renvoie `GOOGLE_SELECT_CLASS` avec un `pendingToken` à utiliser sur `/api/auth/google/complete`
+ *       après choix campus/classe. Nécessite `GOOGLE_OAUTH_CLIENT_IDS` côté serveur.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idToken]
+ *             properties:
+ *               idToken: { type: string, description: "id_token JWT retourné par Google Sign-In" }
+ *     responses:
+ *       200:
+ *         description: Tokens ou étape GOOGLE_SELECT_CLASS
+ */
+authRouter.post('/google', (0, validate_middleware_1.validate)({ body: auth_schema_1.googleAuthStartSchema }), auth_controller_1.authController.googleStart);
+/**
+ * @swagger
+ * /api/auth/google/complete:
+ *   post:
+ *     summary: "Finaliser Google après choix de la classe"
+ *     description: Consomme `pendingToken` (15 min) + `classId` / `campusId` optionnel. Crée le compte étudiant ou complète un étudiant sans classe.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [pendingToken, classId]
+ *             properties:
+ *               pendingToken: { type: string }
+ *               classId: { type: string, format: uuid }
+ *               campusId: { type: string, format: uuid, description: "Optionnel ; doit correspondre au campus de la classe" }
+ *     responses:
+ *       200:
+ *         description: Session ou OTP d'inscription
+ *       201:
+ *         description: Compte créé avec OTP requis
+ */
+authRouter.post('/google/complete', (0, validate_middleware_1.validate)({ body: auth_schema_1.googleAuthCompleteSchema }), auth_controller_1.authController.googleComplete);
 /**
  * @swagger
  * /api/auth/login/verify-otp:
@@ -361,4 +429,18 @@ authRouter.post('/refresh', auth_controller_1.authController.refresh);
  *         description: Déconnexion réussie.
  */
 authRouter.post('/logout', auth_controller_1.authController.logout);
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     summary: "Renvoyer l'email de vérification (Utilisateur connecté)"
+ *     description: Déclenche l'envoi d'un nouvel OTP pour un utilisateur dont l'email n'est pas encore vérifié.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email envoyé.
+ */
+authRouter.post('/resend-verification', auth_middleware_1.authMiddleware, auth_controller_1.authController.resendVerification);
 //# sourceMappingURL=auth.route.js.map

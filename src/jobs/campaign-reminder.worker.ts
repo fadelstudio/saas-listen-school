@@ -62,7 +62,17 @@ async function runEvaluationCampaignReminders(): Promise<void> {
       select: { evaluatorId: true },
     });
     const doneSet = new Set(done.map((e) => e.evaluatorId).filter(Boolean) as string[]);
-    const missing = studentIds.filter((id) => !doneSet.has(id));
+    let missing = studentIds.filter((id) => !doneSet.has(id));
+    if (missing.length === 0) continue;
+
+    // Remove users who have already received the reminder
+    const existingNotifications = await prisma.notification.findMany({
+      where: { campaignId: c.id, type: 'EVALUATION_CAMPAIGN_REMINDER', userId: { in: missing } },
+      select: { userId: true }
+    });
+    const alreadyNotified = new Set(existingNotifications.map(n => n.userId).filter(Boolean) as string[]);
+    missing = missing.filter(id => !alreadyNotified.has(id));
+    
     if (missing.length === 0) continue;
 
     const module = await prisma.module.findUnique({ where: { id: c.moduleId }, select: { name: true } });

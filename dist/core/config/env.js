@@ -30,14 +30,24 @@ const envSchema = zod_1.z.object({
     PORT: zod_1.z.coerce.number().default(3000),
     // Database
     DATABASE_URL: zod_1.z.string().min(1, "DATABASE_URL is required"),
+    /** Direct (non-pooler) URL — used by prisma migrate deploy only. Optional locally. */
+    DIRECT_URL: zod_1.z.string().optional(),
+    /** Max connections per pool instance — tune per deployment tier. */
+    DB_POOL_MAX: zod_1.z.coerce.number().int().positive().default(5),
     // Auth
     JWT_SECRET: zod_1.z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+    /**
+     * Client IDs Google OAuth (champ `aud` du id_token), séparés par des virgules.
+     * Ex. Web client + clients iOS/Android si plusieurs apps émettent des jetons.
+     * Sans cette variable, `POST /api/auth/google` renvoie une erreur explicite.
+     */
+    GOOGLE_OAUTH_CLIENT_IDS: zod_1.z.string().optional(),
     /** Mot de passe appliqué par un admin lors de `POST .../reset-password-default` (compte utilisateur). */
     DEFAULT_PASSWORD_RESET: zod_1.z.string().min(8).default("ListenReset1!"),
     // Registration OTP (first registration only). Keeps legacy name for compatibility.
     LOGIN_OTP_ENABLED: zEnvBool.default(false),
     /** Comptes créés avec OTP requis mais jamais vérifiés : purge après ce délai (minutes). */
-    PENDING_REGISTRATION_TTL_MINUTES: zod_1.z.coerce.number().int().positive().default(30),
+    PENDING_REGISTRATION_TTL_MINUTES: zod_1.z.coerce.number().int().positive().default(1440),
     // Supabase
     SUPABASE_URL: zod_1.z.string().url("SUPABASE_URL must be a valid URL"),
     SUPABASE_KEY: zod_1.z.string().min(1, "SUPABASE_KEY is required"),
@@ -88,23 +98,23 @@ const envSchema = zod_1.z.object({
 });
 const parsed = envSchema
     .superRefine((data, ctx) => {
-        if (data.MAIL_PROVIDER === "smtp") {
-            if (!data.SMTP_HOST)
-                ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
-            if (!data.SMTP_PORT)
-                ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
-        }
-        if (data.MAIL_PROVIDER === "brevo" && !data.BREVO_API_KEY) {
-            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "BREVO_API_KEY is required when MAIL_PROVIDER=brevo", path: ["BREVO_API_KEY"] });
-        }
-        if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
-            ctx.addIssue({
-                code: zod_1.z.ZodIssueCode.custom,
-                message: "PUBLIC_APP_URL must be a public HTTPS URL in production",
-                path: ["PUBLIC_APP_URL"],
-            });
-        }
-    })
+    if (data.MAIL_PROVIDER === "smtp") {
+        if (!data.SMTP_HOST)
+            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_HOST is required when MAIL_PROVIDER=smtp", path: ["SMTP_HOST"] });
+        if (!data.SMTP_PORT)
+            ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "SMTP_PORT is required when MAIL_PROVIDER=smtp", path: ["SMTP_PORT"] });
+    }
+    if (data.MAIL_PROVIDER === "brevo" && !data.BREVO_API_KEY) {
+        ctx.addIssue({ code: zod_1.z.ZodIssueCode.custom, message: "BREVO_API_KEY is required when MAIL_PROVIDER=brevo", path: ["BREVO_API_KEY"] });
+    }
+    if (data.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(data.PUBLIC_APP_URL)) {
+        ctx.addIssue({
+            code: zod_1.z.ZodIssueCode.custom,
+            message: "PUBLIC_APP_URL must be a public HTTPS URL in production",
+            path: ["PUBLIC_APP_URL"],
+        });
+    }
+})
     .safeParse(process.env);
 if (!parsed.success) {
     console.error("❌ Invalid environment variables:");

@@ -12,6 +12,8 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   resendOtpSchema,
+  googleAuthStartSchema,
+  googleAuthCompleteSchema,
 } from './auth.schema';
 
 const authRouter = Router();
@@ -164,6 +166,61 @@ authRouter.post(
  *         description: Authentification réussie. Retourne l'AccessToken et le RefreshToken.
  */
 authRouter.post('/login', validate({ body: loginSchema }), authController.login);
+
+/**
+ * @swagger
+ * /api/auth/google:
+ *   post:
+ *     summary: "Connexion / inscription Google (étape 1)"
+ *     description: >
+ *       Vérifie le `id_token` Google. Si le compte existe et est complet, renvoie les tokens.
+ *       Sinon renvoie `GOOGLE_SELECT_CLASS` avec un `pendingToken` à utiliser sur `/api/auth/google/complete`
+ *       après choix campus/classe. Nécessite `GOOGLE_OAUTH_CLIENT_IDS` côté serveur.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idToken]
+ *             properties:
+ *               idToken: { type: string, description: "id_token JWT retourné par Google Sign-In" }
+ *     responses:
+ *       200:
+ *         description: Tokens ou étape GOOGLE_SELECT_CLASS
+ */
+authRouter.post('/google', validate({ body: googleAuthStartSchema }), authController.googleStart);
+
+/**
+ * @swagger
+ * /api/auth/google/complete:
+ *   post:
+ *     summary: "Finaliser Google après choix de la classe"
+ *     description: Consomme `pendingToken` (15 min) + `classId` / `campusId` optionnel. Crée le compte étudiant ou complète un étudiant sans classe.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [pendingToken, classId]
+ *             properties:
+ *               pendingToken: { type: string }
+ *               classId: { type: string, format: uuid }
+ *               campusId: { type: string, format: uuid, description: "Optionnel ; doit correspondre au campus de la classe" }
+ *     responses:
+ *       200:
+ *         description: Session ou OTP d'inscription
+ *       201:
+ *         description: Compte créé avec OTP requis
+ */
+authRouter.post(
+  '/google/complete',
+  validate({ body: googleAuthCompleteSchema }),
+  authController.googleComplete,
+);
 
 /**
  * @swagger

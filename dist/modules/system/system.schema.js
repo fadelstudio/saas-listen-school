@@ -6,6 +6,7 @@ exports.updateSystemSettingsSchema = zod_1.z.object({
     schoolName: zod_1.z.string().min(1).optional(),
     authReportsRequired: zod_1.z.boolean().optional(),
     authEvaluationsRequired: zod_1.z.boolean().optional(),
+    authOtpRequired: zod_1.z.boolean().optional(),
     aiEnabled: zod_1.z.boolean().optional(),
     aiConfigs: zod_1.z.array(zod_1.z.object({
         id: zod_1.z.string(),

@@ -32,7 +32,8 @@ export interface LoginInput {
 }
 
 export interface ChangePasswordInput {
-  currentPassword: string;
+  /** Requis seulement si le compte a un mot de passe local. */
+  currentPassword?: string;
   newPassword: string;
 }
 
@@ -64,10 +65,26 @@ export interface RegisterOtpRequired {
 export type LoginResult = AuthResponse;
 export type RegisterResult = AuthResponse | RegisterOtpRequired;
 
+export interface GoogleSelectClassStep {
+  step: 'GOOGLE_SELECT_CLASS';
+  pendingToken: string;
+  expiresInSeconds: number;
+}
+
+export type GoogleAuthResult = AuthResponse | RegisterOtpRequired | GoogleSelectClassStep;
+
+export interface GoogleCompleteInput {
+  pendingToken: string;
+  classId: string;
+  campusId?: string | null;
+}
+
 /** User without passwordHash — safe to send in API responses */
 export interface SafeUser {
   id: string;
   email: string;
+  /** Indique si un mot de passe local est défini (false = compte Google-only ou mot de passe non défini). */
+  hasPassword?: boolean;
   firstName: string;
   lastName: string;
   sex?: 'UNDEFINED' | 'MALE' | 'FEMALE';

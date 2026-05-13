@@ -42,6 +42,76 @@ export const authRepository = {
     });
   },
 
+  async findByGoogleId(googleId: string) {
+    return prisma.user.findUnique({
+      where: { googleId },
+      include: {
+        school: { select: { slug: true } },
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } },
+      },
+    });
+  },
+
+  /** Email est unique globalement sur `users` (recherche insensible à la casse). */
+  async findByEmailGlobal(email: string) {
+    return prisma.user.findFirst({
+      where: { email: { equals: email.trim(), mode: 'insensitive' } },
+      include: {
+        school: { select: { slug: true } },
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } },
+      },
+    });
+  },
+
+  async createStudentFromGoogle(data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    schoolId: string;
+    classId: string;
+    campusId: string;
+    googleId: string;
+    emailVerified: boolean;
+  }) {
+    logger.info('[AuthRepository] Creating Google student user', { email: data.email, classId: data.classId });
+    return prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash: null,
+        googleId: data.googleId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        sex: 'UNDEFINED',
+        role: 'STUDENT',
+        campuses: { connect: [{ id: data.campusId }] },
+        classId: data.classId,
+        schoolId: data.schoolId,
+        emailVerified: data.emailVerified,
+        emailVerifiedAt: data.emailVerified ? new Date() : null,
+      },
+      include: {
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } },
+      },
+    });
+  },
+
+  async updateStudentClassAndCampus(userId: string, classId: string, campusId: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        classId,
+        campuses: { set: [{ id: campusId }] },
+      },
+      include: {
+        campuses: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } },
+      },
+    });
+  },
+
   async findById(id: string) {
     return prisma.user.findUnique({
       where: { id },

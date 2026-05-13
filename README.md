@@ -79,6 +79,11 @@ PORT=3000
 DATABASE_URL=postgresql://...
 JWT_SECRET=change_me_very_long_secret
 
+# Connexion Google (Sign-In) — optionnel. Liste d’OAuth 2.0 Client IDs (champ `aud` du id_token),
+# séparés par des virgules (ex. client Web + client Android). Sans cette variable, POST /api/auth/google renvoie une erreur explicite.
+# Obtenir les IDs : Google Cloud Console → APIs & Services → Credentials → ID client OAuth (type « Application Web » ou « Android » / « iOS »).
+GOOGLE_OAUTH_CLIENT_IDS=123456789-xxxx.apps.googleusercontent.com
+
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_KEY=xxxxx
 
@@ -115,6 +120,7 @@ newman run AFI_LISTEN_GOD_MODE.postman_collection.json --delay-request 500
 ## Guides développeurs
 
 - Guide intégration Front/Back: `docs/INTEGRATION_GUIDE.md`
+- **Auth Google (REST, Web / APK / iOS, variables d’environnement)** : `docs/GOOGLE_AUTH_REST.md`
 - Import Postman (collection + env): `postman/IMPORT_GUIDE.md`
 
 ## Déploiement Render (API + Worker + Redis)
@@ -138,6 +144,7 @@ Redis est fourni par Render (ou externe) et injecté via `REDIS_URL`.
 
 Optionnel:
 
+- `GOOGLE_OAUTH_CLIENT_IDS` (connexion Google — **API uniquement** ; voir extrait `.env` plus haut)
 - `MAX_FILE_SIZE_MB`
 - `SIGNED_URL_EXPIRES_IN`
 
@@ -175,6 +182,7 @@ Objectif: avoir un environnement “prod-like” **sans budget**, avec **API + q
 
 Optionnel:
 
+- `GOOGLE_OAUTH_CLIENT_IDS` (Render **API** seulement, si Sign-In Google côté clients)
 - `MAX_FILE_SIZE_MB`
 - `SIGNED_URL_EXPIRES_IN`
 

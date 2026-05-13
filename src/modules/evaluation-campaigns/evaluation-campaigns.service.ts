@@ -164,6 +164,14 @@ export const evaluationCampaignsService = {
         campusIds: userCampusIds,
         status: filters.status || undefined, // Repository already handles ACTIVE/COMPLETED logic if needed
       }, pagination, userId);
+      
+      const now = new Date();
+      items.forEach((c: any) => {
+        if (c.status === 'ACTIVE' && new Date(c.dueDate) < now) {
+          c.status = 'COMPLETED';
+        }
+      });
+      
       return buildPaginated(items, total, pagination.page, pagination.limit);
     }
 
@@ -181,6 +189,14 @@ export const evaluationCampaignsService = {
     }
 
     const { items, total } = await evaluationCampaignsRepository.findAll(schoolId, filters, pagination);
+    
+    const now = new Date();
+    items.forEach((c: any) => {
+      if (c.status === 'ACTIVE' && new Date(c.dueDate) < now) {
+        c.status = 'COMPLETED';
+      }
+    });
+    
     return buildPaginated(items, total, pagination.page, pagination.limit);
   },
 
@@ -394,6 +410,27 @@ export const evaluationCampaignsService = {
     const existing = await prisma.decision.findFirst({ where: { campaignId: id } as any });
     if (existing) return existing;
 
+    // Resolve system user for decision if needed
+    let finalUserId = userId;
+    if (!finalUserId || finalUserId === 'SYSTEM') {
+      const admin = await prisma.user.findFirst({
+        where: { role: 'ADMIN', schoolId },
+      });
+      if (admin) {
+        finalUserId = admin.id;
+      } else {
+        const superAdmin = await prisma.user.findFirst({
+          where: { role: 'SUPERADMIN' },
+        });
+        if (superAdmin) {
+          finalUserId = superAdmin.id;
+        } else {
+          logger.warn('[CampaignService] No admin/superadmin found to act as decider. Skipping decision creation.');
+          return null; // Cannot create decision without a valid deciderId
+        }
+      }
+    }
+
     // 2. Build context for AI
     const context = `
       Campagne: ${campaign.title}
@@ -433,7 +470,7 @@ export const evaluationCampaignsService = {
       decision = await prisma.decision.create({
         data: {
           campaignId: id,
-          deciderId: userId,
+          deciderId: finalUserId,
           schoolId,
           title: `Suivi suite à la campagne : ${campaign.title}`,
           rationale: aiParsed.summary,

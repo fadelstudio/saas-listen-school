@@ -242,7 +242,10 @@ model Professor {
 model User {
   id              String    @id @default(uuid())
   email           String    @unique
-  passwordHash    String
+  /// Null pour les comptes exclusivement Google (connexion sans mot de passe local).
+  passwordHash    String?
+  /// Identifiant stable Google (`sub` du jeton OIDC). Unique quand renseigné.
+  googleId        String?   @unique
   firstName       String
   lastName        String
   matricule       String?   @unique

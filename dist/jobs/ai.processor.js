@@ -256,14 +256,32 @@ async function handleChatQuery(payload) {
 }
 // ─── BullMQ Worker ────────────────────────────────────────────────────────────
 const aiWorker = new bullmq_1.Worker(queue_1.QUEUE_NAMES.AI_ANALYSIS, async (job) => {
+    // 1. Verify that referenced IDs exist to avoid Foreign Key violations
+    const { reportId, evaluationId, decisionId } = job.data;
+    const cleanData = { ...job.data };
+    if (reportId) {
+        const exists = await prisma_1.prisma.report.findUnique({ where: { id: reportId }, select: { id: true } });
+        if (!exists)
+            cleanData.reportId = undefined;
+    }
+    if (evaluationId) {
+        const exists = await prisma_1.prisma.evaluation.findUnique({ where: { id: evaluationId }, select: { id: true } });
+        if (!exists)
+            cleanData.evaluationId = undefined;
+    }
+    if (decisionId) {
+        const exists = await prisma_1.prisma.decision.findUnique({ where: { id: decisionId }, select: { id: true } });
+        if (!exists)
+            cleanData.decisionId = undefined;
+    }
     const aiJob = await prisma_1.prisma.aiJob.create({
         data: {
             jobType: job.data.type,
             status: client_1.AiJobStatus.PROCESSING,
             payload: job.data,
-            reportId: job.data.reportId ?? null,
-            evaluationId: job.data.evaluationId ?? null,
-            decisionId: job.data.decisionId ?? null,
+            reportId: cleanData.reportId ?? null,
+            evaluationId: cleanData.evaluationId ?? null,
+            decisionId: cleanData.decisionId ?? null,
         },
     });
     try {

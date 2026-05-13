@@ -53,6 +53,17 @@ exports.evaluationCampaignsController = {
             next(error);
         }
     },
+    async relaunch(req, res, next) {
+        try {
+            if (!req.schoolId)
+                throw new AppError_1.BadRequestError('school context is required');
+            const campaign = await evaluation_campaigns_service_1.evaluationCampaignsService.relaunch(req.params.id, req.schoolId, req.user?.role, req.user?.campusIds, req.user?.userId);
+            res.sendSuccess('Campaign relaunched', campaign);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
     async getAnalytics(req, res, next) {
         try {
             if (!req.schoolId)

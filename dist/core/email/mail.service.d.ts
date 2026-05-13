@@ -11,4 +11,14 @@ export declare function sendTransactionalEmail(params: {
     text: string;
     html?: string;
 }): Promise<void>;
+/**
+ * Internal function to send email immediately.
+ * Called by the worker.
+ */
+export declare function sendTransactionalEmailDirectly(params: {
+    to: string;
+    subject: string;
+    text: string;
+    html?: string;
+}): Promise<void>;
 //# sourceMappingURL=mail.service.d.ts.map
