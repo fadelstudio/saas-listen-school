@@ -108,6 +108,7 @@ export const schoolUsersService = {
       address?: string;
       campusIds?: string[];
       classId?: string;
+      sex?: 'MALE' | 'FEMALE' | 'UNDEFINED';
     }
   ) {
     const admin = await assertStaffAccess(adminUserId, true);
@@ -151,6 +152,7 @@ export const schoolUsersService = {
         phone: input.phone?.trim() || null,
         bio: input.bio?.trim() || null,
         address: input.address?.trim() || null,
+        sex: (input.sex as any) || 'UNDEFINED',
         emailVerified: true,
         emailVerifiedAt: new Date(),
       },
@@ -170,6 +172,7 @@ export const schoolUsersService = {
       phone: user.phone,
       bio: user.bio,
       address: user.address,
+      sex: user.sex,
       avatarPath: user.avatarPath,
       isActive: user.isActive,
     });
@@ -268,6 +271,7 @@ export const schoolUsersService = {
           classId: true,
           campuses: { select: { id: true } },
           avatarPath: true,
+          sex: true,
           createdAt: true,
         },
       }),
@@ -315,6 +319,7 @@ export const schoolUsersService = {
       bio?: string | null;
       address?: string | null;
       email?: string;
+      sex?: 'MALE' | 'FEMALE' | 'UNDEFINED';
     }
   ) {
     const admin = await assertStaffAccess(adminUserId, true);
@@ -403,6 +408,7 @@ export const schoolUsersService = {
         ...(input.bio !== undefined && { bio: input.bio }),
         ...(input.address !== undefined && { address: input.address }),
         ...(input.email !== undefined && { email: input.email }),
+        ...(input.sex !== undefined && { sex: input.sex as any }),
         ...(resolvedCampusIds !== undefined && { campuses: { set: resolvedCampusIds.map(id => ({ id })) } }),
       },
       select: {
@@ -414,6 +420,7 @@ export const schoolUsersService = {
         isActive: true,
         matricule: true,
         classId: true,
+        sex: true,
         campuses: { select: { id: true } },
       },
     });
@@ -452,6 +459,7 @@ export const schoolUsersService = {
         campuses: { select: { id: true } },
         schoolId: true,
         avatarPath: true,
+        sex: true,
         createdAt: true,
         updatedAt: true,
         emailVerified: true,

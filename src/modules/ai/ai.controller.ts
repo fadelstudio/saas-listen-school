@@ -49,14 +49,19 @@ export const aiController = {
   async chatDirect(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.schoolId) throw new BadRequestError('school context is required');
-      const { question, conversationId } = req.body as { question: string; conversationId?: string };
+      const { question, conversationId, filters } = req.body as { 
+        question: string; 
+        conversationId?: string;
+        filters?: { campusIds?: string[] } 
+      };
       if (!question?.trim()) throw new BadRequestError('question is required');
 
       const result = await chatService.askDirect(
         question.trim(),
         req.schoolId as string,
         req.user!.userId,
-        conversationId
+        conversationId,
+        filters
       );
       res.sendSuccess('Chat response', result);
     } catch (error) { next(error); }

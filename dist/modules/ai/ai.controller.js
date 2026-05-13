@@ -66,10 +66,10 @@ exports.aiController = {
         try {
             if (!req.schoolId)
                 throw new AppError_1.BadRequestError('school context is required');
-            const { question, conversationId } = req.body;
+            const { question, conversationId, filters } = req.body;
             if (!question?.trim())
                 throw new AppError_1.BadRequestError('question is required');
-            const result = await chat_service_1.chatService.askDirect(question.trim(), req.schoolId, req.user.userId, conversationId);
+            const result = await chat_service_1.chatService.askDirect(question.trim(), req.schoolId, req.user.userId, conversationId, filters);
             res.sendSuccess('Chat response', result);
         }
         catch (error) {

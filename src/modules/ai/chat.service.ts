@@ -126,7 +126,7 @@ function formatHistory(history: Array<{ role: string; content: string }>): strin
 
 // ─── SQL Prompt ───────────────────────────────────────────────────────────────
 
-function buildSqlPrompt(schoolId: string, ctx: ConvContext): string {
+function buildSqlPrompt(schoolId: string, ctx: ConvContext, campusIds?: string[]): string {
   const contextBlock = ctx.lastSql
     ? `
 ══════════════════════════════════════════════════════════════
@@ -139,7 +139,21 @@ SQL précédent :
 ${ctx.lastSql}
 \`\`\`
 ► Question de suivi ("ce prof", "cette classe", "son nom", "lui", "même", "aussi") → reprends les mêmes
-  entités/filtres du SQL précédent. Modifie seulement ce qui change.
+  entités/filters du SQL précédent. Modifie seulement ce qui change.
+══════════════════════════════════════════════════════════════
+` : '';
+
+  const campusFilterBlock = campusIds && campusIds.length > 0 
+    ? `
+══════════════════════════════════════════════════════════════
+ISOLATION PAR CAMPUS (RÈGLE CRITIQUE)
+══════════════════════════════════════════════════════════════
+Tu es restreint aux campus suivants : [${campusIds.join(', ')}]
+Toutes tes requêtes DOIVENT filtrer les données pour ne concerner QUE ces campus.
+- campuses → WHERE id IN ('${campusIds.join("','")}')
+- classes  → WHERE "campusId" IN ('${campusIds.join("','")}')
+- users    → WHERE "campusId" IN ('${campusIds.join("','")}') (pour les étudiants)
+- professors/modules/reports/evaluations/decisions → Joindre campuses via classes ou professors et filtrer par ca.id IN ('${campusIds.join("','")}')
 ══════════════════════════════════════════════════════════════
 ` : '';
 
@@ -147,6 +161,7 @@ ${ctx.lastSql}
 Tu es un expert SQL PostgreSQL pour une plateforme de pilotage pédagogique.
 
 ${contextBlock}
+${campusFilterBlock}
 
 ══════════════════════════════════════════════════════════════
 DÉCISION PREMIÈRE
@@ -691,7 +706,7 @@ export const chatService = {
 
   // ── MAIN ─────────────────────────────────────────────────────────────────
 
-  async askDirect(question: string, schoolId: string, userId: string, conversationId?: string) {
+  async askDirect(question: string, schoolId: string, userId: string, conversationId?: string, filters?: { campusIds?: string[] }) {
     await this.ensureSchema();
 
     // School name
@@ -733,7 +748,7 @@ export const chatService = {
 
     try {
       // ── Étape 1 : SQL ──────────────────────────────────────────────────────
-      const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx);
+      const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, filters?.campusIds);
       const sqlUserPrompt = [
         historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : '',
         `QUESTION : ${question}`,

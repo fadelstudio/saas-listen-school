@@ -34,7 +34,9 @@ export declare const chatService: {
     }>;
     loadSqlContext(convId: string): Promise<ConvContext>;
     saveSqlContext(convId: string, ctx: ConvContext): Promise<void>;
-    askDirect(question: string, schoolId: string, userId: string, conversationId?: string): Promise<{
+    askDirect(question: string, schoolId: string, userId: string, conversationId?: string, filters?: {
+        campusIds?: string[];
+    }): Promise<{
         answer: string;
         conversationId: string;
         usedDB: boolean;
