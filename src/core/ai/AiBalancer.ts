@@ -70,21 +70,50 @@ export class AiBalancer {
   }
 
   async getStatus(schoolId: string) { 
-    const { redisConnection } = await import('../../core/config/redis');
-    const cached = await redisConnection.get('ai_balancer:current_active_id').catch(() => null);
-    const active = cached || this.currentActiveId;
-    if (active) return { currentActiveId: active };
-
     try {
       const { systemService } = await import('../../modules/system/system.service');
       const settings = await systemService.getSettings(schoolId);
-      if (!settings.aiEnabled) return { currentActiveId: null };
-      const adminConfigs = this.loadAdminConfigs(settings);
-      const resolved = await this.buildCascade(adminConfigs);
-      if (resolved.length > 0) return { currentActiveId: resolved[0].id };
-    } catch (e) {}
+      
+      // 1. Priorité absolue à l'override
+      if (settings.aiOverrideConfigId) {
+        const adminConfigs = this.loadAdminConfigs(settings);
+        const resolved = await this.buildCascade(adminConfigs);
+        const ov = resolved.find(r => r.adminId === settings.aiOverrideConfigId);
+        if (ov) return { currentActiveId: ov.id, current: ov, isOverride: true };
+      }
+
+      // 2. Sinon, check Redis/Mémoire
+      const { redisConnection } = await import('../../core/config/redis');
+      const cached = await redisConnection.get('ai_balancer:current_active_id').catch(() => null);
+      const activeId = cached || this.currentActiveId;
+
+      if (activeId) {
+        const adminConfigs = this.loadAdminConfigs(settings);
+        const resolved = await this.buildCascade(adminConfigs);
+        const active = resolved.find(r => r.id === activeId);
+        if (active) return { currentActiveId: activeId, current: active };
+        return { currentActiveId: activeId }; // Fallback si non trouvé dans la cascade actuelle
+      }
+
+      // 3. Sinon, premier de la cascade
+      if (settings.aiEnabled) {
+        const adminConfigs = this.loadAdminConfigs(settings);
+        const resolved = await this.buildCascade(adminConfigs);
+        if (resolved.length > 0) return { currentActiveId: resolved[0].id, current: resolved[0] };
+      }
+    } catch (e) {
+      console.error("AiBalancer.getStatus error:", e);
+    }
     
     return { currentActiveId: null }; 
+  }
+
+  async clearCache() {
+    this.currentActiveId = null;
+    try {
+      const { redisConnection } = await import('../../core/config/redis');
+      await redisConnection.del('ai_balancer:current_active_id').catch(() => {});
+    } catch (e) {}
   }
 
   // ── Main entry point ──────────────────────────────────────────────────────

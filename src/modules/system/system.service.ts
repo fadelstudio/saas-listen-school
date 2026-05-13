@@ -87,6 +87,11 @@ export const systemService = {
     const updated = await systemRepository.updateSettings(schoolId, data);
     const response = updated as unknown as SystemSettingsResponse;
     settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
+
+    // Invalider le cache du balancer pour forcer la prise en compte immédiate (ex: override)
+    const { aiBalancer } = await import('../../core/ai/AiBalancer');
+    await aiBalancer.clearCache();
+
     return response;
   },
 
