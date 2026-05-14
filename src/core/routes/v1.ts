@@ -22,6 +22,7 @@ import { schoolUsersRouter } from "../../modules/school-users/school-users.route
 import { analyticsRouter } from "../../modules/analytics/analytics.route";
 import { bulkImportRouter } from "../../modules/bulk-import/bulk-import.route";
 import auditRouter from "../../modules/audit/audit.route";
+import { announcementsRouter } from "../../modules/announcements/announcements.route";
 import { resolveSchoolMiddleware } from "../middleware/resolveSchool.middleware";
 
 const router = Router();
@@ -80,5 +81,6 @@ router.use("/school-users",     schoolUsersRouter);
 router.use("/analytics",        analyticsRouter);
 router.use("/bulk-import",     bulkImportRouter);
 router.use("/audit",           auditRouter);
+router.use("/announcements",    announcementsRouter);
 
 export default router;

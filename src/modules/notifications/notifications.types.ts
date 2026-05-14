@@ -11,7 +11,8 @@ export type NotificationType =
   | 'REPORT_STATUS_CHANGED'
   | 'CAMPAIGN_CLOSED'
   | 'ANALYTICS_READY'
-  | 'LOGIN_WELCOME';
+  | 'LOGIN_WELCOME'
+  | 'ANNOUNCEMENT';
 
 export interface SendBroadcastInput {
   title: string;
@@ -22,6 +23,7 @@ export interface SendBroadcastInput {
   targetUserIds?: string[];
   url?: string;
   attachments?: any;
+  type?: NotificationType;
 }
 
 export interface NotificationFilters {

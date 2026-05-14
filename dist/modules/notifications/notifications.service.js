@@ -222,7 +222,7 @@ exports.notificationService = {
             schoolId,
             title: data.title,
             message: data.message,
-            type: 'BROADCAST',
+            type: data.type || 'BROADCAST',
             targetRoles: data.targetRoles,
             targetCampusIds: resolvedCampusIds,
             targetClassIds: data.targetClassIds,
@@ -231,7 +231,7 @@ exports.notificationService = {
             attachments: data.attachments,
         });
         // FCM broadcast en parallèle
-        this._dispatchPush({ ...data, targetCampusIds: resolvedCampusIds, schoolId, type: 'BROADCAST' }, notification.id).catch(err => logger_1.logger.warn('[FCM] Broadcast push failed.', { error: err?.message }));
+        this._dispatchPush({ ...data, targetCampusIds: resolvedCampusIds, schoolId, type: data.type || 'BROADCAST' }, notification.id).catch(err => logger_1.logger.warn('[FCM] Broadcast push failed.', { error: err?.message }));
         return notification;
     },
     /**

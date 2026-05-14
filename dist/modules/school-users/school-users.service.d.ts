@@ -12,6 +12,7 @@ export declare const schoolUsersService: {
         address?: string;
         campusIds?: string[];
         classId?: string;
+        sex?: "MALE" | "FEMALE" | "UNDEFINED";
     }): Promise<{
         id: string;
         email: string;
@@ -27,6 +28,7 @@ export declare const schoolUsersService: {
         phone: string | null;
         bio: string | null;
         address: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         avatarPath: string | null;
         isActive: boolean;
     } & {
@@ -46,6 +48,7 @@ export declare const schoolUsersService: {
         bio: string | null;
         address: string | null;
         avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         classId: string | null;
@@ -69,6 +72,7 @@ export declare const schoolUsersService: {
         bio: string | null;
         address: string | null;
         avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         classId: string | null;
@@ -92,6 +96,7 @@ export declare const schoolUsersService: {
         bio: string | null;
         address: string | null;
         avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         classId: string | null;
@@ -116,12 +121,14 @@ export declare const schoolUsersService: {
         bio?: string | null;
         address?: string | null;
         email?: string;
+        sex?: "MALE" | "FEMALE" | "UNDEFINED";
     }): Promise<{
         email: string;
         id: string;
         firstName: string;
         lastName: string;
         matricule: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         classId: string | null;
@@ -143,6 +150,7 @@ export declare const schoolUsersService: {
         bio: string | null;
         address: string | null;
         avatarPath: string | null;
+        sex: import("@prisma/client").$Enums.Sex;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         emailVerified: boolean;

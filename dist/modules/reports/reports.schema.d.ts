@@ -22,6 +22,13 @@ export declare const createReportSchema: z.ZodObject<{
     professorId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     moduleId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     uti: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    attachments: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        name: z.ZodString;
+        url: z.ZodString;
+        type: z.ZodString;
+        size: z.ZodOptional<z.ZodNumber>;
+        duration: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>>>;
 }, z.core.$strip>;
 export declare const updateReportSchema: z.ZodObject<{
     title: z.ZodOptional<z.ZodString>;

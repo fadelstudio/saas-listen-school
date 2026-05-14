@@ -94,9 +94,27 @@ exports.systemService = {
         return cached.data;
     },
     async updateSettings(schoolId, data) {
+        // Si des configs IA sont envoyées, on gère la persistance des apiKeys sensibles
+        if (data.aiConfigs) {
+            const oldSettings = await this.getSettings(schoolId, true);
+            const oldConfigs = oldSettings.aiConfigs || [];
+            data.aiConfigs = data.aiConfigs.map(newCfg => {
+                // Si l'apiKey est vide, on tente de récupérer l'ancienne pour cet ID
+                if (!newCfg.apiKey || newCfg.apiKey === "") {
+                    const matchingOld = oldConfigs.find(old => old.id === newCfg.id);
+                    if (matchingOld && matchingOld.apiKey) {
+                        return { ...newCfg, apiKey: matchingOld.apiKey };
+                    }
+                }
+                return newCfg;
+            });
+        }
         const updated = await system_repository_1.systemRepository.updateSettings(schoolId, data);
         const response = updated;
         settingsCache.set(schoolId, { data: response, timestamp: Date.now() });
+        // Invalider le cache du balancer pour forcer la prise en compte immédiate (ex: override)
+        const { aiBalancer } = await Promise.resolve().then(() => __importStar(require('../../core/ai/AiBalancer')));
+        await aiBalancer.clearCache();
         return response;
     },
     async getAvailableModels() {

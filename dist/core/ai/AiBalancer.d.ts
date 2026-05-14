@@ -17,6 +17,15 @@ export interface AdminAiConfig {
     preferredModel?: string;
     priority: number;
 }
+interface ResolvedConfig {
+    id: string;
+    name: string;
+    provider: SupportedProvider;
+    apiKey: string;
+    model: string;
+    priority: number;
+    adminId: string;
+}
 export declare class AiBalancer {
     private static _instance;
     private currentActiveId;
@@ -29,9 +38,22 @@ export declare class AiBalancer {
     static getInstance(): AiBalancer;
     getStatus(schoolId: string): Promise<{
         currentActiveId: string;
+        current: ResolvedConfig;
+        isOverride: boolean;
+    } | {
+        currentActiveId: string;
+        current: ResolvedConfig;
+        isOverride?: undefined;
+    } | {
+        currentActiveId: string;
+        current?: undefined;
+        isOverride?: undefined;
     } | {
         currentActiveId: null;
+        current?: undefined;
+        isOverride?: undefined;
     }>;
+    clearCache(): Promise<void>;
     callAI(prompt: string, schoolId: string): Promise<AiResponse>;
     private loadAdminConfigs;
     /**
@@ -50,4 +72,5 @@ export declare class AiBalancer {
     private soonestRetry;
 }
 export declare const aiBalancer: AiBalancer;
+export {};
 //# sourceMappingURL=AiBalancer.d.ts.map

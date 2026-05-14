@@ -115,8 +115,8 @@ export declare const decisionsService: {
             professorId: string | null;
             moduleId: string | null;
             dueDate: Date;
-            campusId: string | null;
             description: string | null;
+            campusId: string | null;
             scope: string;
         }) | null;
         decider: {

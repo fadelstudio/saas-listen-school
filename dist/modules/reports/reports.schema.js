@@ -24,6 +24,13 @@ exports.createReportSchema = zod_1.z.object({
     professorId: zod_1.z.string().uuid('Invalid professor ID').optional().nullable(),
     moduleId: zod_1.z.string().uuid('Invalid module ID').optional().nullable(),
     uti: zod_1.z.string().optional().nullable(),
+    attachments: zod_1.z.array(zod_1.z.object({
+        name: zod_1.z.string(),
+        url: zod_1.z.string().url(),
+        type: zod_1.z.string(),
+        size: zod_1.z.number().optional(),
+        duration: zod_1.z.number().optional(),
+    })).optional(),
 });
 // ─── Update ───────────────────────────────────────────────────────────────────
 exports.updateReportSchema = zod_1.z.object({

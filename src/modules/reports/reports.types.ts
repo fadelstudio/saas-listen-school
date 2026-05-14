@@ -27,6 +27,13 @@ export interface CreateReportInput {
   moduleId?: string;
   uti?: string; // Short for targetDeviceUti
   deviceMetadata?: Record<string, unknown>;
+  attachments?: {
+    name: string;
+    url: string;
+    type: string;
+    size?: number;
+    duration?: number;
+  }[];
 }
 
 export interface UpdateReportInput {

@@ -10,8 +10,8 @@ export declare const evaluationCampaignsService: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     }>;
     getAll(schoolId: string, query: Record<string, unknown>, userRole?: string, userClassId?: string, userCampusIds?: string[], userId?: string): Promise<import("../../utils/pagination").PaginatedResult<any>>;
@@ -98,8 +98,8 @@ export declare const evaluationCampaignsService: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     }>;
     close(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
@@ -112,8 +112,8 @@ export declare const evaluationCampaignsService: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     }>;
     relaunch(id: string, schoolId: string, userRole?: string, userCampusIds?: string[], userId?: string): Promise<{
@@ -126,8 +126,8 @@ export declare const evaluationCampaignsService: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     }>;
     getAnalytics(id: string, schoolId: string, userRole?: string, userCampusIds?: string[]): Promise<{
@@ -200,8 +200,8 @@ export declare const evaluationCampaignsService: {
             professorId: string | null;
             moduleId: string | null;
             dueDate: Date;
-            campusId: string | null;
             description: string | null;
+            campusId: string | null;
             scope: string;
         };
         stats: {

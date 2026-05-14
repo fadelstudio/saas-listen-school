@@ -285,7 +285,7 @@ export const notificationService = {
       schoolId,
       title: data.title,
       message: data.message,
-      type: 'BROADCAST',
+      type: data.type || 'BROADCAST',
       targetRoles: data.targetRoles,
       targetCampusIds: resolvedCampusIds,
       targetClassIds: data.targetClassIds,
@@ -296,7 +296,7 @@ export const notificationService = {
 
     // FCM broadcast en parallèle
     this._dispatchPush(
-      { ...data, targetCampusIds: resolvedCampusIds, schoolId, type: 'BROADCAST' },
+      { ...data, targetCampusIds: resolvedCampusIds, schoolId, type: data.type || 'BROADCAST' },
       notification.id
     ).catch(err => logger.warn('[FCM] Broadcast push failed.', { error: err?.message }));
 

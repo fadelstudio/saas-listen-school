@@ -109,6 +109,7 @@ model School {
   notifications   Notification[]
   aiConversations AiConversation[]
   auditLogs       AuditLog[]
+  announcements   Announcement[]
 
   @@map("schools")
 }
@@ -552,6 +553,8 @@ model AiConversation {
   schoolId  String
   userId    String
   title     String
+  isSaved   Boolean     @default(false)
+  sqlContext String?    @db.Text
   messages  AiMessage[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -689,3 +692,28 @@ model EvaluationCampaign {
   @@index([classId, status, dueDate])
   @@map("evaluation_campaigns")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANNOUNCEMENTS (PUB)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Announcement {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  imageUrl    String?
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  isActive    Boolean   @default(true) // Unique constraint for active managed in service
+  
+  schoolId    String
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, isActive])
+  @@map("announcements")
+}
+

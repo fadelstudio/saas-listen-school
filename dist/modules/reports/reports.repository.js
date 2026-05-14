@@ -26,6 +26,7 @@ exports.reportsRepository = {
                 school: schoolId ? { connect: { id: schoolId } } : undefined,
                 status: client_1.ReportStatus.SUBMITTED,
                 deviceMetadata: data.uti ? { uti: data.uti, ...(data.deviceMetadata || {}) } : data.deviceMetadata,
+                attachments: data.attachments,
             },
             include: {
                 author: { select: { id: true, firstName: true, lastName: true, email: true } },

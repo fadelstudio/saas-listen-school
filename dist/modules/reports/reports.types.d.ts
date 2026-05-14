@@ -14,6 +14,13 @@ export interface CreateReportInput {
     moduleId?: string;
     uti?: string;
     deviceMetadata?: Record<string, unknown>;
+    attachments?: {
+        name: string;
+        url: string;
+        type: string;
+        size?: number;
+        duration?: number;
+    }[];
 }
 export interface UpdateReportInput {
     title?: string;

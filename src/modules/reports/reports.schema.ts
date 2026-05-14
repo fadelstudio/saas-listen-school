@@ -25,6 +25,13 @@ export const createReportSchema = z.object({
   professorId: z.string().uuid('Invalid professor ID').optional().nullable(),
   moduleId: z.string().uuid('Invalid module ID').optional().nullable(),
   uti: z.string().optional().nullable(),
+  attachments: z.array(z.object({
+    name: z.string(),
+    url: z.string().url(),
+    type: z.string(),
+    size: z.number().optional(),
+    duration: z.number().optional(),
+  })).optional(),
 });
 
 

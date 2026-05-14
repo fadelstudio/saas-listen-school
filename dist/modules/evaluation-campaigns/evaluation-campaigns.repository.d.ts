@@ -51,8 +51,8 @@ export declare const evaluationCampaignsRepository: {
             professorId: string | null;
             moduleId: string | null;
             dueDate: Date;
-            campusId: string | null;
             description: string | null;
+            campusId: string | null;
             scope: string;
         })[];
         total: number;
@@ -140,8 +140,8 @@ export declare const evaluationCampaignsRepository: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     }) | null>;
     create(data: {
@@ -163,8 +163,8 @@ export declare const evaluationCampaignsRepository: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     }>;
     updateStatus(id: string, schoolId: string, status: string): Promise<{
@@ -177,8 +177,8 @@ export declare const evaluationCampaignsRepository: {
         professorId: string | null;
         moduleId: string | null;
         dueDate: Date;
-        campusId: string | null;
         description: string | null;
+        campusId: string | null;
         scope: string;
     } | null>;
     getAnalytics(id: string, schoolId: string): Promise<{
@@ -251,8 +251,8 @@ export declare const evaluationCampaignsRepository: {
             professorId: string | null;
             moduleId: string | null;
             dueDate: Date;
-            campusId: string | null;
             description: string | null;
+            campusId: string | null;
             scope: string;
         };
         stats: {
