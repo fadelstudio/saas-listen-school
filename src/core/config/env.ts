@@ -61,7 +61,7 @@ const envSchema = z.object({
 
   // Uploads
   MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(10),
-  SIGNED_URL_EXPIRES_IN: z.coerce.number().int().positive().default(60 * 60), // seconds
+  SIGNED_URL_EXPIRES_IN: z.coerce.number().int().positive().default(60 * 60 * 24 * 365), // 10 years (effectively indefinite)
 
   // Analytics
   ANALYTICS_REPORT_INTERVAL_DAYS: z.coerce.number().int().positive().default(30),

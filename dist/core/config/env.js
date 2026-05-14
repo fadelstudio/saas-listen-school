@@ -61,7 +61,7 @@ const envSchema = zod_1.z.object({
     GROQ_API_KEY: zod_1.z.string().min(1, "GROQ_API_KEY is required"),
     // Uploads
     MAX_FILE_SIZE_MB: zod_1.z.coerce.number().int().positive().default(10),
-    SIGNED_URL_EXPIRES_IN: zod_1.z.coerce.number().int().positive().default(60 * 60), // seconds
+    SIGNED_URL_EXPIRES_IN: zod_1.z.coerce.number().int().positive().default(60 * 60 * 24 * 365 * 10), // 10 years (effectively indefinite)
     // Analytics
     ANALYTICS_REPORT_INTERVAL_DAYS: zod_1.z.coerce.number().int().positive().default(30),
     // Email (OTP login + password reset). Use MAIL_PROVIDER=console to log only (dev).
