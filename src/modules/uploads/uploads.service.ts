@@ -70,17 +70,18 @@ export const uploadsService = {
     };
   },
 
-  /** URL signée pour affichage (durée `SIGNED_URL_EXPIRES_IN`). */
-  async getSignedUrlForPath(path: string | null | undefined): Promise<string | null> {
+  /** URL signée pour affichage (durée `SIGNED_URL_EXPIRES_IN` par défaut). */
+  async getSignedUrlForPath(path: string | null | undefined, expiresIn?: number): Promise<string | null> {
     if (!path?.trim()) return null;
 
     const buckets = [env.SUPABASE_BUCKET || 'attachments', 'schools', 'logos', 'public', 'general'];
+    const duration = expiresIn || env.SIGNED_URL_EXPIRES_IN;
     
     for (const bucket of buckets) {
       try {
         const { data, error } = await supabase.storage
           .from(bucket)
-          .createSignedUrl(path, env.SIGNED_URL_EXPIRES_IN);
+          .createSignedUrl(path, duration);
           
         if (!error && data?.signedUrl) return data.signedUrl;
       } catch (e) {

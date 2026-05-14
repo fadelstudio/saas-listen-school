@@ -121,6 +121,7 @@ newman run AFI_LISTEN_GOD_MODE.postman_collection.json --delay-request 500
 
 - Guide intégration Front/Back: `docs/INTEGRATION_GUIDE.md`
 - **Nouvelles fonctionnalités (Annonces & Pièces Jointes)** : `docs/NEW_FEATURES_GUIDE.md`
+- **Spécifique Mobile (Flutter)** : `docs/MOBILE_INTEGRATION_GUIDE.md`
 - **Auth Google (REST, Web / APK / iOS, variables d’environnement)** : `docs/GOOGLE_AUTH_REST.md`
 - Import Postman (collection + env): `postman/IMPORT_GUIDE.md`
 

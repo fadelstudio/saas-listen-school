@@ -701,7 +701,7 @@ model Announcement {
   id          String    @id @default(uuid())
   title       String
   description String?   @db.Text
-  imageUrl    String?
+  imagePath   String?
   startDate   DateTime  @default(now())
   endDate     DateTime?
   isActive    Boolean   @default(true) // Unique constraint for active managed in service
