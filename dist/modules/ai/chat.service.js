@@ -164,11 +164,12 @@ ISOLATION ÉTUDIANT (STRICTE)
 L'utilisateur est un étudiant (ID: '${userId}').
 Tu DOIS restreindre l'accès aux données privées :
 - evaluations → WHERE "evaluatorId" = '${userId}' (Il ne peut voir QUE ses propres notes/commentaires).
-- reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements).
-- users       → WHERE id = '${userId}' (Sauf pour COUNT(*) des inscrits de sa classe '${classId}').
-- classes     → WHERE id = '${classId}'
-- modules     → JOIN class_modules cm ON m.id = cm."moduleId" WHERE cm."classId" = '${classId}'
-- campuses    → Ok (données publiques de l'établissement).
+- reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements/historique).
+- users       → WHERE id = '${userId}' (Accès à ses propres infos, mais pas aux mots de passe/sécurité).
+- classes     → WHERE id = '${classId}' (Peut voir les infos de sa classe).
+- campuses/schools → OK (Accès public : adresses, noms, règlements si présents).
+- SÉCURITÉ : Bloque TOUTE donnée privée des autres (emails, téléphones, notes des camarades).
+- LECTURE SEULE : Tu ne génères JAMAIS de requêtes UPDATE, DELETE ou INSERT.
 ══════════════════════════════════════════════════════════════
 ` : '';
     return `
@@ -177,6 +178,18 @@ Tu es un expert SQL PostgreSQL pour une plateforme de pilotage pédagogique.
 ${contextBlock}
 ${campusFilterBlock}
 ${classFilterBlock}
+
+══════════════════════════════════════════════════════════════
+DONNÉES PUBLIQUES ÉTABLISSEMENT (AFI-L'UE DAKAR)
+══════════════════════════════════════════════════════════════
+- ADRESSE : Rue G, Zone B, Dakar. Tel: +221 33 824 71 10. BP 17016.
+- FILIÈRES : Gestion (Management, BFA, GRH, Marketing, Audit, Logistique), Droit (Ingénierie Juridique/Fiscale), Technologie (Génie Logiciel, Réseaux, Web, QHSE).
+- DIPLÔMES : Licence (BAC+3), Master (BAC+5). Programmes: International Leader (AFI + FEDE + TOEIC) ou Multiprogramme (AFI + Ministère).
+- RÈGLEMENT : Tenue obligatoire (Uniforme), ponctualité stricte, interdiction des syndicats/politique, pas d'excentricité.
+- ADMISSION : Étude de dossier + Entretien. Inserion pro: 87% sur 5 ans.
+- MODES : Initial, Continu (Soir), Week-end, E-learning (elearning-afi.com).
+- ACCRÉDITATIONS : ANAQ-Sup, CAMES. Membre: FEDE, AACSB, AUF, EFMD.
+══════════════════════════════════════════════════════════════
 
 ══════════════════════════════════════════════════════════════
 DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
@@ -189,23 +202,18 @@ DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
     1. Analyse les détails. Si des infos manquent (ex: titre trop court), complète-les intelligemment.
     2. Le TITRE doit faire au moins 8 caractères.
     3. Le CONTENU doit faire au moins 15 caractères (sois descriptif si l'utilisateur est bref).
-    4. TYPE : Utilise "SUGGESTION" pour les idées/avis et "PROBLEM_MATERIAL" pour les pannes/incidents techniques.
-    5. Retourne une réponse de récapitulatif courte sans symbole markdown (*).
-    6. Ajoute OBLIGATOIREMENT le bloc suivant à la fin :
-       ` ``;
-    json_action;
-    {
-        "type";
-        "CREATE_REPORT", "payload";
-        {
-            "title";
-            "...", "content";
-            "...", "type";
-            "SUGGESTION|PROBLEM_MATERIAL", "priority";
-            "LOW|MEDIUM|HIGH|CRITICAL";
-        }
-    }
-    `` `
+    4. TYPE : 
+       - Si c'est une idée/avis/suggestion → "SUGGESTION"
+       - Si c'est technique/matériel → "PROBLEM_MATERIAL"
+       - Si c'est administratif → "PROBLEM_ADMIN"
+       - Si c'est pédagogique → "PROBLEM_PEDAGOGICAL"
+       - Si c'est un incident → "INCIDENT"
+    5. PRIORITÉ : Détecte l'urgence ("LOW", "MEDIUM", "HIGH" ou "CRITICAL").
+    6. Retourne une réponse de récapitulatif courte sans symbole markdown (*).
+    7. Ajoute OBLIGATOIREMENT le bloc suivant à la fin :
+       \`\`\`json_action
+       { "type": "CREATE_REPORT", "payload": { "title": "...", "content": "...", "type": "TYPE_DÉTECTÉ", "priority": "PRIORITÉ_DÉTECTÉE" } }
+       \`\`\`
 • Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
 • Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
 • En cas de doute absolu → génère le SQL.
@@ -292,13 +300,13 @@ RÈGLES ABSOLUES
     ❌ JAMAIS LIMIT 1 — même pour "la plus", "la moins", "quelle est la meilleure"
     ════════════════════════════════════════════════════════════
     "combat" / "classement" / "comparaison" / "toutes les classes/profs/modules"
-      → TOUTES les lignes disponibles, LIMIT 20 maximum
+      → TOUTES les lignes disponibles, LIMIT ${classId ? 10 : 20} maximum
     "top N" / "les X meilleurs/pires"
       → LIMIT N (ex: top 5 = LIMIT 5, top 3 = LIMIT 3)
     "le meilleur" / "le pire" seul sans comparaison demandée
       → LIMIT 5 (pour les ex-aequo)
     liste générale
-      → LIMIT 20
+      → LIMIT ${classId ? 10 : 20}
     comptage pur (COUNT seulement)
       → pas de LIMIT
     courbe / tendance (GROUP BY date)
@@ -731,9 +739,16 @@ exports.chatService = {
             select: { role: true, classId: true, campuses: { select: { id: true } } }
         });
         const isStudent = user?.role === 'STUDENT';
-        const effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0)
+        let effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0)
             ? filters.campusIds
             : (user?.campuses.map(c => c.id) || []);
+        // Sécurité : Un étudiant ne peut pas "sortir" de ses propres campus
+        if (isStudent && user?.campuses) {
+            const userCampusIds = user.campuses.map(c => c.id);
+            effectiveCampusIds = effectiveCampusIds.filter(id => userCampusIds.includes(id));
+            if (effectiveCampusIds.length === 0)
+                effectiveCampusIds = userCampusIds;
+        }
         const effectiveClassId = isStudent ? user?.classId : null;
         // Conversation
         let convId = conversationId;

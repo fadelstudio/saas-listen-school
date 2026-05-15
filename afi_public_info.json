@@ -1,0 +1,118 @@
+{
+  "school_info": {
+    "name": "AFI - L'Université de l'Entreprise (AFI-L'UE)",
+    "founding_year": 1993,
+    "headquarters": {
+      "address": "Rue G, Zone B, Dakar, Sénégal",
+      "bp": "BP 17016 Dakar Liberté",
+      "phones": [
+        "+221 33 824 71 10",
+        "+221 77 508 87 28"
+      ],
+      "email": "afi@afi-ue.sn",
+      "website": "https://afi-ue.sn"
+    },
+    "accreditations": [
+      "ANAQ-Sup (Sénégal)",
+      "CAMES (Conseil Africain et Malgache pour l'Enseignement Supérieur)"
+    ],
+    "memberships": [
+      "FEDE (Fédération Européenne des Écoles)",
+      "EFMD (European Foundation for Management Development)",
+      "AACSB (Association to Advance Collegiate Schools of Business)",
+      "AUF (Agence Universitaire de la Francophonie)"
+    ]
+  },
+  "academic_domains": [
+    {
+      "name": "Sciences Économiques et de Gestion",
+      "majors": [
+        "Management des Organisations / Management Stratégique",
+        "Banque, Finance et Assurance (BFA)",
+        "Gestion des Ressources Humaines (GRH)",
+        "Marketing et Communication Digitale",
+        "Audit et Contrôle de Gestion",
+        "Gestion et Stratégie d'Entreprise",
+        "Génie Logistique / Transport et Logistique",
+        "Management des Organisations Sanitaires et Sociales",
+        "Management des Affaires Internationales",
+        "Comptabilité et Finance"
+      ]
+    },
+    {
+      "name": "Sciences Juridiques, Politiques et de l'Administration",
+      "majors": [
+        "Ingénierie Juridique et Fiscale",
+        "Audit Juridique et Fiscal",
+        "Administration Publique"
+      ]
+    },
+    {
+      "name": "Sciences et Technologies",
+      "majors": [
+        "Génie Logiciel (Ingénierie Informatique)",
+        "Systèmes d'Information",
+        "Systèmes, Réseaux et Télécommunications",
+        "Développement Web et Marketing Digital",
+        "Qualité, Hygiène, Sécurité et Environnement (QHSE)",
+        "Agroalimentaire (Licence uniquement)",
+        "Électromécanique (Licence uniquement)"
+      ]
+    }
+  ],
+  "diplomas_and_levels": {
+    "levels": [
+      "Licence (BAC+3)",
+      "Master (BAC+5)"
+    ],
+    "special_programs": {
+      "International Leader": "Double diplôme AFI-L'UE (signé par le Ministère) + Diplôme Européen (DEES/FEDE) + Certification TOEIC",
+      "Standard Multiprogramme": "Diplôme AFI-L'UE cosigné par le Ministère de l'Enseignement Supérieur du Sénégal"
+    }
+  },
+  "study_modes": [
+    "Formation initiale (Jour)",
+    "Formation continue (Cours du soir)",
+    "Cours du week-end",
+    "Formation à distance (E-learning via elearning-afi.com)"
+  ],
+  "admission_rules": {
+    "process": "Étude de dossier suivie d'un entretien individuel",
+    "required_documents": [
+      "Copie légalisée du diplôme (BAC ou Licence)",
+      "Relevés de notes des années précédentes",
+      "Pièce d'identité en cours de validité",
+      "Photos d'identité récentes"
+    ]
+  },
+  "regulations": {
+    "general_rules": [
+      "Respect strict des autorités administratives et des professeurs",
+      "Ponctualité rigoureuse (interdiction d'entrer après le début du cours)",
+      "Port de la tenue vestimentaire obligatoire (Uniforme)",
+      "Interdiction de toute forme d'organisation syndicale ou politique au sein du campus",
+      "Interdiction de toute forme d'excentricité (coiffure, bijoux excessifs, etc.)",
+      "Responsabilité financière engagée en cas de dégradation volontaire du matériel"
+    ]
+  },
+  "statistics": {
+    "professional_insertion_rate": "87% d'insertion professionnelle au cours des 5 dernières années",
+    "teaching_quality": "Programmes régulièrement mis à jour pour s'adapter aux besoins du marché du travail"
+  },
+  "access_and_facilities": {
+    "e_learning_platform": "elearning-afi.com",
+    "campuses": [
+      {
+        "name": "Campus Principal Zone B",
+        "location": "Dakar, Rue G, à proximité de l'UCAD",
+        "facilities": [
+          "Salles de cours climatisées",
+          "Laboratoires informatiques",
+          "Bibliothèque",
+          "Espace cafétéria"
+        ]
+      }
+    ]
+  },
+  "contact_summary": "Pour les tarifs détaillés et les bourses, contacter le service des admissions au +221 33 824 71 10."
+}
