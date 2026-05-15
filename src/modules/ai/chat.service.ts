@@ -137,10 +137,10 @@ function classifyIntentLocally(question: string): 'GENERAL' | 'ACTION' | 'DATA' 
   ];
 
   const actionPatterns = [
-    /^(je veux|j'aimerais|je souhaite) (signaler|suggérer|faire un rapport|faire une suggestion)/,
-    /^(signale|suggère|crée|envoie) (un signalement|une suggestion|un rapport)/,
-    /j'ai un (problème|souci|incident|bug) (de|avec|sur) (wifi|clim|ordinateur|matériel|salle|prof|cours)/,
-    /je (voudrais|veux) (rapporter|signaler) (que|un)/,
+    /^(je veux|j'aimerais|je souhaite|envoie|crée|fait) (signaler|suggérer|rapport|suggestion|proble|signal|siganl)/i,
+    /^(signale|suggère|crée|envoie|rapporte) (un |une |le )?(signalement|suggestion|rapport|proble)/i,
+    /(problème|souci|incident|bug|proble|pb|dysfonctionnement) (de|avec|sur|dans|salle) (wifi|clim|ordinateur|matériel|salle|prof|cours|internet)/i,
+    /je (voudrais|veux) (rapporter|signaler) (que|un)/i,
   ];
 
   for (const p of generalPatterns) if (p.test(q)) return 'GENERAL';
@@ -253,11 +253,13 @@ class_modules(id,classId,moduleId)
 analysis_reports(id,schoolId,title,content,filters,generatedById,isRead)
 
 ── DÉCISION ──
+• ANALYSE : Interprète la question en corrigeant mentalement les fautes d'orthographe (ex: "wifif" -> "wifi", "salls" -> "salle", "proble" -> "problème", "eval" -> "évaluation") pour identifier les entités.
 • Salutation/Hors-sujet/Blague → retourne EXACTEMENT: NO_QUERY
 • Signalement/Suggestion → retourne un résumé court suivi OBLIGATOIREMENT du bloc :
   \`\`\`json_action
   {"type":"CREATE_REPORT","payload":{"title":"...","content":"...","type":"TYPE","priority":"PRIORITÉ"}}
   \`\`\`
+  Exemple: "Je m'en occupe. \`\`\`json_action {"type":"CREATE_REPORT","payload":{...}} \`\`\`"
   Types: PROBLEM_MATERIAL, PROBLEM_ADMIN, PROBLEM_PEDAGOGICAL, INCIDENT, SUGGESTION, OTHER.
   Priorités: LOW, MEDIUM, HIGH, CRITICAL.
   (Titre min 8 car, Contenu min 15 car. Étoffe intelligemment si l'utilisateur est bref.)
@@ -339,7 +341,8 @@ QUESTION: ${question}
   • Longueur: 2 à 6 phrases pour questions simples, liste structurée pour classements/comparaisons.
   • Émojis pour listes (📍 🎓 📊 ✅ ⚠️ 📈).
   • Tu PEUX utiliser le markdown standard (* ou - pour les listes, ** pour le gras) pour rendre la réponse belle et lisible.
-  • ZÉRO UUID, ZÉRO nom de table SQL, ZÉRO syntaxe technique.
+  • ZÉRO UUID, ZÉRO ID technique (ID numérique), ZÉRO nom de table SQL.
+  • ZÉRO syntaxe technique ou mention de base de données.
   • Ton ton est direct et professionnel. Ne dis jamais "D'après les données".
   • Établissement: "${schoolName}".${chartNote}
 
