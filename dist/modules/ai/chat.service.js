@@ -127,7 +127,7 @@ function formatHistory(history) {
         .join('\n');
 }
 // ─── SQL Prompt ───────────────────────────────────────────────────────────────
-function buildSqlPrompt(schoolId, ctx, campusIds) {
+function buildSqlPrompt(schoolId, ctx, userId, campusIds, classId) {
     const contextBlock = ctx.lastSql
         ? `
 ══════════════════════════════════════════════════════════════
@@ -156,15 +156,35 @@ Toutes tes requêtes DOIVENT filtrer les données pour ne concerner QUE ces camp
 - professors/modules/reports/evaluations/decisions → Joindre campuses via classes ou professors et filtrer par ca.id IN ('${campusIds.join("','")}')
 ══════════════════════════════════════════════════════════════
 ` : '';
+    const classFilterBlock = classId
+        ? `
+══════════════════════════════════════════════════════════════
+ISOLATION ÉTUDIANT (STRICTE)
+══════════════════════════════════════════════════════════════
+L'utilisateur est un étudiant (ID: '${userId}').
+Tu DOIS restreindre l'accès aux données privées :
+- evaluations → WHERE "evaluatorId" = '${userId}' (Il ne peut voir QUE ses propres notes/commentaires).
+- reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements).
+- users       → WHERE id = '${userId}' (Sauf pour COUNT(*) des inscrits de sa classe '${classId}').
+- classes     → WHERE id = '${classId}'
+- modules     → JOIN class_modules cm ON m.id = cm."moduleId" WHERE cm."classId" = '${classId}'
+- campuses    → Ok (données publiques de l'établissement).
+══════════════════════════════════════════════════════════════
+` : '';
     return `
 Tu es un expert SQL PostgreSQL pour une plateforme de pilotage pédagogique.
 
 ${contextBlock}
 ${campusFilterBlock}
+${classFilterBlock}
 
 ══════════════════════════════════════════════════════════════
-DÉCISION PREMIÈRE
+DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
 ══════════════════════════════════════════════════════════════
+• RÉPONSE COURTE : Ne génère JAMAIS de liste si l'utilisateur demande "le plus", "le meilleur", "le pire" ou "qui est".
+  → Utilise LIMIT 1 pour répondre directement par UNE SEULE entité.
+• PAS DE SYMBOLES : N'utilise JAMAIS de caractères "*" ou "**" dans tes réponses texte (pas de gras markdown).
+• LISTE/TABLEAU : Ne génère une liste ou un tableau QUE si l'utilisateur utilise explicitement les mots "liste", "classement" ou "tableau".
 • Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
 • Demande d'ACTION ("envoyer un signalement", "faire un rapport", "évaluer le prof X", "noter ce cours") → retourne EXACTEMENT la chaîne : INTENT_ACTION
 • Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
@@ -685,6 +705,16 @@ exports.chatService = {
             schoolName = s.schoolName || schoolName;
         }
         catch { /* default */ }
+        // Fetch user details for isolation
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true, classId: true, campuses: { select: { id: true } } }
+        });
+        const isStudent = user?.role === 'STUDENT';
+        const effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0)
+            ? filters.campusIds
+            : (user?.campuses.map(c => c.id) || []);
+        const effectiveClassId = isStudent ? user?.classId : null;
         // Conversation
         let convId = conversationId;
         if (!convId) {
@@ -712,7 +742,7 @@ exports.chatService = {
         let chartData = null;
         try {
             // ── Étape 1 : SQL ──────────────────────────────────────────────────────
-            const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, filters?.campusIds);
+            const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, userId, effectiveCampusIds, effectiveClassId);
             const sqlUserPrompt = [
                 historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : '',
                 `QUESTION : ${question}`,
@@ -761,7 +791,7 @@ exports.chatService = {
             // ── Étape 2 : Réponse naturelle ───────────────────────────────────────
             const finalPrompt = buildResponsePrompt(systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, chartData !== null);
             const finalRes = await aiBalancer.callAI(finalPrompt, schoolId);
-            answer = finalRes.content.trim();
+            answer = finalRes.content.trim().replace(/\*/g, ''); // Safety: strip all stars for clean mobile UI
         }
         catch (e) {
             console.error('❌ AI Balancer completely failed:', e.message);
