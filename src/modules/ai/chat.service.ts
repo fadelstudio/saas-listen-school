@@ -114,19 +114,35 @@ function buildChartTitle(question: string): string {
   return clean.charAt(0).toUpperCase() + clean.slice(1, 60) + (clean.length > 60 ? '…' : '');
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const SCHOOL_KNOWLEDGE = `
+══════════════════════════════════════════════════════════════
+DONNÉES PUBLIQUES ÉTABLISSEMENT (AFI-L'UE DAKAR)
+══════════════════════════════════════════════════════════════
+- ADRESSE : Rue G, Zone B, Dakar. Tel: +221 33 824 71 10. BP 17016.
+- FILIÈRES : Gestion (Management, BFA, GRH, Marketing, Audit, Logistique), Droit (Ingénierie Juridique/Fiscale), Technologie (Génie Logiciel, Réseaux, Web, QHSE).
+- DIPLÔMES : Licence (BAC+3), Master (BAC+5). Programmes: International Leader (AFI + FEDE + TOEIC) ou Multiprogramme (AFI + Ministère).
+- RÈGLEMENT : Tenue obligatoire (Uniforme), ponctualité stricte, interdiction des syndicats/politique, pas d'excentricité.
+- ADMISSION : Étude de dossier + Entretien. Insertion pro: 87% sur 5 ans.
+- MODES : Initial, Continu (Soir), Week-end, E-learning (elearning-afi.com).
+- ACCRÉDITATIONS : ANAQ-Sup, CAMES. Membre: FEDE, AACSB, AUF, EFMD.
+══════════════════════════════════════════════════════════════
+`;
+
 // ─── History Formatter ────────────────────────────────────────────────────────
 
 function formatHistory(history: Array<{ role: string; content: string }>): string {
   if (!history || history.length === 0) return '';
   return history
     .slice(-12)
-    .map(m => `${m.role === 'user' ? '👤 Admin' : '🤖 MyIA'}: ${m.content}`)
+    .map(m => `${m.role === 'user' ? '👤 Utilisateur' : '🤖 MyIA'}: ${m.content}`)
     .join('\n');
 }
 
 // ─── SQL Prompt ───────────────────────────────────────────────────────────────
 
-function buildSqlPrompt(schoolId: string, ctx: ConvContext, userId: string, campusIds?: string[], classId?: string | null): string {
+function buildSqlPrompt(schoolId: string, ctx: ConvContext, userId: string, role: string, campusIds?: string[], classId?: string | null): string {
   const contextBlock = ctx.lastSql
     ? `
 ══════════════════════════════════════════════════════════════
@@ -142,6 +158,16 @@ ${ctx.lastSql}
   entités/filters du SQL précédent. Modifie seulement ce qui change.
 ══════════════════════════════════════════════════════════════
 ` : '';
+
+  const roleBlock = `
+══════════════════════════════════════════════════════════════
+IDENTITÉ UTILISATEUR & DROITS
+══════════════════════════════════════════════════════════════
+- Rôle : ${role} (ID: '${userId}')
+- Restriction Campus : ${campusIds && campusIds.length > 0 ? `[${campusIds.join(', ')}]` : 'AUCUNE (Accès global)'}
+- Restriction Classe : ${classId ? classId : 'AUCUNE'}
+══════════════════════════════════════════════════════════════
+`;
 
   const campusFilterBlock = campusIds && campusIds.length > 0 
     ? `
@@ -162,7 +188,7 @@ Toutes tes requêtes DOIVENT filtrer les données pour ne concerner QUE ces camp
 ══════════════════════════════════════════════════════════════
 ISOLATION ÉTUDIANT (STRICTE)
 ══════════════════════════════════════════════════════════════
-L'utilisateur est un étudiant (ID: '${userId}').
+L'utilisateur est un étudiant.
 Tu DOIS restreindre l'accès aux données privées :
 - evaluations → WHERE "evaluatorId" = '${userId}' (Il ne peut voir QUE ses propres notes/commentaires).
 - reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements/historique).
@@ -177,21 +203,12 @@ Tu DOIS restreindre l'accès aux données privées :
   return `
 Tu es un expert SQL PostgreSQL pour une plateforme de pilotage pédagogique.
 
+${roleBlock}
 ${contextBlock}
 ${campusFilterBlock}
 ${classFilterBlock}
 
-══════════════════════════════════════════════════════════════
-DONNÉES PUBLIQUES ÉTABLISSEMENT (AFI-L'UE DAKAR)
-══════════════════════════════════════════════════════════════
-- ADRESSE : Rue G, Zone B, Dakar. Tel: +221 33 824 71 10. BP 17016.
-- FILIÈRES : Gestion (Management, BFA, GRH, Marketing, Audit, Logistique), Droit (Ingénierie Juridique/Fiscale), Technologie (Génie Logiciel, Réseaux, Web, QHSE).
-- DIPLÔMES : Licence (BAC+3), Master (BAC+5). Programmes: International Leader (AFI + FEDE + TOEIC) ou Multiprogramme (AFI + Ministère).
-- RÈGLEMENT : Tenue obligatoire (Uniforme), ponctualité stricte, interdiction des syndicats/politique, pas d'excentricité.
-- ADMISSION : Étude de dossier + Entretien. Inserion pro: 87% sur 5 ans.
-- MODES : Initial, Continu (Soir), Week-end, E-learning (elearning-afi.com).
-- ACCRÉDITATIONS : ANAQ-Sup, CAMES. Membre: FEDE, AACSB, AUF, EFMD.
-══════════════════════════════════════════════════════════════
+${SCHOOL_KNOWLEDGE}
 
 ══════════════════════════════════════════════════════════════
 DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
@@ -231,7 +248,7 @@ academic_levels:      id, name, "order", schoolId, createdAt, updatedAt
 modules:              id, name, code, schoolId, createdAt, updatedAt
 professors:           id, "firstName","lastName", email, matricule, numero, phone, avatarPath, userId, schoolId, createdAt, updatedAt
 users:                id, "firstName","lastName", email, role, matricule, numero, phone, "isActive","emailVerified","classId", schoolId, createdAt, updatedAt
-                      role: 'STUDENT'|'PROFESSOR'|'ADMIN'|'SUPER_ADMIN'|'MANAGER'|'VIEWER'|'AGENT'
+                      role: 'STUDENT'|'PROFESSOR'|'ADMIN'|'SUPERADMIN'|'MANAGER'|'VIEWER'|'AGENT'
 reports:              id, title, content, type, priority, status, "isAnonymous", category,
                       "authorId","classId","professorId","moduleId", attachments,"aiAnalysis", schoolId, createdAt, updatedAt
                       priority: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
@@ -505,19 +522,31 @@ function buildResponsePrompt(
   question: string,
   schoolName: string,
   isGeneral: boolean,
-  hasChart: boolean
+  hasChart: boolean,
+  role: string,
+  isStudent: boolean = false
 ): string {
+  const userPersona = isStudent 
+    ? "L'utilisateur est un ÉTUDIANT. Parle-lui comme à un élève de l'établissement, de manière encourageante mais professionnelle." 
+    : `L'utilisateur est un ${role}. Sois précis, analytique et efficace.`;
+
   if (isGeneral) {
     return `${systemIdentity}
+
+${userPersona}
+
+${SCHOOL_KNOWLEDGE}
 
 ${historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : ''}
 QUESTION : ${question}
 
 Réponds en français, de manière chaleureuse, courte et directe.
+- Utilise les DONNÉES PUBLIQUES ci-dessus si la question porte sur l'école (adresse, règlement, filières).
 - Salutation ou merci → réponds par une seule phrase amicale.
 - Question hors-sujet ou blague → réponds directement, sans introduire tes fonctions.
-- Si et SEULEMENT SI l'utilisateur demande "Qui es-tu ?" ou "Que peux-tu faire ?" → liste brièvement tes capacités liées au projet (stats, signalements, évaluations, tendances).
-- Tu t'appelles MyIA et tu représentes "${schoolName}".`;
+- Si l'utilisateur demande "Qui es-tu ?" ou "Que peux-tu faire ?" → explique que tu es son assistant pour l'aider dans sa vie scolaire (consulter ses infos, faire des signalements, voir les règlements).
+- Tu t'appelles MyIA et tu représentes "${schoolName}".
+- ÉVITE le formatage JSON ou les listes brutes techniques. Utilise des emojis pour les listes.`;
   }
 
   const chartNote = hasChart
@@ -525,6 +554,8 @@ Réponds en français, de manière chaleureuse, courte et directe.
     : '';
 
   return `${systemIdentity}
+
+${userPersona}
 
 DONNÉES RÉCUPÉRÉES (JSON) :
 ${dbDataStr}
@@ -539,27 +570,18 @@ RÈGLES DE RÉPONSE
 2. NOMS LISIBLES : Affiche campaign_title, professor_name, class_name, module_name, campus_name.
    Jamais d'UUID ni d'identifiants techniques.
 3. TON ASSERTIF : Jamais "D'après les données", "il me semble". Affirme avec certitude.
-4. CLASSEMENT COMPLET : Si les données contiennent plusieurs lignes (classement, combat, comparaison),
-   CITE-LES TOUTES dans l'ordre. Ne dis jamais "les données ne concernent qu'une seule X" si le JSON
-   en contient plusieurs.
+4. CLASSEMENT COMPLET : Si les données contiennent plusieurs lignes, CITE-LES TOUTES.
 5. EX-AEQUO : Si même valeur → "à égalité".
 6. VIDE : SI ET SEULEMENT SI le JSON est vide ou dit "Aucun résultat" → réponds "Aucune donnée disponible.".
-   SINON, tu dois obligatoirement décrire les données présentes.
 7. ERREUR : "erreur technique" → "Je ne peux pas récupérer cette information pour le moment."
-8. FORMAT :
-   - Classement/combat → liste à puces numérotée avec rang et valeurs clés
-   - Tendance/courbe → décris la direction (hausse/baisse/stable) + valeurs extrêmes
-   - Bilan complet → métriques structurées
-   - Question simple → 2-4 phrases directes${chartNote}
-10. ACTIONS : Si les DONNÉES indiquent "USER_WANTS_ACTION", tu dois proposer de créer le contenu (signalement ou évaluation) en demandant les détails manquants ou en confirmant ce qui a été dit. 
-    Pour accélérer, retourne un bloc JSON spécial à la fin de ta réponse si tu as assez d'infos pour pré-remplir le formulaire :
-    \`\`\`json_action
-    { "type": "CREATE_REPORT", "payload": { "title": "...", "content": "...", "priority": "MEDIUM" } }
-    \`\`\`
-    OU
-    \`\`\`json_action
-    { "type": "CREATE_EVALUATION", "payload": { "professorId": "...", "moduleId": "...", "ratings": { ... } } }
-    \`\`\`
+8. FORMATAGE CLEAN (SANS MARKDOWN *) :
+   - Pour les listes, utilise des emojis (ex: 📍, 🎓, 📊) au lieu de tirets ou de points.
+   - Pas de gras (**), pas d'italique (*).
+   - Tendance/courbe → décris la direction (hausse/baisse/stable) + valeurs extrêmes.
+   - Question simple → 2-4 phrases directes.
+${chartNote}
+10. ACTIONS : Si les DONNÉES indiquent "USER_WANTS_ACTION", propose de créer le contenu.
+    Si tu as assez d'infos, ajoute le bloc JSON_ACTION à la fin (il sera caché à l'utilisateur).
 11. Jamais de SQL, d'UUIDs, de noms de tables dans la réponse.
 12. Établissement : "${schoolName}".`;
 }
@@ -771,16 +793,38 @@ export const chatService = {
       select: { role: true, classId: true, campuses: { select: { id: true } } }
     });
 
-    const isStudent = user?.role === 'STUDENT';
-    let effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0) 
-      ? filters.campusIds 
-      : (user?.campuses.map(c => c.id) || []);
+    const userRole = user?.role || 'VIEWER';
+    const isStudent = userRole === 'STUDENT';
+    const isSuperAdmin = userRole === 'SUPERADMIN';
 
-    // Sécurité : Un étudiant ne peut pas "sortir" de ses propres campus
-    if (isStudent && user?.campuses) {
-      const userCampusIds = user.campuses.map(c => c.id);
-      effectiveCampusIds = effectiveCampusIds.filter(id => userCampusIds.includes(id));
-      if (effectiveCampusIds.length === 0) effectiveCampusIds = userCampusIds;
+    // Campus Authorized (depuis la base de données)
+    const authorizedCampusIds = user?.campuses.map(c => c.id) || [];
+
+    let effectiveCampusIds: string[] = [];
+    
+    if (filters?.campusIds && filters.campusIds.length > 0) {
+      // L'utilisateur demande des campus spécifiques
+      if (isSuperAdmin || (userRole === 'ADMIN' && authorizedCampusIds.length === 0)) {
+        // Super Admin ou Admin sans restriction explicite → peut filtrer librement
+        effectiveCampusIds = filters.campusIds;
+      } else if (authorizedCampusIds.length > 0) {
+        // Autres rôles restreints → intersection
+        effectiveCampusIds = filters.campusIds.filter(id => authorizedCampusIds.includes(id));
+        // Si aucun match, on reste sur ses campus autorisés
+        if (effectiveCampusIds.length === 0) effectiveCampusIds = authorizedCampusIds;
+      } else {
+        // Pas de campus autorisé et pas admin → vide
+        effectiveCampusIds = [];
+      }
+    } else {
+      // Pas de filtre demandé → on utilise ses accès par défaut
+      effectiveCampusIds = authorizedCampusIds;
+    }
+
+    // Sécurité supplémentaire étudiant
+    if (isStudent && authorizedCampusIds.length > 0) {
+      effectiveCampusIds = effectiveCampusIds.filter(id => authorizedCampusIds.includes(id));
+      if (effectiveCampusIds.length === 0) effectiveCampusIds = authorizedCampusIds;
     }
 
     const effectiveClassId = isStudent ? user?.classId : null;
@@ -817,7 +861,7 @@ export const chatService = {
 
     try {
       // ── Étape 1 : SQL ──────────────────────────────────────────────────────
-      const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, userId, effectiveCampusIds, effectiveClassId);
+      const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, userId, userRole, effectiveCampusIds, effectiveClassId);
       const sqlUserPrompt = [
         historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : '',
         `QUESTION : ${question}`,
@@ -881,7 +925,7 @@ export const chatService = {
 
       // ── Étape 2 : Réponse naturelle ───────────────────────────────────────
       const finalPrompt = buildResponsePrompt(
-        systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, chartData !== null
+        systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, chartData !== null, userRole, isStudent
       );
       const finalRes = await aiBalancer.callAI(finalPrompt, schoolId);
       answer = finalRes.content.trim().replace(/\*/g, ''); // Safety: strip all stars for clean mobile UI
