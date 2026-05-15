@@ -137,9 +137,10 @@ function classifyIntentLocally(question: string): 'GENERAL' | 'ACTION' | 'DATA' 
   ];
 
   const actionPatterns = [
-    /signal(er|ement)|suggér|suggestion|problème (de |d'|avec )|incident|réclamation/,
-    /je veux (signaler|rapporter|soumettre)|j'ai un problème/,
-    /créer? (un|une) (rapport|signalement|suggestion)/,
+    /^(je veux|j'aimerais|je souhaite) (signaler|suggérer|faire un rapport|faire une suggestion)/,
+    /^(signale|suggère|crée|envoie) (un signalement|une suggestion|un rapport)/,
+    /j'ai un (problème|souci|incident|bug) (de|avec|sur) (wifi|clim|ordinateur|matériel|salle|prof|cours)/,
+    /je (voudrais|veux) (rapporter|signaler) (que|un)/,
   ];
 
   for (const p of generalPatterns) if (p.test(q)) return 'GENERAL';
@@ -223,8 +224,9 @@ ${contextBlock}
    - courbe/tendance → ORDER BY date ASC, LIMIT 90 max
    - classement/combat → TOUTES les lignes (LIMIT 20 max), PAS LIMIT 1
 9. PIÈGES :
-   - reports.authorId (PAS userId), reports n'a PAS campaignId
-   - evaluation_campaigns n'a PAS schoolId → passer par professors
+   - reports.authorId (PAS userId), reports n'a PAS campaignId.
+   - evaluation_campaigns n'a PAS schoolId → passer par professors.
+   - Évaluations "en attente" → status IN ('PENDING', 'IN_PROGRESS').
 10. ORDER BY : Réutiliser l'expression complète, pas un alias calculé.
 
 ── SCHÉMA RÉSUMÉ ──
@@ -252,12 +254,15 @@ analysis_reports(id,schoolId,title,content,filters,generatedById,isRead)
 
 ── DÉCISION ──
 • Salutation/Hors-sujet/Blague → retourne EXACTEMENT: NO_QUERY
-• Signalement/Suggestion → retourne résumé (sans *) + bloc:
+• Signalement/Suggestion → retourne un résumé court suivi OBLIGATOIREMENT du bloc :
   \`\`\`json_action
   {"type":"CREATE_REPORT","payload":{"title":"...","content":"...","type":"TYPE","priority":"PRIORITÉ"}}
   \`\`\`
-  (titre ≥8 car, contenu ≥15 car, complète si l'utilisateur est bref)
-• Toute question sur les données → génère le SQL
+  Types: PROBLEM_MATERIAL, PROBLEM_ADMIN, PROBLEM_PEDAGOGICAL, INCIDENT, SUGGESTION, OTHER.
+  Priorités: LOW, MEDIUM, HIGH, CRITICAL.
+  (Titre min 8 car, Contenu min 15 car. Étoffe intelligemment si l'utilisateur est bref.)
+• Évaluation → retourne bloc json_action avec type "CREATE_EVALUATION" si les détails sont fournis.
+• Toute question sur les données (historique, status, comptage) → génère le SQL.
 `.trim();
 }
 
@@ -293,11 +298,10 @@ RÈGLES:
 - Question sur l'école (adresse/filières/règlement) → utilise les données publiques ci-dessus.
 - "Qui es-tu / Que peux-tu faire" → explique que tu es MyIA, assistant de "${schoolName}", capable de consulter les évaluations, signalements, statistiques et règlements.
 - Hors-sujet ou blague → réponds directement et brièvement, sans mentionner tes fonctions.
-- JAMAIS de formatting JSON, markdown (*/**), ou listes techniques.
+- JAMAIS de formatting JSON, ou listes techniques.
 - Utilise des emojis pour rendre les listes plus lisibles si nécessaire.`;
   }
 
-  // AMÉLIORATION #5 : Réponse analytique guidée par étapes concrètes.
   const dataSection = dbDataStr === 'Aucun résultat trouvé.'
     ? `DONNÉES: Aucun résultat.`
     : dbDataStr.includes('erreur technique')
@@ -333,11 +337,13 @@ QUESTION: ${question}
 ÉTAPE 3 — FORMAT:
   • Langue: français uniquement.
   • Longueur: 2 à 6 phrases pour questions simples, liste structurée pour classements/comparaisons.
-  • Émojis pour listes (📍 🎓 📊 ✅ ⚠️ 📈), PAS de tirets ni de points.
-  • ZÉRO symbole * ou ** (pas de markdown gras/italique).
+  • Émojis pour listes (📍 🎓 📊 ✅ ⚠️ 📈).
+  • Tu PEUX utiliser le markdown standard (* ou - pour les listes, ** pour le gras) pour rendre la réponse belle et lisible.
   • ZÉRO UUID, ZÉRO nom de table SQL, ZÉRO syntaxe technique.
-  • Ton assertif: jamais "D'après les données", "il semble", "je pense". Affirme directement.
-  • Établissement: "${schoolName}".${chartNote}`;
+  • Ton ton est direct et professionnel. Ne dis jamais "D'après les données".
+  • Établissement: "${schoolName}".${chartNote}
+
+⚠️ RÈGLE CRITIQUE ACTIONS : Si l'utilisateur exprime une volonté de créer un rapport/évaluation et que tu as assez d'infos, ajoute TOUJOURS le bloc \`\`\`json_action ... \`\`\` à la fin de ta réponse.`;
 }
 
 // ─── SQL Executor with Retry ──────────────────────────────────────────────────
@@ -688,14 +694,15 @@ export const chatService = {
         schoolName, isGeneral, chartData !== null, userRole, isStudent
       );
       const finalRes = await aiBalancer.callAI(finalPrompt, schoolId);
-      answer = finalRes.content.trim().replace(/\*/g, '');
+      answer = finalRes.content.trim();
+      // Nettoyage final pour le front
+      answer = answer.replace(/\*/g, '').trim();
+      await this.addMessage(convId as string, 'assistant', answer);
 
     } catch (e: any) {
       console.error('❌ AI Balancer completely failed:', e.message);
       answer = "Je suis actuellement très sollicité et mes systèmes ont besoin de refroidir un instant. Veuillez réessayer dans une petite minute !";
     }
-
-    await this.addMessage(convId as string, 'assistant', answer);
 
     return {
       answer,
