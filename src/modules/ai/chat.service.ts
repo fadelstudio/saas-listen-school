@@ -128,32 +128,82 @@ function classifyIntentLocally(question: string): 'GENERAL' | 'ACTION' | 'DATA' 
   const q = question.toLowerCase().trim();
 
   const generalPatterns = [
-    /^(bonjour|salut|bonsoir|coucou|hello|hi\b)/,
-    /^(merci|thanks|thank you|ok|okay|d'accord|super|parfait|cool)/,
-    /^(qui es[- ]?tu|que peux[- ]?tu|comment ça va|comment vas[- ]?tu)/,
-    /^(au revoir|bye|à bientôt|bonne journée)/,
-    /^(raconte|blague|joke|fun|rigol)/,
-    /^(oui|non|yes|no)\s*$/,
+
+    // ── Salutations ─────────────────────────────
+    /^(bonjour|bjr|bsr|salut|slt|bonsoir|cc|coucou|hello|helo|hi|hey|yo|wesh|lut|svp|slm|salam)/i,
+
+    // ── Remerciements / validations ────────────
+    /^(merci|mercii|mercie|thanks|thank you|thx|ok|okay|okk|dac|dacc|d'accord|super|parfait|cool|nickel|top|excellent|nice|good|génial|genial)/i,
+
+    // ── Questions assistant ────────────────────
+    /^(qui es[- ]?tu|t[' ]?es qui|que peux[- ]?tu|tu fais quoi|tu sers à quoi|comment ça va|comment vas[- ]?tu|ça va|cv|tu es là|tu marche)/i,
+
+    // ── Fin conversation ───────────────────────
+    /^(au revoir|aurevoir|bye|byee|à bientôt|a bientot|bonne journée|bonne soiree|bonne soirée|bonne nuit|ciao|à plus|a plus|on se capte)/i,
+
+    // ── Fun / hors sujet ───────────────────────
+    /^(raconte|blague|joke|fun|rigol|mdr|lol|drôle|drole|humour|meme|mème)/i,
+
+    // ── Réponses ultra courtes ─────────────────
+    /^(oui|ouii|oe|ouais|wai|yes|non|no|nop|nn|nan|nah)\s*$/i,
   ];
 
+
+
   const actionPatterns = [
-    /^(je veux|j'aimerais|je souhaite|envoie|crée|fait) (signaler|suggérer|rapport|suggestion|proble|signal|siganl)/i,
-    /^(signale|suggère|crée|envoie|rapporte) (un |une |le )?(signalement|suggestion|rapport|proble)/i,
-    /(problème|souci|incident|bug|proble|pb|dysfonctionnement) (de|avec|sur|dans|salle) (wifi|clim|ordinateur|matériel|salle|prof|cours|internet)/i,
-    /je (voudrais|veux) (rapporter|signaler) (que|un)/i,
+
+    // ── Création explicite signalement/suggestion ──
+    /^(je veux|j'aimerais|je souhaite|je dois|je vais|je peux|svp|stp|veuillez)?\s*(faire|créer?|cree|ouvrir|soumettre|envoyer|poster|ajouter|déposer|deposer|rapporter|signaler|signale|déclarer|declare|remonter|proposer)?\s*(un|une|le|la|mon|ma)?\s*(signalement|siganlement|signal|incident|rapport|réclamation|reclamation|probleme|problème|proble|pb|bug|souci|plainte|suggestion|idee|idée|feedback)/i,
+
+    // ── Cas naturels utilisateur ──────────────────
+    /(j'ai|jai|on a|ya|il y a|y'a)\s*(un|une|des)?\s*(problème|probleme|proble|pb|bug|souci|incident|panne|erreur|fail|dysfonctionnement)/i,
+
+    // ── Campus / matériel / infra ─────────────────
+    /(wifi|wifii|wifif|internet|connexion|reseau|réseau|routeur|clim|climatisation|ordinateur|pc|machine|materiel|matériel|projecteur|tableau|porte|fenêtre|fenetre|lampe|ampoule|imprimante|scanner|micro|son|video|vidéo|camera|caméra)/i,
+
+    // ── Pédagogie / administration ────────────────
+    /(prof|professeur|enseignant|cours|classe|module|matière|matiere|emploi du temps|retard|absence|note|évaluation|evaluation|pedagogie|pédagogie|administration|admin|secrétariat|secretariat|surveillance)/i,
+
+    // ── Verbes implicites ─────────────────────────
+    /(ça marche pas|ca marche pas|ne marche pas|ça bug|ca bug|ça plante|ca plante|ça fonctionne pas|ca fonctionne pas|est cassé|cassée|cassé|bloqué|bloquee|bloqué|en panne)/i,
+
+    // ── Suggestions ───────────────────────────────
+    /(je propose|suggestion|suggestion d'amélioration|amélioration|amelioration|idée|idee|ça serait mieux|ca serait mieux|vous devriez|il faudrait)/i,
+  ];
+
+
+
+  const dataPatterns = [
+
+    // ── Questions interrogatives ─────────────────
+    /^(quel|quelle|quelles|quels|combien|qui|où|ou|quand|pourquoi|comment|liste|montre|affiche|donne|cherche|trouve|voir|regarder|consulter|statut|etat|état|historique|résumé|resume|bilan)/i,
+
+    // ── Statistiques / analytics ─────────────────
+    /(stat|stats|statistique|statistiques|analyse|analytics|graph|graphe|courbe|diagramme|camembert|évolution|evolution|tendance|comparaison|comparatif|classement|ranking|top|best|meilleur|pire|performance|résultat|resultat)/i,
+
+    // ── Entités métier ───────────────────────────
+    /(signalement|rapport|suggestion|évaluation|evaluation|eval|campagne|prof|professeur|classe|campus|module|étudiant|etudiant|score|note|moyenne|taux|pourcentage|nombre|quantité|quantite|total|somme)/i,
+
+    // ── États / workflow ─────────────────────────
+    /(en attente|traité|traite|validé|valide|rejeté|rejete|approuvé|approuve|soumis|fermé|ferme|ouvert|clos|en cours|terminé|termine|urgent|critique)/i,
+
+    // ── Temporel ──────────────────────────────────
+    /(aujourd'hui|hier|cette semaine|ce mois|cette année|mois dernier|année dernière|annee derniere|récent|recent|ancien|passé|passe|historique)/i,
   ];
 
   for (const p of generalPatterns) if (p.test(q)) return 'GENERAL';
+  for (const p of dataPatterns) if (p.test(q)) return 'DATA';
   for (const p of actionPatterns) if (p.test(q)) return 'ACTION';
 
-  // Si la question contient des mots métier → DATA
+  // Mots-clés métier étendus pour DATA (fallthrough)
   const dataKeywords = [
-    'évaluation', 'evaluation', 'prof', 'professeur', 'classe', 'campus',
+    'évaluation', 'evaluation', 'éval', 'eval', 'prof', 'professeur', 'classe', 'campus',
     'module', 'étudiant', 'student', 'score', 'note', 'moyenne', 'rapport',
     'signalement', 'décision', 'campagne', 'statistique', 'stat', 'combien',
     'liste', 'classement', 'top', 'meilleur', 'pire', 'dernier', 'premier',
     'tendance', 'courbe', 'graphe', 'évolution', 'bilan', 'résumé',
-    'actif', 'en attente', 'urgent', 'critique', 'retard',
+    'actif', 'en attente', 'urgent', 'critique', 'retard', 'historique',
+    'taux', 'pourcentage', 'réussite', 'abandon', 'présence', 'absence',
   ];
   if (dataKeywords.some(k => q.includes(k))) return 'DATA';
 
@@ -255,16 +305,15 @@ analysis_reports(id,schoolId,title,content,filters,generatedById,isRead)
 ── DÉCISION ──
 • ANALYSE : Interprète la question en corrigeant mentalement les fautes d'orthographe (ex: "wifif" -> "wifi", "salls" -> "salle", "proble" -> "problème", "eval" -> "évaluation") pour identifier les entités.
 • Salutation/Hors-sujet/Blague → retourne EXACTEMENT: NO_QUERY
-• Signalement/Suggestion → retourne un résumé court suivi OBLIGATOIREMENT du bloc :
+• Signalement/Suggestion (Création) → retourne un résumé court suivi OBLIGATOIREMENT du bloc :
   \`\`\`json_action
   {"type":"CREATE_REPORT","payload":{"title":"...","content":"...","type":"TYPE","priority":"PRIORITÉ"}}
   \`\`\`
-  Exemple: "Je m'en occupe. \`\`\`json_action {"type":"CREATE_REPORT","payload":{...}} \`\`\`"
   Types: PROBLEM_MATERIAL, PROBLEM_ADMIN, PROBLEM_PEDAGOGICAL, INCIDENT, SUGGESTION, OTHER.
   Priorités: LOW, MEDIUM, HIGH, CRITICAL.
-  (Titre min 8 car, Contenu min 15 car. Étoffe intelligemment si l'utilisateur est bref.)
-• Évaluation → retourne bloc json_action avec type "CREATE_EVALUATION" si les détails sont fournis.
-• Toute question sur les données (historique, status, comptage) → génère le SQL.
+  (RÈGLE : Si c'est une QUESTION sur le passé ou l'historique, utilise le SQL ci-dessous.)
+• Évaluation (Création) → retourne bloc json_action avec type "CREATE_EVALUATION" si les détails sont fournis.
+• Toute question sur les données (historique, status, comptage) → génère le SQL (SELECT).
 `.trim();
 }
 

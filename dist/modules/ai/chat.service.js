@@ -37,13 +37,6 @@ exports.chatService = void 0;
 const prisma_1 = require("../../core/database/prisma");
 const system_service_1 = require("../system/system.service");
 // ─── Chart Detection ──────────────────────────────────────────────────────────
-/**
- * Analyse les données brutes retournées par le SQL et produit un ChartData si applicable.
- * Règles :
- *  - Colonne "month" ou "day" ou "date" + colonne numérique → line chart
- *  - Colonne *_name / *_title + 1-3 colonnes numériques → bar chart
- *  - Colonne "status" / "type" / "band" / "role" / "period" + colonne count → bar ou pie
- */
 function detectChartData(rows, question) {
     if (!Array.isArray(rows) || rows.length < 2)
         return null;
@@ -52,7 +45,6 @@ function detectChartData(rows, question) {
         return null;
     const numericKeys = keys.filter(k => {
         const low = k.toLowerCase();
-        // Exclure les IDs, les timestamps (at/At) et les dates
         if (low.endsWith('id') || low.endsWith('at') || low.includes('date'))
             return false;
         const v = rows[0][k];
@@ -63,7 +55,6 @@ function detectChartData(rows, question) {
         return null;
     const labelKey = labelKeys[0];
     const labels = rows.map(r => String(r[labelKey] ?? ''));
-    // ── Time-series → line chart ──
     const isTimeSeries = labelKey.includes('month') || labelKey.includes('day') ||
         labelKey.includes('date') || labelKey.includes('period') ||
         /^\d{4}-\d{2}/.test(labels[0]);
@@ -72,14 +63,8 @@ function detectChartData(rows, question) {
             label: k.replace(/_/g, ' '),
             data: rows.map(r => Number(r[k]) || 0),
         }));
-        return {
-            type: 'line',
-            title: buildChartTitle(question),
-            labels,
-            datasets,
-        };
+        return { type: 'line', title: buildChartTitle(question), labels, datasets };
     }
-    // ── Status / type / band distribution → pie si <= 6 lignes, sinon bar ──
     const isCategorical = labelKey.includes('status') || labelKey.includes('type') ||
         labelKey.includes('band') || labelKey.includes('role') ||
         labelKey.includes('pct') || labelKey.includes('scope');
@@ -88,13 +73,9 @@ function detectChartData(rows, question) {
             type: rows.length <= 6 ? 'pie' : 'bar',
             title: buildChartTitle(question),
             labels,
-            datasets: [{
-                    label: numericKeys[0].replace(/_/g, ' '),
-                    data: rows.map(r => Number(r[numericKeys[0]]) || 0),
-                }],
+            datasets: [{ label: numericKeys[0].replace(/_/g, ' '), data: rows.map(r => Number(r[numericKeys[0]]) || 0) }],
         };
     }
-    // ── Ranking / comparaison → bar chart ──
     const isRanking = labelKey.includes('name') || labelKey.includes('title') ||
         labelKey.includes('campus') || labelKey.includes('class') ||
         labelKey.includes('module') || labelKey.includes('professor');
@@ -103,82 +84,20 @@ function detectChartData(rows, question) {
             label: k.replace(/_/g, ' '),
             data: rows.map(r => Number(r[k]) || 0),
         }));
-        return {
-            type: 'bar',
-            title: buildChartTitle(question),
-            labels,
-            datasets,
-        };
+        return { type: 'bar', title: buildChartTitle(question), labels, datasets };
     }
     return null;
 }
 function buildChartTitle(question) {
-    // Capitalize first word, truncate
-    const clean = question.replace(/^salut[, ]+/i, '').replace(/^(tu peux|peux-tu)[, ]*/i, '');
-    return clean.charAt(0).toUpperCase() + clean.slice(1, 60) + (clean.length > 60 ? '…' : '');
+    const clean = question
+        .replace(/^(salut[, ]+|bonjour[, ]+)/i, '')
+        .replace(/^(tu peux|peux-tu|montre[- ]?moi|donne[- ]?moi|affiche)[, ]*/i, '')
+        .replace(/^(les?|des?|du|un|une)\s+/i, '');
+    const title = clean.charAt(0).toUpperCase() + clean.slice(1);
+    return title.length > 60 ? title.substring(0, 57) + '…' : title;
 }
-// ─── History Formatter ────────────────────────────────────────────────────────
-function formatHistory(history) {
-    if (!history || history.length === 0)
-        return '';
-    return history
-        .slice(-12)
-        .map(m => `${m.role === 'user' ? '👤 Admin' : '🤖 MyIA'}: ${m.content}`)
-        .join('\n');
-}
-// ─── SQL Prompt ───────────────────────────────────────────────────────────────
-function buildSqlPrompt(schoolId, ctx, userId, campusIds, classId) {
-    const contextBlock = ctx.lastSql
-        ? `
-══════════════════════════════════════════════════════════════
-CONTEXTE REQUÊTE PRÉCÉDENTE
-══════════════════════════════════════════════════════════════
-Question précédente : ${ctx.lastQuestion ?? '—'}
-Résumé données : ${ctx.lastDataSummary ?? '—'}
-SQL précédent :
-\`\`\`sql
-${ctx.lastSql}
-\`\`\`
-► Question de suivi ("ce prof", "cette classe", "son nom", "lui", "même", "aussi") → reprends les mêmes
-  entités/filters du SQL précédent. Modifie seulement ce qui change.
-══════════════════════════════════════════════════════════════
-` : '';
-    const campusFilterBlock = campusIds && campusIds.length > 0
-        ? `
-══════════════════════════════════════════════════════════════
-ISOLATION PAR CAMPUS (RÈGLE CRITIQUE)
-══════════════════════════════════════════════════════════════
-Tu es restreint aux campus suivants : [${campusIds.join(', ')}]
-Toutes tes requêtes DOIVENT filtrer les données pour ne concerner QUE ces campus.
-- campuses → WHERE id IN ('${campusIds.join("','")}')
-- classes  → WHERE "campusId" IN ('${campusIds.join("','")}')
-- users    → WHERE "campusId" IN ('${campusIds.join("','")}') (pour les étudiants)
-- professors/modules/reports/evaluations/decisions → Joindre campuses via classes ou professors et filtrer par ca.id IN ('${campusIds.join("','")}')
-══════════════════════════════════════════════════════════════
-` : '';
-    const classFilterBlock = classId
-        ? `
-══════════════════════════════════════════════════════════════
-ISOLATION ÉTUDIANT (STRICTE)
-══════════════════════════════════════════════════════════════
-L'utilisateur est un étudiant (ID: '${userId}').
-Tu DOIS restreindre l'accès aux données privées :
-- evaluations → WHERE "evaluatorId" = '${userId}' (Il ne peut voir QUE ses propres notes/commentaires).
-- reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements/historique).
-- users       → WHERE id = '${userId}' (Accès à ses propres infos, mais pas aux mots de passe/sécurité).
-- classes     → WHERE id = '${classId}' (Peut voir les infos de sa classe).
-- campuses/schools → OK (Accès public : adresses, noms, règlements si présents).
-- SÉCURITÉ : Bloque TOUTE donnée privée des autres (emails, téléphones, notes des camarades).
-- LECTURE SEULE : Tu ne génères JAMAIS de requêtes UPDATE, DELETE ou INSERT.
-══════════════════════════════════════════════════════════════
-` : '';
-    return `
-Tu es un expert SQL PostgreSQL pour une plateforme de pilotage pédagogique.
-
-${contextBlock}
-${campusFilterBlock}
-${classFilterBlock}
-
+// ─── Constants ────────────────────────────────────────────────────────────────
+const SCHOOL_KNOWLEDGE = `
 ══════════════════════════════════════════════════════════════
 DONNÉES PUBLIQUES ÉTABLISSEMENT (AFI-L'UE DAKAR)
 ══════════════════════════════════════════════════════════════
@@ -186,380 +105,262 @@ DONNÉES PUBLIQUES ÉTABLISSEMENT (AFI-L'UE DAKAR)
 - FILIÈRES : Gestion (Management, BFA, GRH, Marketing, Audit, Logistique), Droit (Ingénierie Juridique/Fiscale), Technologie (Génie Logiciel, Réseaux, Web, QHSE).
 - DIPLÔMES : Licence (BAC+3), Master (BAC+5). Programmes: International Leader (AFI + FEDE + TOEIC) ou Multiprogramme (AFI + Ministère).
 - RÈGLEMENT : Tenue obligatoire (Uniforme), ponctualité stricte, interdiction des syndicats/politique, pas d'excentricité.
-- ADMISSION : Étude de dossier + Entretien. Inserion pro: 87% sur 5 ans.
+- ADMISSION : Étude de dossier + Entretien. Insertion pro: 87% sur 5 ans.
 - MODES : Initial, Continu (Soir), Week-end, E-learning (elearning-afi.com).
 - ACCRÉDITATIONS : ANAQ-Sup, CAMES. Membre: FEDE, AACSB, AUF, EFMD.
 ══════════════════════════════════════════════════════════════
+`;
+// ─── History Formatter ────────────────────────────────────────────────────────
+// AMÉLIORATION #1 : Historique réduit à 6 échanges (3 tours) pour libérer le contexte
+// et éviter que le modèle se perde dans les vieux messages.
+function formatHistory(history) {
+    if (!history || history.length === 0)
+        return '';
+    return history
+        .slice(-6) // Réduit de 12 à 6 — focus sur les échanges récents uniquement
+        .map(m => `${m.role === 'user' ? 'User' : 'MyIA'}: ${m.content.substring(0, 300)}`) // Tronque les longs messages
+        .join('\n');
+}
+// ─── NOUVEAU : Classifier d'intention léger ───────────────────────────────────
+// AMÉLIORATION #2 : Pré-classification locale (sans appel IA) pour les cas évidents.
+// Évite de consommer un appel API pour "bonjour" ou "merci".
+function classifyIntentLocally(question) {
+    const q = question.toLowerCase().trim();
+    const generalPatterns = [
+        // ── Salutations ─────────────────────────────
+        /^(bonjour|bjr|bsr|salut|slt|bonsoir|cc|coucou|hello|helo|hi|hey|yo|wesh|lut|svp|slm|salam)/i,
+        // ── Remerciements / validations ────────────
+        /^(merci|mercii|mercie|thanks|thank you|thx|ok|okay|okk|dac|dacc|d'accord|super|parfait|cool|nickel|top|excellent|nice|good|génial|genial)/i,
+        // ── Questions assistant ────────────────────
+        /^(qui es[- ]?tu|t[' ]?es qui|que peux[- ]?tu|tu fais quoi|tu sers à quoi|comment ça va|comment vas[- ]?tu|ça va|cv|tu es là|tu marche)/i,
+        // ── Fin conversation ───────────────────────
+        /^(au revoir|aurevoir|bye|byee|à bientôt|a bientot|bonne journée|bonne soiree|bonne soirée|bonne nuit|ciao|à plus|a plus|on se capte)/i,
+        // ── Fun / hors sujet ───────────────────────
+        /^(raconte|blague|joke|fun|rigol|mdr|lol|drôle|drole|humour|meme|mème)/i,
+        // ── Réponses ultra courtes ─────────────────
+        /^(oui|ouii|oe|ouais|wai|yes|non|no|nop|nn|nan|nah)\s*$/i,
+    ];
+    const actionPatterns = [
+        // ── Création explicite signalement/suggestion ──
+        /^(je veux|j'aimerais|je souhaite|je dois|je vais|je peux|svp|stp|veuillez)?\s*(faire|créer?|cree|ouvrir|soumettre|envoyer|poster|ajouter|déposer|deposer|rapporter|signaler|signale|déclarer|declare|remonter|proposer)?\s*(un|une|le|la|mon|ma)?\s*(signalement|siganlement|signal|incident|rapport|réclamation|reclamation|probleme|problème|proble|pb|bug|souci|plainte|suggestion|idee|idée|feedback)/i,
+        // ── Cas naturels utilisateur ──────────────────
+        /(j'ai|jai|on a|ya|il y a|y'a)\s*(un|une|des)?\s*(problème|probleme|proble|pb|bug|souci|incident|panne|erreur|fail|dysfonctionnement)/i,
+        // ── Campus / matériel / infra ─────────────────
+        /(wifi|wifii|wifif|internet|connexion|reseau|réseau|routeur|clim|climatisation|ordinateur|pc|machine|materiel|matériel|projecteur|tableau|porte|fenêtre|fenetre|lampe|ampoule|imprimante|scanner|micro|son|video|vidéo|camera|caméra)/i,
+        // ── Pédagogie / administration ────────────────
+        /(prof|professeur|enseignant|cours|classe|module|matière|matiere|emploi du temps|retard|absence|note|évaluation|evaluation|pedagogie|pédagogie|administration|admin|secrétariat|secretariat|surveillance)/i,
+        // ── Verbes implicites ─────────────────────────
+        /(ça marche pas|ca marche pas|ne marche pas|ça bug|ca bug|ça plante|ca plante|ça fonctionne pas|ca fonctionne pas|est cassé|cassée|cassé|bloqué|bloquee|bloqué|en panne)/i,
+        // ── Suggestions ───────────────────────────────
+        /(je propose|suggestion|suggestion d'amélioration|amélioration|amelioration|idée|idee|ça serait mieux|ca serait mieux|vous devriez|il faudrait)/i,
+    ];
+    const dataPatterns = [
+        // ── Questions interrogatives ─────────────────
+        /^(quel|quelle|quelles|quels|combien|qui|où|ou|quand|pourquoi|comment|liste|montre|affiche|donne|cherche|trouve|voir|regarder|consulter|statut|etat|état|historique|résumé|resume|bilan)/i,
+        // ── Statistiques / analytics ─────────────────
+        /(stat|stats|statistique|statistiques|analyse|analytics|graph|graphe|courbe|diagramme|camembert|évolution|evolution|tendance|comparaison|comparatif|classement|ranking|top|best|meilleur|pire|performance|résultat|resultat)/i,
+        // ── Entités métier ───────────────────────────
+        /(signalement|rapport|suggestion|évaluation|evaluation|eval|campagne|prof|professeur|classe|campus|module|étudiant|etudiant|score|note|moyenne|taux|pourcentage|nombre|quantité|quantite|total|somme)/i,
+        // ── États / workflow ─────────────────────────
+        /(en attente|traité|traite|validé|valide|rejeté|rejete|approuvé|approuve|soumis|fermé|ferme|ouvert|clos|en cours|terminé|termine|urgent|critique)/i,
+        // ── Temporel ──────────────────────────────────
+        /(aujourd'hui|hier|cette semaine|ce mois|cette année|mois dernier|année dernière|annee derniere|récent|recent|ancien|passé|passe|historique)/i,
+    ];
+    for (const p of generalPatterns)
+        if (p.test(q))
+            return 'GENERAL';
+    for (const p of dataPatterns)
+        if (p.test(q))
+            return 'DATA';
+    for (const p of actionPatterns)
+        if (p.test(q))
+            return 'ACTION';
+    // Mots-clés métier étendus pour DATA (fallthrough)
+    const dataKeywords = [
+        'évaluation', 'evaluation', 'éval', 'eval', 'prof', 'professeur', 'classe', 'campus',
+        'module', 'étudiant', 'student', 'score', 'note', 'moyenne', 'rapport',
+        'signalement', 'décision', 'campagne', 'statistique', 'stat', 'combien',
+        'liste', 'classement', 'top', 'meilleur', 'pire', 'dernier', 'premier',
+        'tendance', 'courbe', 'graphe', 'évolution', 'bilan', 'résumé',
+        'actif', 'en attente', 'urgent', 'critique', 'retard', 'historique',
+        'taux', 'pourcentage', 'réussite', 'abandon', 'présence', 'absence',
+    ];
+    if (dataKeywords.some(k => q.includes(k)))
+        return 'DATA';
+    return 'UNKNOWN';
+}
+// ─── SQL Prompt ───────────────────────────────────────────────────────────────
+// AMÉLIORATION #3 : Prompt SQL restructuré avec ordre de priorité clair.
+// Les exemples sont condensés. On met les règles critiques EN PREMIER.
+function buildSqlPrompt(schoolId, ctx, userId, role, campusIds, classId) {
+    const contextBlock = ctx.lastSql ? `
+── CONTEXTE PRÉCÉDENT ──
+Question: ${ctx.lastQuestion ?? '—'}
+Résumé: ${ctx.lastDataSummary ?? '—'}
+SQL:
+\`\`\`sql
+${ctx.lastSql}
+\`\`\`
+► "ce prof/cette classe/lui/même/aussi" → reprends les filtres du SQL précédent, modifie seulement ce qui change.
+` : '';
+    const campusFilter = campusIds && campusIds.length > 0
+        ? `CAMPUS AUTORISÉS : [${campusIds.join(', ')}] — TOUTES les requêtes DOIVENT filtrer sur ces campus.`
+        : 'CAMPUS : Accès global (pas de restriction).';
+    const studentFilter = classId ? `
+── ISOLATION ÉTUDIANT (STRICTE) ──
+- evaluations → WHERE "evaluatorId" = '${userId}' uniquement
+- reports → WHERE "authorId" = '${userId}' uniquement
+- users → WHERE id = '${userId}' uniquement
+- classes → WHERE id = '${classId}' uniquement
+- JAMAIS UPDATE/DELETE/INSERT
+` : '';
+    return `Tu es un générateur SQL PostgreSQL expert pour une plateforme pédagogique.
+École ID: '${schoolId}' | Rôle: ${role} | User: '${userId}'
+${campusFilter}
+${studentFilter}
+${contextBlock}
 
-══════════════════════════════════════════════════════════════
-DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
-══════════════════════════════════════════════════════════════
-• RÉPONSE COURTE : Utilise LIMIT 1 pour répondre directement si l'utilisateur demande "le dernier", "le plus", "le meilleur", "le pire" ou "qui est".
-• PAS DE SYMBOLES : N'utilise JAMAIS de caractères "*" ou "**" dans tes réponses texte (pas de gras markdown).
-• LISTE/TABLEAU : Ne génère une liste ou un tableau QUE si l'utilisateur utilise explicitement les mots "liste", "classement" ou "tableau".
-• DÉTECTION D'INTENTION (RÈGLE CRITIQUE) :
-  - Si l'utilisateur veut signaler un problème ou faire une suggestion :
-    1. Analyse les détails. Si des infos manquent (ex: titre trop court), complète-les intelligemment.
-    2. Le TITRE doit faire au moins 8 caractères.
-    3. Le CONTENU doit faire au moins 15 caractères (sois descriptif si l'utilisateur est bref).
-    4. TYPE : 
-       - Si c'est une idée/avis/suggestion → "SUGGESTION"
-       - Si c'est technique/matériel → "PROBLEM_MATERIAL"
-       - Si c'est administratif → "PROBLEM_ADMIN"
-       - Si c'est pédagogique → "PROBLEM_PEDAGOGICAL"
-       - Si c'est un incident → "INCIDENT"
-    5. PRIORITÉ : Détecte l'urgence ("LOW", "MEDIUM", "HIGH" ou "CRITICAL").
-    6. Retourne une réponse de récapitulatif courte sans symbole markdown (*).
-    7. Ajoute OBLIGATOIREMENT le bloc suivant à la fin :
-       \`\`\`json_action
-       { "type": "CREATE_REPORT", "payload": { "title": "...", "content": "...", "type": "TYPE_DÉTECTÉ", "priority": "PRIORITÉ_DÉTECTÉE" } }
-       \`\`\`
-• Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
-• Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
-• En cas de doute absolu → génère le SQL.
+══ RÈGLES ABSOLUES ══
+1. FORMAT : \`\`\`sql ... \`\`\` OU exactement NO_QUERY (rien d'autre)
+2. SÉCURITÉ : SELECT uniquement. JAMAIS DROP/DELETE/UPDATE/INSERT/TRUNCATE/ALTER.
+3. SCHOOLID sur toutes les tables principales :
+   - campuses/modules/professors/users/reports/evaluations/decisions/notifications → WHERE table."schoolId"='${schoolId}'
+   - classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
+   - evaluation_campaigns → JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}'
+4. GUILLEMETS : Toutes colonnes camelCase entre guillemets doubles.
+5. ENUMS : CAST(col AS TEXT) = 'VALEUR'
+6. NOMS LISIBLES :
+   - Professeur → CONCAT(p."firstName",' ',p."lastName") AS professor_name
+   - Campagne → ec.title AS campaign_title
+   - Classe/Module/Campus → cl.name, m.name, ca.name
+7. AGRÉGATS : ROUND(AVG(score)::numeric,2), COUNT(DISTINCT x.id)
+8. LIMITES :
+   - top N → LIMIT N
+   - liste générale → LIMIT ${classId ? 10 : 20}
+   - comptage pur → pas de LIMIT
+   - courbe/tendance → ORDER BY date ASC, LIMIT 90 max
+   - classement/combat → TOUTES les lignes (LIMIT 20 max), PAS LIMIT 1
+9. PIÈGES :
+   - reports.authorId (PAS userId), reports n'a PAS campaignId.
+   - evaluation_campaigns n'a PAS schoolId → passer par professors.
+   - Évaluations "en attente" → status IN ('PENDING', 'IN_PROGRESS').
+10. ORDER BY : Réutiliser l'expression complète, pas un alias calculé.
 
-══════════════════════════════════════════════════════════════
-SCHÉMA
-══════════════════════════════════════════════════════════════
+── SCHÉMA RÉSUMÉ ──
+schools(id,name,domain,logoUrl,slug)
+campuses(id,name,location,code,phone,schoolId)
+classes(id,name,campusId,levelId)  ← PAS de schoolId direct
+academic_levels(id,name,order,schoolId)
+modules(id,name,code,schoolId)
+professors(id,firstName,lastName,email,matricule,phone,userId,schoolId)
+users(id,firstName,lastName,email,role,matricule,classId,schoolId,isActive)
+  role: STUDENT|PROFESSOR|ADMIN|SUPERADMIN|MANAGER|VIEWER|AGENT
+reports(id,title,content,type,priority,status,isAnonymous,authorId,classId,professorId,moduleId,schoolId)
+  priority: LOW|MEDIUM|HIGH|CRITICAL | status: DRAFT|SUBMITTED|REVIEWED|APPROVED|REJECTED
+  type: PROBLEM_MATERIAL|PROBLEM_ADMIN|PROBLEM_PEDAGOGICAL|INCIDENT|SUGGESTION|OTHER
+evaluations(id,professorId,moduleId,classId,campaignId,evaluatorId,reportId,status,score,comment,
+  availabilityRating,comprehensionRating,explanationRating,pedagogyRating,rhythmRating,schoolId)
+  status: PENDING|IN_PROGRESS|COMPLETED | RatingBand: VERY_POOR|POOR|FAIR|GOOD|EXCELLENT
+evaluation_campaigns(id,title,description,status,scope,dueDate,campusId,classId,moduleId,professorId)
+  ← PAS de schoolId | status: DRAFT|ACTIVE|CLOSED|ARCHIVED | scope: CAMPUS|CLASS|MODULE|PROFESSOR
+decisions(id,title,rationale,status,priority,responsible,dueDate,reportId,evaluationId,campaignId,deciderId,schoolId)
+  status: PENDING|PROPOSED|APPROVED|REJECTED|IN_PROGRESS|DONE | priority: LOW|MEDIUM|HIGH|CRITICAL
+notifications(id,title,message,type,userId,campaignId,schoolId,isRead)
+class_modules(id,classId,moduleId)
+analysis_reports(id,schoolId,title,content,filters,generatedById,isRead)
 
-schools:              id, name, domain, logoUrl, slug, createdAt, updatedAt
-campuses:             id, name, location, code, phone, schoolId, createdAt, updatedAt
-classes:              id, name, campusId, levelId, createdAt, updatedAt            (ATTENTION: PAS de schoolId)
-academic_levels:      id, name, "order", schoolId, createdAt, updatedAt
-modules:              id, name, code, schoolId, createdAt, updatedAt
-professors:           id, "firstName","lastName", email, matricule, numero, phone, avatarPath, userId, schoolId, createdAt, updatedAt
-users:                id, "firstName","lastName", email, role, matricule, numero, phone, "isActive","emailVerified","classId", schoolId, createdAt, updatedAt
-                      role: 'STUDENT'|'PROFESSOR'|'ADMIN'|'SUPER_ADMIN'|'MANAGER'|'VIEWER'|'AGENT'
-reports:              id, title, content, type, priority, status, "isAnonymous", category,
-                      "authorId","classId","professorId","moduleId", attachments,"aiAnalysis", schoolId, createdAt, updatedAt
-                      priority: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
-                      status:   'DRAFT'|'SUBMITTED'|'REVIEWED'|'APPROVED'|'REJECTED'
-                      type:     'PROBLEM_MATERIAL'|'PROBLEM_ADMIN'|'PROBLEM_PEDAGOGICAL'|'INCIDENT'|'SUGGESTION'|'OTHER'
-                      (HINT: "signalement" -> PROBLEM_MATERIAL/INCIDENT, "suggestion" -> SUGGESTION)
-evaluations:          id, "professorId","moduleId","classId","campaignId","evaluatorId","reportId",
-                      status, "isAnonymous", score, comment, "aiScore",
-                      "availabilityRating","comprehensionRating","explanationRating","pedagogyRating","rhythmRating",
-                      schoolId, createdAt, updatedAt
-                      status:     'PENDING'|'IN_PROGRESS'|'COMPLETED'
-                      RatingBand: 'VERY_POOR'|'POOR'|'FAIR'|'GOOD'|'EXCELLENT'
-evaluation_campaigns: id, title, description, status, scope, "dueDate","campusId","classId","moduleId","professorId", createdAt, updatedAt
-                      ⚠️ PAS de schoolId → JOIN professors OU modules
-                      status: 'DRAFT'|'ACTIVE'|'CLOSED'|'ARCHIVED'
-                      scope:  'CAMPUS'|'CLASS'|'MODULE'|'PROFESSOR'
-decisions:            id, title, rationale, status, priority, responsible, "dueDate","aiSuggestion",
-                      "reportId","evaluationId","campaignId","analysisId","deciderId", schoolId, createdAt, updatedAt
-                      status:   'PENDING'|'PROPOSED'|'APPROVED'|'REJECTED'|'IN_PROGRESS'|'DONE'
-                      priority: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
-notifications:        id, title, message, type, "userId","campaignId", schoolId, "isRead", createdAt
-class_modules:        id, "classId","moduleId", createdAt, updatedAt
-analysis_reports:     id, schoolId, title, content, filters, "generatedById","isRead", createdAt, updatedAt
-
-══════════════════════════════════════════════════════════════
-RÈGLES ABSOLUES
-══════════════════════════════════════════════════════════════
-
-【1】FORMAT : \`\`\`sql ... \`\`\` OU exactement NO_QUERY
-
-【2】SCHOOLID :
-    campuses, modules, professors, users, reports, evaluations, decisions, notifications, analysis_reports
-      → WHERE table."schoolId" = '${schoolId}'
-    classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
-    evaluation_campaigns → JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}'
-
-【3】CAMELCASE entre guillemets doubles toujours.
-
-【4】ENUMS → CAST(col AS TEXT) = 'VALEUR'
-
-【5】NOMS LISIBLES TOUJOURS :
-    Professeur → CONCAT(p."firstName",' ',p."lastName") AS professor_name
-    Campagne   → ec.title AS campaign_title
-    Classe     → cl.name AS class_name
-    Module     → m.name AS module_name
-    Campus     → ca.name AS campus_name
-    Auteur     → CONCAT(u."firstName",' ',u."lastName") AS author_name
-
-【6】AGRÉGATS :
-    ROUND(AVG(e.score)::numeric,2) AS avg_score
-    COUNT(DISTINCT x.id) AS total   ← DISTINCT pour éviter doublons en multi-JOIN
-    ROUND(100.0*COUNT(*) FILTER (WHERE cond)/NULLIF(COUNT(*),0),1) AS rate_pct
-
-【7】DATES :
-    "aujourd'hui"         → "createdAt"::date = CURRENT_DATE
-    "dernières 24h"       → "createdAt" >= NOW()-INTERVAL '1 day'
-    "ces X derniers jours"→ "createdAt" >= NOW()-INTERVAL 'X days'  ← ex: 10 jours = INTERVAL '10 days'
-    "cette semaine"       → "createdAt" >= DATE_TRUNC('week',NOW())
-    "ce mois"             → "createdAt" >= DATE_TRUNC('month',NOW())
-    "mois dernier"        → "createdAt" >= DATE_TRUNC('month',NOW()-INTERVAL '1 month') AND "createdAt" < DATE_TRUNC('month',NOW())
-    "ce semestre"         → "createdAt" >= NOW()-INTERVAL '6 months'
-    "cette année"         → "createdAt" >= DATE_TRUNC('year',NOW())
-    Courbe/tendance par jour → GROUP BY "createdAt"::date, ORDER BY date ASC (pas DESC)
-    Courbe/tendance par mois → GROUP BY DATE_TRUNC('month',"createdAt"), ORDER BY month ASC
-
-【8】LIMITES — RÈGLE CRITIQUE :
-    ════════════════════════════════════════════════════════════
-    ❌ JAMAIS LIMIT 1 — même pour "la plus", "la moins", "quelle est la meilleure"
-    ════════════════════════════════════════════════════════════
-    "combat" / "classement" / "comparaison" / "toutes les classes/profs/modules"
-      → TOUTES les lignes disponibles, LIMIT ${classId ? 10 : 20} maximum
-    "top N" / "les X meilleurs/pires"
-      → LIMIT N (ex: top 5 = LIMIT 5, top 3 = LIMIT 3)
-    "le meilleur" / "le pire" seul sans comparaison demandée
-      → LIMIT 5 (pour les ex-aequo)
-    liste générale
-      → LIMIT ${classId ? 10 : 20}
-    comptage pur (COUNT seulement)
-      → pas de LIMIT
-    courbe / tendance (GROUP BY date)
-      → pas de LIMIT ou LIMIT 90 (jours) / LIMIT 24 (mois)
-
-    ► Pour "combat" ou "quelle classe a le plus de X" :
-      Retourne TOUTES les classes avec leurs scores pour permettre la comparaison complète.
-      Le gagnant ressort naturellement en premier avec ORDER BY DESC.
-
-【9】ALIAS : r=reports, e=evaluations, ec=evaluation_campaigns, p=professors,
-             cl=classes, m=modules, ca=campuses, d=decisions, u=users, al=academic_levels
-
-【10】ORDER BY AVEC EXPRESSIONS (PostgreSQL) :
-    NE JAMAIS utiliser d'alias défini dans le SELECT à l'intérieur d'une opération mathématique dans ORDER BY.
-    ❌ ORDER BY eval_count + report_count DESC
-    ✓ ORDER BY COUNT(DISTINCT e.id) + COUNT(DISTINCT r.id) DESC
-
-【11】COLONNES PIÈGES :
-    - table REPORTS : N'A PAS de colonne "userId" (utilise "authorId" à la place).
-    - table REPORTS : N'A PAS de colonne "campaignId" (liez via "classId" ou "professorId").
-
-══════════════════════════════════════════════════════════════
-EXEMPLES PAR CATÉGORIE
-══════════════════════════════════════════════════════════════
-
---- COMBAT / CLASSEMENT TOUTES CLASSES ---
-
--- "Combat" signalements + évaluations par classe → TOUTES les classes, pas LIMIT 1
-SELECT
-  cl.name AS class_name,
-  COUNT(DISTINCT r.id) AS total_reports,
-  COUNT(DISTINCT e.id) AS total_evaluations,
-  (COUNT(DISTINCT r.id) + COUNT(DISTINCT e.id)) AS total_activity
-FROM classes cl
-JOIN campuses ca ON cl."campusId"=ca.id
-LEFT JOIN reports r ON cl.id=r."classId" AND r."schoolId"='${schoolId}'
-LEFT JOIN evaluations e ON cl.id=e."classId" AND e."schoolId"='${schoolId}'
-WHERE ca."schoolId"='${schoolId}'
-GROUP BY cl.id,cl.name
-ORDER BY total_activity DESC
-LIMIT 20;
-
---- COURBES / TENDANCES (time-series) ---
-
--- Courbe signalements par jour sur N jours
-SELECT
-  r."createdAt"::date AS day,
-  COUNT(*) AS total_reports,
-  COUNT(*) FILTER (WHERE CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL')) AS critical_reports
-FROM reports r
-WHERE r."schoolId"='${schoolId}'
-  AND r."createdAt" >= NOW()-INTERVAL '10 days'
-GROUP BY r."createdAt"::date
-ORDER BY day ASC;
-
--- Courbe évaluations par mois sur 12 mois
-SELECT
-  TO_CHAR(DATE_TRUNC('month',e."createdAt"),'YYYY-MM') AS month,
-  ROUND(AVG(e.score)::numeric,2) AS avg_score,
-  COUNT(e.id) AS total_evals
-FROM evaluations e
-WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-  AND e."createdAt" >= NOW()-INTERVAL '12 months'
-GROUP BY DATE_TRUNC('month',e."createdAt")
-ORDER BY month ASC;
-
---- CAMPAGNES ---
-
-SELECT ec.id, ec.title AS campaign_title, ec.status, ec.scope, ec."dueDate", ec."createdAt",
-  CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  m.name AS module_name, cl.name AS class_name, ca.name AS campus_name
-FROM evaluation_campaigns ec
-JOIN professors p ON ec."professorId"=p.id
-LEFT JOIN modules m ON ec."moduleId"=m.id
-LEFT JOIN classes cl ON ec."classId"=cl.id
-LEFT JOIN campuses ca ON ec."campusId"=ca.id
-WHERE p."schoolId"='${schoolId}'
-ORDER BY ec."createdAt" ASC LIMIT 5;
-
---- PROFESSEURS ---
-
--- Meilleurs/pires scores
-SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  ROUND(AVG(e.score)::numeric,2) AS avg_score, COUNT(e.id) AS eval_count
-FROM evaluations e JOIN professors p ON e."professorId"=p.id
-WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-GROUP BY p.id,p."firstName",p."lastName"
-ORDER BY avg_score DESC LIMIT 5;
-
--- Scores détaillés par critère
-SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  ROUND(AVG(e.score)::numeric,2) AS avg_score,
-  MODE() WITHIN GROUP (ORDER BY CAST(e."pedagogyRating" AS TEXT)) AS pedagogy,
-  MODE() WITHIN GROUP (ORDER BY CAST(e."availabilityRating" AS TEXT)) AS availability,
-  MODE() WITHIN GROUP (ORDER BY CAST(e."comprehensionRating" AS TEXT)) AS comprehension,
-  MODE() WITHIN GROUP (ORDER BY CAST(e."explanationRating" AS TEXT)) AS explanation,
-  MODE() WITHIN GROUP (ORDER BY CAST(e."rhythmRating" AS TEXT)) AS rhythm
-FROM evaluations e JOIN professors p ON e."professorId"=p.id
-WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-GROUP BY p.id,p."firstName",p."lastName"
-ORDER BY avg_score DESC LIMIT 20;
-
--- Sans aucune évaluation
-SELECT CONCAT(p."firstName",' ',p."lastName") AS professor_name, p.email
-FROM professors p
-WHERE p."schoolId"='${schoolId}'
-  AND NOT EXISTS (SELECT 1 FROM evaluations e WHERE e."professorId"=p.id AND e."schoolId"='${schoolId}');
-
---- SIGNALEMENTS ---
-
--- Urgents non traités
-SELECT r.title, CAST(r.priority AS TEXT) AS priority, CAST(r.status AS TEXT) AS status,
-  CAST(r.type AS TEXT) AS type, r."createdAt",
-  cl.name AS class_name,
-  CONCAT(p."firstName",' ',p."lastName") AS professor_name,
-  m.name AS module_name
-FROM reports r
-LEFT JOIN classes cl ON r."classId"=cl.id
-LEFT JOIN professors p ON r."professorId"=p.id
-LEFT JOIN modules m ON r."moduleId"=m.id
-WHERE r."schoolId"='${schoolId}'
-  AND CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL')
-  AND CAST(r.status AS TEXT) NOT IN ('APPROVED','REJECTED')
-ORDER BY r."createdAt" DESC LIMIT 20;
-
--- Répartition par statut avec %
-SELECT CAST(r.status AS TEXT) AS status, COUNT(*) AS count,
-  ROUND(100.0*COUNT(*)/NULLIF(SUM(COUNT(*)) OVER(),0),1) AS pct
-FROM reports r WHERE r."schoolId"='${schoolId}'
-GROUP BY r.status ORDER BY count DESC;
-
---- ÉVALUATIONS ---
-
--- Score moyen global
-SELECT ROUND(AVG(e.score)::numeric,2) AS global_avg, COUNT(e.id) AS total,
-  COUNT(e.id) FILTER (WHERE CAST(e.status AS TEXT)='PENDING') AS pending,
-  COUNT(e.id) FILTER (WHERE CAST(e.status AS TEXT)='COMPLETED') AS completed
-FROM evaluations e WHERE e."schoolId"='${schoolId}';
-
--- Par campus
-SELECT ca.name AS campus_name, ROUND(AVG(e.score)::numeric,2) AS avg_score, COUNT(e.id) AS count
-FROM evaluations e
-JOIN classes cl ON e."classId"=cl.id JOIN campuses ca ON cl."campusId"=ca.id
-WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-GROUP BY ca.id,ca.name ORDER BY avg_score DESC;
-
--- Distribution des scores par tranche
-SELECT
-  CASE WHEN e.score<8 THEN '0-7 Insuffisant'
-       WHEN e.score<12 THEN '8-11 Passable'
-       WHEN e.score<15 THEN '12-14 Bien'
-       WHEN e.score<18 THEN '15-17 Très bien'
-       ELSE '18-20 Excellent' END AS band,
-  COUNT(*) AS count
-FROM evaluations e WHERE e."schoolId"='${schoolId}' AND e.score IS NOT NULL
-GROUP BY 1 ORDER BY MIN(e.score);
-
---- DÉCISIONS ---
-
--- En retard
-SELECT d.title, CAST(d.priority AS TEXT) AS priority, d."dueDate",
-  CONCAT(u."firstName",' ',u."lastName") AS decider_name,
-  EXTRACT(DAY FROM NOW()-d."dueDate")::int AS days_overdue
-FROM decisions d LEFT JOIN users u ON d."deciderId"=u.id
-WHERE d."schoolId"='${schoolId}'
-  AND d."dueDate"<NOW()
-  AND CAST(d.status AS TEXT) NOT IN ('DONE','REJECTED')
-ORDER BY d."dueDate" ASC LIMIT 20;
-
---- BILAN GLOBAL ---
-
-SELECT
-  (SELECT COUNT(*) FROM reports r WHERE r."schoolId"='${schoolId}') AS total_reports,
-  (SELECT COUNT(*) FROM reports r WHERE r."schoolId"='${schoolId}' AND CAST(r.status AS TEXT) NOT IN ('APPROVED','REJECTED')) AS open_reports,
-  (SELECT COUNT(*) FROM reports r WHERE r."schoolId"='${schoolId}' AND CAST(r.priority AS TEXT) IN ('HIGH','CRITICAL') AND CAST(r.status AS TEXT) NOT IN ('APPROVED','REJECTED')) AS critical_open,
-  (SELECT ROUND(AVG(score)::numeric,2) FROM evaluations e WHERE e."schoolId"='${schoolId}' AND score IS NOT NULL) AS global_avg_score,
-  (SELECT COUNT(*) FROM evaluations e WHERE e."schoolId"='${schoolId}') AS total_evals,
-  (SELECT COUNT(*) FROM evaluation_campaigns ec JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}' AND ec.status='ACTIVE') AS active_campaigns,
-  (SELECT COUNT(*) FROM decisions d WHERE d."schoolId"='${schoolId}' AND CAST(d.status AS TEXT) IN ('PENDING','PROPOSED','IN_PROGRESS')) AS pending_decisions,
-  (SELECT COUNT(*) FROM users WHERE "schoolId"='${schoolId}' AND CAST(role AS TEXT)='STUDENT' AND "isActive"=TRUE) AS active_students,
-  (SELECT COUNT(*) FROM professors WHERE "schoolId"='${schoolId}') AS total_professors,
-  (SELECT COUNT(*) FROM notifications WHERE "schoolId"='${schoolId}' AND "isRead"=FALSE) AS unread_notifications;
-
-══════════════════════════════════════════════════════════════
+── DÉCISION ──
+• ANALYSE : Interprète la question en corrigeant mentalement les fautes d'orthographe (ex: "wifif" -> "wifi", "salls" -> "salle", "proble" -> "problème", "eval" -> "évaluation") pour identifier les entités.
+• Salutation/Hors-sujet/Blague → retourne EXACTEMENT: NO_QUERY
+• Signalement/Suggestion (Création) → retourne un résumé court suivi OBLIGATOIREMENT du bloc :
+  \`\`\`json_action
+  {"type":"CREATE_REPORT","payload":{"title":"...","content":"...","type":"TYPE","priority":"PRIORITÉ"}}
+  \`\`\`
+  Types: PROBLEM_MATERIAL, PROBLEM_ADMIN, PROBLEM_PEDAGOGICAL, INCIDENT, SUGGESTION, OTHER.
+  Priorités: LOW, MEDIUM, HIGH, CRITICAL.
+  (RÈGLE : Si c'est une QUESTION sur le passé ou l'historique, utilise le SQL ci-dessous.)
+• Évaluation (Création) → retourne bloc json_action avec type "CREATE_EVALUATION" si les détails sont fournis.
+• Toute question sur les données (historique, status, comptage) → génère le SQL (SELECT).
 `.trim();
 }
 // ─── Response Prompt ──────────────────────────────────────────────────────────
-function buildResponsePrompt(systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, hasChart) {
+// AMÉLIORATION #4 : Prompt de réponse plus directif et mieux structuré.
+// On distingue clairement les cas : vide, erreur, données présentes.
+function buildResponsePrompt(systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, hasChart, role, isStudent = false) {
+    const userPersona = isStudent
+        ? "Tu parles à un ÉTUDIANT : ton ton est encourageant, clair et bienveillant."
+        : `Tu parles à un ${role} : ton ton est précis, analytique et professionnel.`;
     if (isGeneral) {
         return `${systemIdentity}
+${userPersona}
+${SCHOOL_KNOWLEDGE}
+${historyBlock ? `HISTORIQUE RÉCENT:\n${historyBlock}\n` : ''}
+QUESTION: ${question}
 
-${historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : ''}
-QUESTION : ${question}
-
-Réponds en français, de manière chaleureuse, courte et directe.
-- Salutation ou merci → réponds par une seule phrase amicale.
-- Question hors-sujet ou blague → réponds directement, sans introduire tes fonctions.
-- Si et SEULEMENT SI l'utilisateur demande "Qui es-tu ?" ou "Que peux-tu faire ?" → liste brièvement tes capacités liées au projet (stats, signalements, évaluations, tendances).
-- Tu t'appelles MyIA et tu représentes "${schoolName}".`;
+RÈGLES:
+- Réponds en français, en 1 à 3 phrases maximum.
+- Salutation → réponse chaleureuse courte (1 phrase).
+- Question sur l'école (adresse/filières/règlement) → utilise les données publiques ci-dessus.
+- "Qui es-tu / Que peux-tu faire" → explique que tu es MyIA, assistant de "${schoolName}", capable de consulter les évaluations, signalements, statistiques et règlements.
+- Hors-sujet ou blague → réponds directement et brièvement, sans mentionner tes fonctions.
+- JAMAIS de formatting JSON, ou listes techniques.
+- Utilise des emojis pour rendre les listes plus lisibles si nécessaire.`;
     }
+    const dataSection = dbDataStr === 'Aucun résultat trouvé.'
+        ? `DONNÉES: Aucun résultat.`
+        : dbDataStr.includes('erreur technique')
+            ? `DONNÉES: Erreur technique.`
+            : `DONNÉES (JSON):\n${dbDataStr}`;
     const chartNote = hasChart
-        ? '\n9. GRAPHIQUE : Un graphique a été généré automatiquement pour cette réponse. Mentionne-le brièvement ("Voici aussi le graphique correspondant" ou similaire) mais ne décris pas les données visuelles en détail — laisse le graphique parler.'
+        ? `\n- GRAPHIQUE: Un graphique a été généré. Mentionne-le en une phrase ("Voici le graphique correspondant 📊").`
         : '';
     return `${systemIdentity}
+${userPersona}
 
-DONNÉES RÉCUPÉRÉES (JSON) :
-${dbDataStr}
+${dataSection}
+${historyBlock ? `HISTORIQUE RÉCENT:\n${historyBlock}\n` : ''}
+QUESTION: ${question}
 
-${historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : ''}
-QUESTION : ${question}
+══ RÈGLES DE RÉPONSE ══
+ÉTAPE 1 — VÉRIFICATION DES DONNÉES:
+  • JSON vide ou "Aucun résultat" → réponds UNIQUEMENT: "Aucune donnée disponible pour cette demande."
+  • "Erreur technique" → réponds UNIQUEMENT: "Je ne peux pas récupérer cette information pour le moment."
+  • Données présentes → passe à l'étape 2.
 
-══════════════════════════════════════
-RÈGLES DE RÉPONSE
-══════════════════════════════════════
-1. DONNÉES UNIQUEMENT : Utilise exclusivement le JSON ci-dessus. Jamais d'invention.
-2. NOMS LISIBLES : Affiche campaign_title, professor_name, class_name, module_name, campus_name.
-   Jamais d'UUID ni d'identifiants techniques.
-3. TON ASSERTIF : Jamais "D'après les données", "il me semble". Affirme avec certitude.
-4. CLASSEMENT COMPLET : Si les données contiennent plusieurs lignes (classement, combat, comparaison),
-   CITE-LES TOUTES dans l'ordre. Ne dis jamais "les données ne concernent qu'une seule X" si le JSON
-   en contient plusieurs.
-5. EX-AEQUO : Si même valeur → "à égalité".
-6. VIDE : SI ET SEULEMENT SI le JSON est vide ou dit "Aucun résultat" → réponds "Aucune donnée disponible.".
-   SINON, tu dois obligatoirement décrire les données présentes.
-7. ERREUR : "erreur technique" → "Je ne peux pas récupérer cette information pour le moment."
-8. FORMAT :
-   - Classement/combat → liste à puces numérotée avec rang et valeurs clés
-   - Tendance/courbe → décris la direction (hausse/baisse/stable) + valeurs extrêmes
-   - Bilan complet → métriques structurées
-   - Question simple → 2-4 phrases directes${chartNote}
-10. ACTIONS : Si les DONNÉES indiquent "USER_WANTS_ACTION", tu dois proposer de créer le contenu (signalement ou évaluation) en demandant les détails manquants ou en confirmant ce qui a été dit. 
-    Pour accélérer, retourne un bloc JSON spécial à la fin de ta réponse si tu as assez d'infos pour pré-remplir le formulaire :
-    \`\`\`json_action
-    { "type": "CREATE_REPORT", "payload": { "title": "...", "content": "...", "priority": "MEDIUM" } }
-    \`\`\`
-    OU
-    \`\`\`json_action
-    { "type": "CREATE_EVALUATION", "payload": { "professorId": "...", "moduleId": "...", "ratings": { ... } } }
-    \`\`\`
-11. Jamais de SQL, d'UUIDs, de noms de tables dans la réponse.
-12. Établissement : "${schoolName}".`;
+ÉTAPE 2 — ANALYSE ET RÉPONSE:
+  • Lis TOUTES les lignes du JSON avant de répondre.
+  • Si plusieurs lignes → CITE-LES TOUTES par ordre d'importance.
+  • Ex-aequo de valeurs → mentionne "à égalité".
+  • Donne des chiffres précis (pas "environ" ou "pas beaucoup").
+  • Si classement → liste complète avec rang, nom et valeur.
+  • Si tendance → décris direction (hausse/baisse/stable) + valeur min, max, et point notable.
+  • Si comptage → donne le chiffre exact + contexte (ex: "sur ${role === 'STUDENT' ? 'votre classe' : 'l\'ensemble de l\'école'}").
+
+ÉTAPE 3 — FORMAT:
+  • Langue: français uniquement.
+  • Longueur: 2 à 6 phrases pour questions simples, liste structurée pour classements/comparaisons.
+  • Émojis pour listes (📍 🎓 📊 ✅ ⚠️ 📈).
+  • Tu PEUX utiliser le markdown standard (* ou - pour les listes, ** pour le gras) pour rendre la réponse belle et lisible.
+  • ZÉRO UUID, ZÉRO ID technique (ID numérique), ZÉRO nom de table SQL.
+  • ZÉRO syntaxe technique ou mention de base de données.
+  • Ton ton est direct et professionnel. Ne dis jamais "D'après les données".
+  • Établissement: "${schoolName}".${chartNote}
+
+⚠️ RÈGLE CRITIQUE ACTIONS : Si l'utilisateur exprime une volonté de créer un rapport/évaluation et que tu as assez d'infos, ajoute TOUJOURS le bloc \`\`\`json_action ... \`\`\` à la fin de ta réponse.`;
 }
 // ─── SQL Executor with Retry ──────────────────────────────────────────────────
 async function executeSqlWithRetry(sql, question, schoolId, aiBalancer, sqlSystemPrompt) {
     const upper = sql.toUpperCase();
-    const safe = upper.startsWith('SELECT') && !upper.includes('DROP ') &&
-        !upper.includes('DELETE ') && !upper.includes('UPDATE ') &&
-        !upper.includes('INSERT ') && !upper.includes('TRUNCATE ') && !upper.includes('ALTER ');
+    const safe = upper.startsWith('SELECT') &&
+        !upper.includes('DROP ') && !upper.includes('DELETE ') &&
+        !upper.includes('UPDATE ') && !upper.includes('INSERT ') &&
+        !upper.includes('TRUNCATE ') && !upper.includes('ALTER ');
     if (!safe)
         return { data: 'Requête bloquée (SELECT uniquement).', executedSql: '', rawRows: [] };
     const serialize = (rows) => {
         const s = JSON.stringify(rows, (_k, v) => typeof v === 'bigint' ? v.toString() : v);
-        const t = s.length > 8000 ? s.substring(0, 8000) + '… (tronqué)' : s;
+        // AMÉLIORATION #6 : Limite augmentée à 10k car. pour les réponses riches (classements longs)
+        const t = s.length > 10000 ? s.substring(0, 10000) + '… (tronqué)' : s;
         return t === '[]' ? 'Aucun résultat trouvé.' : t;
     };
     try {
@@ -570,23 +371,26 @@ async function executeSqlWithRetry(sql, question, schoolId, aiBalancer, sqlSyste
     catch (e1) {
         console.error('❌ SQL Error (1):', e1.message);
         try {
-            const retryRes = await aiBalancer.callAI(`${sqlSystemPrompt}
+            // AMÉLIORATION #7 : Prompt de retry plus ciblé sur l'erreur réelle
+            const retryPrompt = `${sqlSystemPrompt}
 
-La requête a échoué : "${e1.message}"
-SQL en erreur :
+ERREUR SQL: "${e1.message}"
+SQL EN ERREUR:
 \`\`\`sql
 ${sql}
 \`\`\`
-Corrections OBLIGATOIRES :
+
+CORRECTIONS FRÉQUENTES:
 - evaluation_campaigns → JOIN professors p ON ec."professorId"=p.id WHERE p."schoolId"='${schoolId}'
 - classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
-- Guillemets doubles sur toutes colonnes camelCase
-- CAST(col AS TEXT) sur tous les enums
-- LIMIT 1 : Utilise-le UNIQUEMENT si demandé (ex: "le dernier", "le meilleur") ou si un seul résultat est pertinent.
-- REPORTS n'a PAS de "userId" → utilise "authorId" (en filtrant par l'ID utilisateur si c'est un étudiant)
-- REPORTS n'a PAS de "campaignId" → pas de jointure directe avec evaluation_campaigns
-QUESTION : ${question}
-Génère uniquement la requête corrigée.`, schoolId);
+- Guillemets doubles sur toutes colonnes camelCase (firstName, lastName, schoolId, etc.)
+- CAST(col AS TEXT) sur tous les enums (status, priority, type, role, scope...)
+- reports.authorId (PAS userId), reports n'a PAS campaignId
+- ORDER BY : réécris l'expression complète, pas un alias calculé
+
+QUESTION ORIGINALE: ${question}
+Génère UNIQUEMENT la requête SQL corrigée, rien d'autre.`;
+            const retryRes = await aiBalancer.callAI(retryPrompt, schoolId);
             const m = retryRes.content.match(/```sql\s*([\s\S]*?)```/i) ||
                 retryRes.content.match(/(SELECT\s[\s\S]+)/i);
             if (m) {
@@ -733,21 +537,33 @@ exports.chatService = {
             schoolName = s.schoolName || schoolName;
         }
         catch { /* default */ }
-        // Fetch user details for isolation
+        // Fetch user details
         const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
             select: { role: true, classId: true, campuses: { select: { id: true } } }
         });
-        const isStudent = user?.role === 'STUDENT';
-        let effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0)
-            ? filters.campusIds
-            : (user?.campuses.map(c => c.id) || []);
-        // Sécurité : Un étudiant ne peut pas "sortir" de ses propres campus
-        if (isStudent && user?.campuses) {
-            const userCampusIds = user.campuses.map(c => c.id);
-            effectiveCampusIds = effectiveCampusIds.filter(id => userCampusIds.includes(id));
+        const userRole = user?.role || 'VIEWER';
+        const isStudent = userRole === 'STUDENT';
+        const isSuperAdmin = userRole === 'SUPERADMIN';
+        const authorizedCampusIds = user?.campuses.map(c => c.id) || [];
+        let effectiveCampusIds = [];
+        if (filters?.campusIds && filters.campusIds.length > 0) {
+            if (isSuperAdmin || (userRole === 'ADMIN' && authorizedCampusIds.length === 0)) {
+                effectiveCampusIds = filters.campusIds;
+            }
+            else if (authorizedCampusIds.length > 0) {
+                effectiveCampusIds = filters.campusIds.filter(id => authorizedCampusIds.includes(id));
+                if (effectiveCampusIds.length === 0)
+                    effectiveCampusIds = authorizedCampusIds;
+            }
+        }
+        else {
+            effectiveCampusIds = authorizedCampusIds;
+        }
+        if (isStudent && authorizedCampusIds.length > 0) {
+            effectiveCampusIds = effectiveCampusIds.filter(id => authorizedCampusIds.includes(id));
             if (effectiveCampusIds.length === 0)
-                effectiveCampusIds = userCampusIds;
+                effectiveCampusIds = authorizedCampusIds;
         }
         const effectiveClassId = isStudent ? user?.classId : null;
         // Conversation
@@ -756,18 +572,16 @@ exports.chatService = {
             const c = await this.createConversation(schoolId, userId, question);
             convId = c.id;
         }
-        // History
+        // History — AMÉLIORATION #8 : Limite à 10 messages (5 tours) au lieu de 20
         let history = [];
         try {
             history = await prisma_1.prisma.$queryRaw `
         SELECT role, content FROM ai_messages
-        WHERE "conversationId"=${convId} ORDER BY "createdAt" ASC LIMIT 20
+        WHERE "conversationId"=${convId} ORDER BY "createdAt" ASC LIMIT 10
       `;
         }
         catch { /* none */ }
-        // SQL context
         const ctx = await this.loadSqlContext(convId);
-        // Save user message
         await this.addMessage(convId, 'user', question);
         const { aiBalancer } = await Promise.resolve().then(() => __importStar(require('../../core/ai/AiBalancer')));
         const systemIdentity = `Tu es MyIA, l'Assistant IA officiel de "${schoolName}". Tu es un expert en pilotage pédagogique, analyse des signalements et suivi des évaluations.`;
@@ -776,19 +590,27 @@ exports.chatService = {
         let isGeneral = false;
         let chartData = null;
         try {
+            // AMÉLIORATION #9 : Pré-classification locale pour éviter un appel IA inutile
+            const localIntent = classifyIntentLocally(question);
+            // Court-circuit immédiat pour les salutations évidentes
+            if (localIntent === 'GENERAL') {
+                isGeneral = true;
+                const finalPrompt = buildResponsePrompt(systemIdentity, '', historyBlock, question, schoolName, true, false, userRole, isStudent);
+                const finalRes = await aiBalancer.callAI(finalPrompt, schoolId);
+                answer = finalRes.content.trim().replace(/\*/g, '');
+                await this.addMessage(convId, 'assistant', answer);
+                return { answer, conversationId: convId, usedDB: false, schoolName, chartData: null };
+            }
             // ── Étape 1 : SQL ──────────────────────────────────────────────────────
-            const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, userId, effectiveCampusIds, effectiveClassId);
+            const sqlSystemPrompt = buildSqlPrompt(schoolId, ctx, userId, userRole, effectiveCampusIds, effectiveClassId);
+            // AMÉLIORATION #10 : User prompt SQL plus court et actionnable
             const sqlUserPrompt = [
-                historyBlock ? `HISTORIQUE :\n${historyBlock}\n` : '',
-                `QUESTION : ${question}`,
+                historyBlock ? `HISTORIQUE:\n${historyBlock}\n` : '',
+                `QUESTION: ${question}`,
                 '',
-                '→ SALUTATION / HORS-SUJET / BLAGUE ("bonjour", "merci", "qui es-tu", "raconte une blague") : retourne EXACTEMENT "NO_QUERY"',
-                '→ VOLONTÉ DE SIGNALER / SUGGÉRER : retourne un récapitulatif sans (*) suivi de ```json_action {"type": "CREATE_REPORT", "payload": {"title": "...", "content": "...", "type": "SUGGESTION|PROBLEM_MATERIAL", "priority": "..."}} ```. Titre min 8 carac, Contenu min 15 carac. Complète si trop bref.',
-                '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements (PROBLEM_MATERIAL), profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles.',
-                '→ LIMIT 1 : Utilise-le UNIQUEMENT si demandé (ex: "le dernier", "le meilleur", "le plus de") ou si un seul résultat est pertinent.',
-                '→ Pour combat/classement/comparaison : retourne TOUTES les lignes (LIMIT 20).',
-                '→ Pour courbe/tendance : GROUP BY date ORDER BY date ASC sans LIMIT ou LIMIT 90.',
-                '→ Pour evaluation_campaigns : ec.title AS campaign_title OBLIGATOIRE.',
+                localIntent === 'ACTION'
+                    ? '→ Détecte le signalement/suggestion et génère le json_action.'
+                    : '→ Génère le SQL adapté, ou NO_QUERY si hors-sujet.',
             ].filter(Boolean).join('\n');
             const sqlRes = await aiBalancer.callAI(`${sqlSystemPrompt}\n\n${sqlUserPrompt}`, schoolId);
             const sqlContent = sqlRes.content.trim();
@@ -798,16 +620,9 @@ exports.chatService = {
                 isGeneral = true;
             }
             else if (sqlContent.includes('json_action')) {
-                // Si l'IA a directement généré l'action, on s'arrête là
                 answer = sqlContent.replace(/\*/g, '');
                 await this.addMessage(convId, 'assistant', answer);
-                return {
-                    answer,
-                    conversationId: convId,
-                    usedDB: false,
-                    schoolName,
-                    chartData: null,
-                };
+                return { answer, conversationId: convId, usedDB: false, schoolName, chartData: null };
             }
             else if (sqlContent.includes('INTENT_ACTION')) {
                 dbDataStr = 'USER_WANTS_ACTION';
@@ -820,7 +635,6 @@ exports.chatService = {
                     const result = await executeSqlWithRetry(sql, question, schoolId, aiBalancer, sqlSystemPrompt);
                     dbDataStr = result.data;
                     executedSql = result.executedSql;
-                    // ── Chart detection ──────────────────────────────────────────────
                     if (result.rawRows.length >= 2) {
                         chartData = detectChartData(result.rawRows, question);
                     }
@@ -837,21 +651,22 @@ exports.chatService = {
                 }
             }
             // ── Étape 2 : Réponse naturelle ───────────────────────────────────────
-            const finalPrompt = buildResponsePrompt(systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, chartData !== null);
+            const finalPrompt = buildResponsePrompt(systemIdentity, dbDataStr, historyBlock, question, schoolName, isGeneral, chartData !== null, userRole, isStudent);
             const finalRes = await aiBalancer.callAI(finalPrompt, schoolId);
-            answer = finalRes.content.trim().replace(/\*/g, ''); // Safety: strip all stars for clean mobile UI
+            answer = finalRes.content.trim();
+            // Nettoyage final pour le front
+            answer = answer.replace(/\*/g, '').trim();
+            await this.addMessage(convId, 'assistant', answer);
         }
         catch (e) {
             console.error('❌ AI Balancer completely failed:', e.message);
             answer = "Je suis actuellement très sollicité et mes systèmes ont besoin de refroidir un instant. Veuillez réessayer dans une petite minute !";
         }
-        await this.addMessage(convId, 'assistant', answer);
         return {
             answer,
             conversationId: convId,
             usedDB: !isGeneral,
             schoolName,
-            // chartData est null si pas de graphique applicable
             chartData,
         };
     },
