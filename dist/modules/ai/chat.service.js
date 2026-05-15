@@ -181,12 +181,32 @@ ${classFilterBlock}
 ══════════════════════════════════════════════════════════════
 DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
 ══════════════════════════════════════════════════════════════
-• RÉPONSE COURTE : Ne génère JAMAIS de liste si l'utilisateur demande "le plus", "le meilleur", "le pire" ou "qui est".
-  → Utilise LIMIT 1 pour répondre directement par UNE SEULE entité.
+• RÉPONSE COURTE : Utilise LIMIT 1 pour répondre directement si l'utilisateur demande "le dernier", "le plus", "le meilleur", "le pire" ou "qui est".
 • PAS DE SYMBOLES : N'utilise JAMAIS de caractères "*" ou "**" dans tes réponses texte (pas de gras markdown).
 • LISTE/TABLEAU : Ne génère une liste ou un tableau QUE si l'utilisateur utilise explicitement les mots "liste", "classement" ou "tableau".
+• DÉTECTION D'INTENTION (RÈGLE CRITIQUE) :
+  - Si l'utilisateur veut signaler un problème ou faire une suggestion :
+    1. Analyse les détails. Si des infos manquent (ex: titre trop court), complète-les intelligemment.
+    2. Le TITRE doit faire au moins 8 caractères.
+    3. Le CONTENU doit faire au moins 15 caractères (sois descriptif si l'utilisateur est bref).
+    4. TYPE : Utilise "SUGGESTION" pour les idées/avis et "PROBLEM_MATERIAL" pour les pannes/incidents techniques.
+    5. Retourne une réponse de récapitulatif courte sans symbole markdown (*).
+    6. Ajoute OBLIGATOIREMENT le bloc suivant à la fin :
+       ` ``;
+    json_action;
+    {
+        "type";
+        "CREATE_REPORT", "payload";
+        {
+            "title";
+            "...", "content";
+            "...", "type";
+            "SUGGESTION|PROBLEM_MATERIAL", "priority";
+            "LOW|MEDIUM|HIGH|CRITICAL";
+        }
+    }
+    `` `
 • Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
-• Demande d'ACTION ("envoyer un signalement", "faire un rapport", "évaluer le prof X", "noter ce cours") → retourne EXACTEMENT la chaîne : INTENT_ACTION
 • Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
 • En cas de doute absolu → génère le SQL.
 
@@ -196,7 +216,7 @@ SCHÉMA
 
 schools:              id, name, domain, logoUrl, slug, createdAt, updatedAt
 campuses:             id, name, location, code, phone, schoolId, createdAt, updatedAt
-classes:              id, name, campusId, levelId, createdAt, updatedAt            ⚠️ PAS de schoolId
+classes:              id, name, campusId, levelId, createdAt, updatedAt            (ATTENTION: PAS de schoolId)
 academic_levels:      id, name, "order", schoolId, createdAt, updatedAt
 modules:              id, name, code, schoolId, createdAt, updatedAt
 professors:           id, "firstName","lastName", email, matricule, numero, phone, avatarPath, userId, schoolId, createdAt, updatedAt
@@ -207,6 +227,7 @@ reports:              id, title, content, type, priority, status, "isAnonymous",
                       priority: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
                       status:   'DRAFT'|'SUBMITTED'|'REVIEWED'|'APPROVED'|'REJECTED'
                       type:     'PROBLEM_MATERIAL'|'PROBLEM_ADMIN'|'PROBLEM_PEDAGOGICAL'|'INCIDENT'|'SUGGESTION'|'OTHER'
+                      (HINT: "signalement" -> PROBLEM_MATERIAL/INCIDENT, "suggestion" -> SUGGESTION)
 evaluations:          id, "professorId","moduleId","classId","campaignId","evaluatorId","reportId",
                       status, "isAnonymous", score, comment, "aiScore",
                       "availabilityRating","comprehensionRating","explanationRating","pedagogyRating","rhythmRating",
@@ -553,9 +574,8 @@ Corrections OBLIGATOIRES :
 - classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
 - Guillemets doubles sur toutes colonnes camelCase
 - CAST(col AS TEXT) sur tous les enums
-- JAMAIS LIMIT 1 pour les classements/comparaisons/combats
-- ORDER BY expressions → pas d'alias du SELECT dans les calculs
-- REPORTS n'a PAS de "userId" → utilise "authorId"
+- LIMIT 1 : Utilise-le UNIQUEMENT si demandé (ex: "le dernier", "le meilleur") ou si un seul résultat est pertinent.
+- REPORTS n'a PAS de "userId" → utilise "authorId" (en filtrant par l'ID utilisateur si c'est un étudiant)
 - REPORTS n'a PAS de "campaignId" → pas de jointure directe avec evaluation_campaigns
 QUESTION : ${question}
 Génère uniquement la requête corrigée.`, schoolId);
@@ -748,8 +768,9 @@ exports.chatService = {
                 `QUESTION : ${question}`,
                 '',
                 '→ SALUTATION / HORS-SUJET / BLAGUE ("bonjour", "merci", "qui es-tu", "raconte une blague") : retourne EXACTEMENT "NO_QUERY"',
-                '→ DEMANDE D\'ACTION (créer un signalement, évaluer) : retourne EXACTEMENT "INTENT_ACTION"',
-                '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements, profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles. JAMAIS LIMIT 1.',
+                '→ VOLONTÉ DE SIGNALER / SUGGÉRER : retourne un récapitulatif sans (*) suivi de ```json_action {"type": "CREATE_REPORT", "payload": {"title": "...", "content": "...", "type": "SUGGESTION|PROBLEM_MATERIAL", "priority": "..."}} ```. Titre min 8 carac, Contenu min 15 carac. Complète si trop bref.',
+                '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements (PROBLEM_MATERIAL), profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles.',
+                '→ LIMIT 1 : Utilise-le UNIQUEMENT si demandé (ex: "le dernier", "le meilleur", "le plus de") ou si un seul résultat est pertinent.',
                 '→ Pour combat/classement/comparaison : retourne TOUTES les lignes (LIMIT 20).',
                 '→ Pour courbe/tendance : GROUP BY date ORDER BY date ASC sans LIMIT ou LIMIT 90.',
                 '→ Pour evaluation_campaigns : ec.title AS campaign_title OBLIGATOIRE.',
@@ -760,6 +781,18 @@ exports.chatService = {
             let executedSql = '';
             if (sqlContent.includes('NO_QUERY')) {
                 isGeneral = true;
+            }
+            else if (sqlContent.includes('json_action')) {
+                // Si l'IA a directement généré l'action, on s'arrête là
+                answer = sqlContent.replace(/\*/g, '');
+                await this.addMessage(convId, 'assistant', answer);
+                return {
+                    answer,
+                    conversationId: convId,
+                    usedDB: false,
+                    schoolName,
+                    chartData: null,
+                };
             }
             else if (sqlContent.includes('INTENT_ACTION')) {
                 dbDataStr = 'USER_WANTS_ACTION';

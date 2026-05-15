@@ -165,11 +165,12 @@ ISOLATION ÉTUDIANT (STRICTE)
 L'utilisateur est un étudiant (ID: '${userId}').
 Tu DOIS restreindre l'accès aux données privées :
 - evaluations → WHERE "evaluatorId" = '${userId}' (Il ne peut voir QUE ses propres notes/commentaires).
-- reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements).
-- users       → WHERE id = '${userId}' (Sauf pour COUNT(*) des inscrits de sa classe '${classId}').
-- classes     → WHERE id = '${classId}'
-- modules     → JOIN class_modules cm ON m.id = cm."moduleId" WHERE cm."classId" = '${classId}'
-- campuses    → Ok (données publiques de l'établissement).
+- reports     → WHERE "authorId" = '${userId}' (Il ne peut voir QUE ses propres signalements/historique).
+- users       → WHERE id = '${userId}' (Accès à ses propres infos, mais pas aux mots de passe/sécurité).
+- classes     → WHERE id = '${classId}' (Peut voir les infos de sa classe).
+- campuses/schools → OK (Accès public : adresses, noms, règlements si présents).
+- SÉCURITÉ : Bloque TOUTE donnée privée des autres (emails, téléphones, notes des camarades).
+- LECTURE SEULE : Tu ne génères JAMAIS de requêtes UPDATE, DELETE ou INSERT.
 ══════════════════════════════════════════════════════════════
 ` : '';
 
@@ -181,29 +182,43 @@ ${campusFilterBlock}
 ${classFilterBlock}
 
 ══════════════════════════════════════════════════════════════
-DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
+DONNÉES PUBLIQUES ÉTABLISSEMENT (AFI-L'UE DAKAR)
 ══════════════════════════════════════════════════════════════
-• RÉPONSE COURTE : Ne génère JAMAIS de liste si l'utilisateur demande "le plus", "le meilleur", "le pire" ou "qui est".
-  → Utilise LIMIT 1 pour répondre directement par UNE SEULE entité.
-• PAS DE SYMBOLES : N'utilise JAMAIS de caractères "*" ou "**" dans tes réponses texte (pas de gras markdown).
-• LISTE/TABLEAU : Ne génère une liste ou un tableau QUE si l'utilisateur utilise explicitement les mots "liste", "classement" ou "tableau".
-• Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
-• Demande d'ACTION ("envoyer un signalement", "faire un rapport", "suggérer", "problème avec...") → retourne EXACTEMENT la chaîne : INTENT_ACTION
-• Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
-• En cas de doute absolu → génère le SQL.
+- ADRESSE : Rue G, Zone B, Dakar. Tel: +221 33 824 71 10. BP 17016.
+- FILIÈRES : Gestion (Management, BFA, GRH, Marketing, Audit, Logistique), Droit (Ingénierie Juridique/Fiscale), Technologie (Génie Logiciel, Réseaux, Web, QHSE).
+- DIPLÔMES : Licence (BAC+3), Master (BAC+5). Programmes: International Leader (AFI + FEDE + TOEIC) ou Multiprogramme (AFI + Ministère).
+- RÈGLEMENT : Tenue obligatoire (Uniforme), ponctualité stricte, interdiction des syndicats/politique, pas d'excentricité.
+- ADMISSION : Étude de dossier + Entretien. Inserion pro: 87% sur 5 ans.
+- MODES : Initial, Continu (Soir), Week-end, E-learning (elearning-afi.com).
+- ACCRÉDITATIONS : ANAQ-Sup, CAMES. Membre: FEDE, AACSB, AUF, EFMD.
+══════════════════════════════════════════════════════════════
 
 ══════════════════════════════════════════════════════════════
-EXTRACTION D'ACTION (RÈGLE CRITIQUE)
+DÉCISION PREMIÈRE ET RÉGLES DE RÉPONSE
 ══════════════════════════════════════════════════════════════
-Si l'utilisateur veut créer un signalement ou une suggestion :
-1. Analyse son message pour extraire :
-   - type : 'PROBLEM_MATERIAL' | 'PROBLEM_ADMIN' | 'PROBLEM_PEDAGOGICAL' | 'INCIDENT' | 'SUGGESTION'
-   - title : Un titre court (5-8 mots)
-   - content : Le détail complet
-   - priority : 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-2. Tu DOIS inclure un bloc ```json_action``` à la fin de ta réponse naturelle.
-3. Si des infos manquent, demande-les poliment mais propose quand même le bloc avec ce que tu as.
-══════════════════════════════════════════════════════════════
+• RÉPONSE COURTE : Utilise LIMIT 1 pour répondre directement si l'utilisateur demande "le dernier", "le plus", "le meilleur", "le pire" ou "qui est".
+• PAS DE SYMBOLES : N'utilise JAMAIS de caractères "*" ou "**" dans tes réponses texte (pas de gras markdown).
+• LISTE/TABLEAU : Ne génère une liste ou un tableau QUE si l'utilisateur utilise explicitement les mots "liste", "classement" ou "tableau".
+• DÉTECTION D'INTENTION (RÈGLE CRITIQUE) :
+  - Si l'utilisateur veut signaler un problème ou faire une suggestion :
+    1. Analyse les détails. Si des infos manquent (ex: titre trop court), complète-les intelligemment.
+    2. Le TITRE doit faire au moins 8 caractères.
+    3. Le CONTENU doit faire au moins 15 caractères (sois descriptif si l'utilisateur est bref).
+    4. TYPE : 
+       - Si c'est une idée/avis/suggestion → "SUGGESTION"
+       - Si c'est technique/matériel → "PROBLEM_MATERIAL"
+       - Si c'est administratif → "PROBLEM_ADMIN"
+       - Si c'est pédagogique → "PROBLEM_PEDAGOGICAL"
+       - Si c'est un incident → "INCIDENT"
+    5. PRIORITÉ : Détecte l'urgence ("LOW", "MEDIUM", "HIGH" ou "CRITICAL").
+    6. Retourne une réponse de récapitulatif courte sans symbole markdown (*).
+    7. Ajoute OBLIGATOIREMENT le bloc suivant à la fin :
+       \`\`\`json_action
+       { "type": "CREATE_REPORT", "payload": { "title": "...", "content": "...", "type": "TYPE_DÉTECTÉ", "priority": "PRIORITÉ_DÉTECTÉE" } }
+       \`\`\`
+• Question sur le PROJET ou les DONNÉES : (évaluations, campagnes, professeurs, signalements, reports, classes, modules, campus, utilisateurs, décisions, stats, classements, scores, tendances) → génère le SQL.
+• Salutation / Hors-sujet / Blague / Demande globale ("bonjour", "raconte une blague", "merci", "comment ça va", "que peux-tu faire") → retourne EXACTEMENT la chaîne : NO_QUERY
+• En cas de doute absolu → génère le SQL.
 
 ══════════════════════════════════════════════════════════════
 SCHÉMA
@@ -211,7 +226,7 @@ SCHÉMA
 
 schools:              id, name, domain, logoUrl, slug, createdAt, updatedAt
 campuses:             id, name, location, code, phone, schoolId, createdAt, updatedAt
-classes:              id, name, campusId, levelId, createdAt, updatedAt            ⚠️ PAS de schoolId
+classes:              id, name, campusId, levelId, createdAt, updatedAt            (ATTENTION: PAS de schoolId)
 academic_levels:      id, name, "order", schoolId, createdAt, updatedAt
 modules:              id, name, code, schoolId, createdAt, updatedAt
 professors:           id, "firstName","lastName", email, matricule, numero, phone, avatarPath, userId, schoolId, createdAt, updatedAt
@@ -222,6 +237,7 @@ reports:              id, title, content, type, priority, status, "isAnonymous",
                       priority: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
                       status:   'DRAFT'|'SUBMITTED'|'REVIEWED'|'APPROVED'|'REJECTED'
                       type:     'PROBLEM_MATERIAL'|'PROBLEM_ADMIN'|'PROBLEM_PEDAGOGICAL'|'INCIDENT'|'SUGGESTION'|'OTHER'
+                      (HINT: "signalement" -> PROBLEM_MATERIAL/INCIDENT, "suggestion" -> SUGGESTION)
 evaluations:          id, "professorId","moduleId","classId","campaignId","evaluatorId","reportId",
                       status, "isAnonymous", score, comment, "aiScore",
                       "availabilityRating","comprehensionRating","explanationRating","pedagogyRating","rhythmRating",
@@ -286,13 +302,13 @@ RÈGLES ABSOLUES
     ❌ JAMAIS LIMIT 1 — même pour "la plus", "la moins", "quelle est la meilleure"
     ════════════════════════════════════════════════════════════
     "combat" / "classement" / "comparaison" / "toutes les classes/profs/modules"
-      → TOUTES les lignes disponibles, LIMIT 20 maximum
+      → TOUTES les lignes disponibles, LIMIT ${classId ? 10 : 20} maximum
     "top N" / "les X meilleurs/pires"
       → LIMIT N (ex: top 5 = LIMIT 5, top 3 = LIMIT 3)
     "le meilleur" / "le pire" seul sans comparaison demandée
       → LIMIT 5 (pour les ex-aequo)
     liste générale
-      → LIMIT 20
+      → LIMIT ${classId ? 10 : 20}
     comptage pur (COUNT seulement)
       → pas de LIMIT
     courbe / tendance (GROUP BY date)
@@ -589,9 +605,8 @@ Corrections OBLIGATOIRES :
 - classes → JOIN campuses ca ON cl."campusId"=ca.id WHERE ca."schoolId"='${schoolId}'
 - Guillemets doubles sur toutes colonnes camelCase
 - CAST(col AS TEXT) sur tous les enums
-- JAMAIS LIMIT 1 pour les classements/comparaisons/combats
-- ORDER BY expressions → pas d'alias du SELECT dans les calculs
-- REPORTS n'a PAS de "userId" → utilise "authorId"
+- LIMIT 1 : Utilise-le UNIQUEMENT si demandé (ex: "le dernier", "le meilleur") ou si un seul résultat est pertinent.
+- REPORTS n'a PAS de "userId" → utilise "authorId" (en filtrant par l'ID utilisateur si c'est un étudiant)
 - REPORTS n'a PAS de "campaignId" → pas de jointure directe avec evaluation_campaigns
 QUESTION : ${question}
 Génère uniquement la requête corrigée.`, schoolId);
@@ -757,9 +772,17 @@ export const chatService = {
     });
 
     const isStudent = user?.role === 'STUDENT';
-    const effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0) 
+    let effectiveCampusIds = (filters?.campusIds && filters.campusIds.length > 0) 
       ? filters.campusIds 
       : (user?.campuses.map(c => c.id) || []);
+
+    // Sécurité : Un étudiant ne peut pas "sortir" de ses propres campus
+    if (isStudent && user?.campuses) {
+      const userCampusIds = user.campuses.map(c => c.id);
+      effectiveCampusIds = effectiveCampusIds.filter(id => userCampusIds.includes(id));
+      if (effectiveCampusIds.length === 0) effectiveCampusIds = userCampusIds;
+    }
+
     const effectiveClassId = isStudent ? user?.classId : null;
 
     // Conversation
@@ -800,8 +823,9 @@ export const chatService = {
         `QUESTION : ${question}`,
         '',
         '→ SALUTATION / HORS-SUJET / BLAGUE ("bonjour", "merci", "qui es-tu", "raconte une blague") : retourne EXACTEMENT "NO_QUERY"',
-        '→ DEMANDE D\'ACTION (créer un signalement, évaluer) : retourne EXACTEMENT "INTENT_ACTION"',
-        '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements, profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles. JAMAIS LIMIT 1.',
+        '→ VOLONTÉ DE SIGNALER / SUGGÉRER : retourne un récapitulatif sans (*) suivi de ```json_action {"type": "CREATE_REPORT", "payload": {"title": "...", "content": "...", "type": "SUGGESTION|PROBLEM_MATERIAL", "priority": "..."}} ```. Titre min 8 carac, Contenu min 15 carac. Complète si trop bref.',
+        '→ TOUTE QUESTION SUR LE PROJET (graphe, courbe, stats, signalements (PROBLEM_MATERIAL), profs, dates, évaluations, classes,etudiant,modules, utilisateurs,decisions) : génère SQL avec noms lisibles.',
+        '→ LIMIT 1 : Utilise-le UNIQUEMENT si demandé (ex: "le dernier", "le meilleur", "le plus de") ou si un seul résultat est pertinent.',
         '→ Pour combat/classement/comparaison : retourne TOUTES les lignes (LIMIT 20).',
         '→ Pour courbe/tendance : GROUP BY date ORDER BY date ASC sans LIMIT ou LIMIT 90.',
         '→ Pour evaluation_campaigns : ec.title AS campaign_title OBLIGATOIRE.',
@@ -815,6 +839,17 @@ export const chatService = {
 
       if (sqlContent.includes('NO_QUERY')) {
         isGeneral = true;
+      } else if (sqlContent.includes('json_action')) {
+        // Si l'IA a directement généré l'action, on s'arrête là
+        answer = sqlContent.replace(/\*/g, '');
+        await this.addMessage(convId as string, 'assistant', answer);
+        return {
+          answer,
+          conversationId: convId as string,
+          usedDB: false,
+          schoolName,
+          chartData: null,
+        };
       } else if (sqlContent.includes('INTENT_ACTION')) {
         dbDataStr = 'USER_WANTS_ACTION';
       } else {
